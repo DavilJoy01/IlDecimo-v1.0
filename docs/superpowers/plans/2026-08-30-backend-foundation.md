@@ -21,6 +21,8 @@
 - Chat (`match_messages`, `private_messages`) is readable/writable only by authorized participants (spec REGOLA 6).
 - All migrations live in `supabase/migrations/`, all pgTAP tests in `supabase/tests/`, one test file per migration.
 - Every SQL migration is idempotent-safe to run in order via `supabase db reset`; every test file is self-contained (creates its own fixtures) and wrapped in `begin; ... rollback;` so tests never leak state into each other.
+- Every `security definer` function pins `set search_path = ''` (or the narrowest schema list it actually needs, e.g. `'extensions'` for PostGIS calls) — an unpinned search path on a privilege-elevated function is a real hijack vector, not a style nit.
+- `public.users.phone` is never exposed to anyone but its owner; any cross-user profile read goes through `public.user_public_profiles`, never the base table.
 
 ---
 
@@ -123,14 +125,14 @@ git commit -m "chore: bootstrap Supabase project with pgTAP test helper"
 
 **Interfaces:**
 - Consumes: `auth.users` (Supabase Auth's built-in table, already present in the local stack).
-- Produces: table `public.users(id, unique_user_id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role, profile_image_url, matches_played_count, matches_completed_count, matches_abandoned_count, created_at, updated_at)`, used as the FK target (`public.users(id)`) by every later table.
+- Produces: table `public.users(id, unique_user_id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role, profile_image_url, matches_played_count, matches_completed_count, matches_abandoned_count, created_at, updated_at)`, used as the FK target (`public.users(id)`) by every later table; view `public.user_public_profiles(id, unique_user_id, first_name, last_name, birth_date, height_cm, preferred_foot, player_role, profile_image_url, matches_played_count, matches_completed_count, matches_abandoned_count)` — every later feature that reads *another* user's profile (search by ID, friend profiles, match participant lists) reads this view, never the base table, since the base table's own SELECT is owner-only and `phone` is never exposed to anyone but its owner.
 
 - [ ] **Step 1: Write the failing test**
 
 ```sql
 -- supabase/tests/001_users.test.sql
 begin;
-select plan(6);
+select plan(9);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111', 'mario@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -176,6 +178,26 @@ select throws_ok(
   'inserting a duplicate phone number fails'
 );
 
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
+
+select is(
+  (select count(*)::int from public.users where id = '11111111-1111-1111-1111-111111111111'),
+  0,
+  'a non-owner cannot see another user''s row via the base table'
+);
+
+select is(
+  (select count(*)::int from public.user_public_profiles where id = '11111111-1111-1111-1111-111111111111'),
+  1,
+  'a non-owner can see another user''s public profile via the view'
+);
+
+select throws_ok(
+  $$ select phone from public.user_public_profiles limit 1 $$,
+  null,
+  'the public profile view does not expose the phone column at all'
+);
+
 select * from finish();
 rollback;
 ```
@@ -213,6 +235,7 @@ create or replace function public.generate_unique_user_id()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 begin
   if new.unique_user_id is not null then
@@ -231,6 +254,7 @@ create or replace function public.protect_users_row()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 begin
   if new.unique_user_id is distinct from old.unique_user_id then
@@ -249,20 +273,30 @@ alter table public.users enable row level security;
 
 grant select, insert, update on public.users to authenticated;
 
-create policy "users_select_authenticated" on public.users
-  for select to authenticated using (true);
+create policy "users_select_self" on public.users
+  for select to authenticated using (auth.uid() = id);
 
 create policy "users_insert_self" on public.users
   for insert to authenticated with check (auth.uid() = id);
 
 create policy "users_update_self" on public.users
   for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
+
+create view public.user_public_profiles
+with (security_invoker = false) as
+select
+  id, unique_user_id, first_name, last_name, birth_date, height_cm,
+  preferred_foot, player_role, profile_image_url,
+  matches_played_count, matches_completed_count, matches_abandoned_count
+from public.users;
+
+grant select on public.user_public_profiles to authenticated;
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `supabase test db`
-Expected: `001_users.test.sql .. ok`, all 6 assertions pass.
+Expected: `001_users.test.sql .. ok`, all 9 assertions pass.
 
 - [ ] **Step 5: Commit**
 
@@ -558,6 +592,7 @@ create or replace function public.enforce_participant_state_machine()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 declare
   v_creator_id uuid;
@@ -744,6 +779,7 @@ create or replace function public.log_participant_status_change()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 begin
   if tg_op = 'INSERT' then
@@ -1001,6 +1037,7 @@ create or replace function public.notify_on_participant_change()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 declare
   v_creator_id uuid;
@@ -1201,6 +1238,7 @@ create or replace function public.notify_on_match_message()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 declare
   v_field_name text;
@@ -1348,6 +1386,7 @@ create or replace function public.enforce_friendship_transition()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 begin
   if old.status <> 'pending' then
@@ -1371,6 +1410,7 @@ create or replace function public.notify_on_friend_request()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 declare
   v_requester_name text;
@@ -1710,6 +1750,7 @@ create or replace function public.protect_private_message_immutable_fields()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 begin
   if new.body <> old.body or new.sender_id <> old.sender_id or new.conversation_id <> old.conversation_id then
@@ -1727,6 +1768,7 @@ create or replace function public.notify_on_private_message()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 declare
   v_recipient_id uuid;
@@ -1875,6 +1917,7 @@ create or replace function public.notify_on_match_invitation()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 declare
   v_inviter_name text;
@@ -2115,6 +2158,7 @@ returns table (
 language sql
 stable
 security definer
+set search_path = 'extensions'
 as $$
   select
     m.id,
@@ -2223,6 +2267,7 @@ create or replace function public.notify_on_match_lifecycle_change()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 declare
   v_participant record;
@@ -2323,7 +2368,7 @@ select is(
 );
 
 select is(
-  (select matches_completed_count from public.users where id = '22222222-2222-2222-2222-222222222222'),
+  (select matches_completed_count from public.user_public_profiles where id = '22222222-2222-2222-2222-222222222222'),
   1,
   'the participant''s completed match counter is incremented'
 );
@@ -2367,6 +2412,7 @@ create or replace function public.transition_match_statuses()
 returns void
 language plpgsql
 security definer
+set search_path = ''
 as $$
 declare
   v_match record;
@@ -2500,6 +2546,7 @@ create or replace function public.send_push_notification_for_new_notification()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 declare
   v_tokens text[];
