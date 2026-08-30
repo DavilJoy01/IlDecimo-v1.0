@@ -1978,7 +1978,7 @@ git commit -m "feat: add block-aware private conversations and messages with rea
 ```sql
 -- supabase/tests/011_match_invitations.test.sql
 begin;
-select plan(7);
+select plan(8);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','mario@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -2034,6 +2034,12 @@ select throws_ok(
   $$ update public.match_invitations set inviter_id = '22222222-2222-2222-2222-222222222222' where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' $$,
   'inviter_id cannot be changed',
   'an invitee cannot reassign who the invitation says invited them'
+);
+
+select throws_ok(
+  $$ update public.match_invitations set invitee_id = '11111111-1111-1111-1111-111111111111' where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' $$,
+  'invitee_id cannot be changed',
+  'the invitee cannot hand the invitation off to a different invitee'
 );
 
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
@@ -2144,7 +2150,7 @@ create trigger trg_notify_on_match_invitation
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `supabase test db`
-Expected: `011_match_invitations.test.sql .. ok`, all 7 assertions pass.
+Expected: `011_match_invitations.test.sql .. ok`, all 8 assertions pass.
 
 - [ ] **Step 5: Commit**
 
