@@ -729,16 +729,31 @@ alter table public.match_participants enable row level security;
 
 grant select, insert, update on public.match_participants to authenticated;
 
+-- A same-table correlated subquery directly inside this policy's `using`
+-- clause makes Postgres raise "infinite recursion detected in policy for
+-- relation" (evaluating the policy for one row would require re-evaluating
+-- the same table's RLS for the subquery's rows). Wrapping the check in a
+-- SECURITY DEFINER function breaks that direct self-reference.
+create or replace function public.is_fellow_participant(p_match_id uuid, p_user_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = ''
+stable
+as $$
+  select exists (
+    select 1 from public.match_participants mp2
+    where mp2.match_id = p_match_id
+      and mp2.user_id = p_user_id
+      and mp2.status in ('approved','active','completed')
+  );
+$$;
+
 create policy "participants_select_relevant" on public.match_participants
   for select to authenticated using (
     auth.uid() = user_id
     or auth.uid() = (select creator_id from public.matches where id = match_id)
-    or exists (
-      select 1 from public.match_participants mp2
-      where mp2.match_id = match_participants.match_id
-        and mp2.user_id = auth.uid()
-        and mp2.status in ('approved','active','completed')
-    )
+    or public.is_fellow_participant(match_id, auth.uid())
   );
 
 create policy "participants_insert_self" on public.match_participants
