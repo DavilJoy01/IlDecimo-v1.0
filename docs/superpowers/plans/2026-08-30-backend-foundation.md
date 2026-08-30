@@ -2395,20 +2395,24 @@ $$;
 
 grant execute on function public.nearby_open_matches(double precision, double precision, double precision) to authenticated;
 
--- Supabase's own bootstrap (not vanilla Postgres's PUBLIC default -- verified by
--- inspecting pg_default_acl) grants EXECUTE on every new public-schema function
--- directly to anon/authenticated/service_role via a per-role default ACL owned by
--- `postgres`. That's convenient for RPCs meant to be public, but it means
--- nearby_open_matches -- a directly callable SECURITY DEFINER function -- is
--- currently callable by the fully unauthenticated `anon` role too, letting a
--- signed-out caller search every open match. Revoke anon's access specifically
--- (authenticated's access is intentional and stays), both retroactively for this
--- function and for is_fellow_participant() (Task 4's RLS helper -- also directly
--- callable as a raw RPC by anything with EXECUTE, which would let anon probe
--- arbitrary match/user participation pairs), and change the default going forward
--- so Tasks 15-17's new functions don't default to anon-accessible either.
-revoke execute on function public.nearby_open_matches(double precision, double precision, double precision) from anon;
-revoke execute on function public.is_fellow_participant(uuid, uuid) from anon;
+-- TWO INDEPENDENT mechanisms grant EXECUTE by default, and both must be closed or
+-- anon keeps access via whichever one is left standing:
+-- (1) vanilla Postgres implicitly grants EXECUTE to the PUBLIC pseudo-role at
+--     CREATE FUNCTION time, unconditionally, for every role including anon;
+-- (2) Supabase's own bootstrap ADDITIONALLY grants EXECUTE directly to
+--     anon/authenticated/service_role via a default ACL owned by role `postgres`,
+--     entirely independent of (1) (confirmed via pg_default_acl).
+-- nearby_open_matches -- a directly callable SECURITY DEFINER function -- would
+-- otherwise be callable by the fully unauthenticated `anon` role, letting a
+-- signed-out caller search every open match. Same for is_fellow_participant()
+-- (Task 4's RLS helper, also directly callable as a raw RPC, which would let anon
+-- probe arbitrary match/user participation pairs). Revoke anon's access via BOTH
+-- mechanisms for both functions (authenticated's access is intentional and stays),
+-- and change both defaults going forward so Tasks 15-17's new functions don't
+-- default to anon-accessible either.
+revoke execute on function public.nearby_open_matches(double precision, double precision, double precision) from public, anon;
+revoke execute on function public.is_fellow_participant(uuid, uuid) from public, anon;
+alter default privileges in schema public revoke execute on functions from public;
 alter default privileges for role postgres in schema public revoke execute on functions from anon;
 ```
 
@@ -2734,7 +2738,7 @@ $$;
 -- bypasses grants entirely) -- so revoke both roles' default access explicitly;
 -- an ordinary signed-in user must never be able to force match completions or
 -- reminders on demand by calling this directly.
-revoke execute on function public.transition_match_statuses() from authenticated, anon;
+revoke execute on function public.transition_match_statuses() from public, authenticated, anon;
 
 select cron.schedule(
   'transition-match-statuses',
