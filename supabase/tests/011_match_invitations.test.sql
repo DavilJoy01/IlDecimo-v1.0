@@ -1,6 +1,6 @@
 -- supabase/tests/011_match_invitations.test.sql
 begin;
-select plan(6);
+select plan(7);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','mario@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -50,6 +50,12 @@ select throws_ok(
   $$ update public.match_invitations set match_id = '55555555-5555-5555-5555-555555555555' where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' $$,
   'match_id cannot be changed',
   'an invitee cannot change the match_id of an invitation'
+);
+
+select throws_ok(
+  $$ update public.match_invitations set inviter_id = '22222222-2222-2222-2222-222222222222' where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' $$,
+  'inviter_id cannot be changed',
+  'an invitee cannot change the inviter_id of an invitation'
 );
 
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
