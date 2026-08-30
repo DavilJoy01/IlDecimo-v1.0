@@ -2281,7 +2281,7 @@ git commit -m "feat: add reports table for App Store UGC moderation compliance"
 ```sql
 -- supabase/tests/013_nearby_open_matches.test.sql
 begin;
-select plan(4);
+select plan(5);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','creator@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -2332,6 +2332,16 @@ select is(
   2,
   'widening the radius to 500km also returns the far-away match, but never the draft one'
 );
+
+set local role anon;
+
+select throws_ok(
+  $$ select count(*) from public.nearby_open_matches(38.1157, 13.3615, 20) $$,
+  null,
+  'an unauthenticated (anon) caller cannot invoke nearby_open_matches at all'
+);
+
+reset role;
 
 select * from finish();
 rollback;
@@ -2384,12 +2394,33 @@ as $$
 $$;
 
 grant execute on function public.nearby_open_matches(double precision, double precision, double precision) to authenticated;
+
+-- Postgres grants EXECUTE on every new function to PUBLIC by default, so every
+-- function created so far in this plan (Tasks 1-13) is currently callable by the
+-- unauthenticated `anon` role too, regardless of its own `grant ... to authenticated`.
+-- This is harmless for trigger functions (Postgres refuses to invoke them outside
+-- trigger context, whoever's asking), but nearby_open_matches is a directly callable
+-- SECURITY DEFINER function, so this genuinely lets a signed-out caller query all
+-- open matches. Revoke the PUBLIC default retroactively for every function that
+-- exists so far, and change the default going forward so Tasks 15-17 don't need to
+-- repeat this.
+--
+-- One function needs a compensating grant first: is_fellow_participant() (Task 4)
+-- is called from inside the participants_select_relevant and
+-- participant_events_select_relevant RLS policies, which evaluate as the querying
+-- role -- so `authenticated` genuinely needs EXECUTE on it directly (unlike trigger
+-- functions), and it never got an explicit grant because it was relying entirely on
+-- the PUBLIC default we're about to remove.
+grant execute on function public.is_fellow_participant(uuid, uuid) to authenticated;
+
+revoke execute on all functions in schema public from public;
+alter default privileges in schema public revoke execute on functions from public;
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `supabase test db`
-Expected: `013_nearby_open_matches.test.sql .. ok`, all 4 assertions pass.
+Expected: `013_nearby_open_matches.test.sql .. ok`, all 5 assertions pass.
 
 - [ ] **Step 5: Commit**
 
@@ -2574,6 +2605,11 @@ select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 update public.match_participants set status = 'approved' where id = '55555555-5555-5555-5555-555555555555';
 update public.match_participants set status = 'active' where id = '55555555-5555-5555-5555-555555555555';
 
+-- transition_match_statuses() is a system-only function (invoked by pg_cron, which
+-- runs as a superuser) and is deliberately never granted to `authenticated` -- an
+-- ordinary signed-in user should not be able to force match completions/reminders
+-- on demand. Simulate the cron caller by clearing authentication first.
+select tests.clear_authentication();
 select public.transition_match_statuses();
 
 select is(
@@ -2604,6 +2640,7 @@ values ('66666666-6666-6666-6666-666666666666','66666666-6666-6666-6666-66666666
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 update public.match_participants set status = 'approved' where id = '66666666-6666-6666-6666-666666666666';
 
+select tests.clear_authentication();
 select public.transition_match_statuses();
 
 select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
