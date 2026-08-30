@@ -1,0 +1,36 @@
+create table public.match_participant_events (
+  id uuid primary key default gen_random_uuid(),
+  match_participant_id uuid not null references public.match_participants(id) on delete cascade,
+  from_status text,
+  to_status text not null,
+  changed_at timestamptz not null default now()
+);
+
+alter table public.match_participant_events enable row level security;
+
+grant select on public.match_participant_events to authenticated;
+
+create policy "participant_events_select_authenticated" on public.match_participant_events
+  for select to authenticated using (true);
+
+create or replace function public.log_participant_status_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if tg_op = 'INSERT' then
+    insert into public.match_participant_events (match_participant_id, from_status, to_status)
+    values (new.id, null, new.status);
+  elsif tg_op = 'UPDATE' and new.status <> old.status then
+    insert into public.match_participant_events (match_participant_id, from_status, to_status)
+    values (new.id, old.status, new.status);
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_log_participant_status_change
+  after insert or update on public.match_participants
+  for each row execute function public.log_participant_status_change();
