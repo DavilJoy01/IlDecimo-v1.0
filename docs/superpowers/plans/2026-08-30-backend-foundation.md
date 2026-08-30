@@ -1018,7 +1018,14 @@ create table public.notifications (
   )),
   payload jsonb not null default '{}'::jsonb,
   read_at timestamptz,
-  created_at timestamptz not null default now()
+  -- clock_timestamp(), not now(): now()/transaction_timestamp() is frozen for the
+  -- whole transaction, so two notifications for the same user logged in one
+  -- transaction (as happens inside a single pgTAP test, and could happen inside
+  -- any single production transaction that fires more than one notification —
+  -- e.g. Task 16's periodic sweep) would tie on created_at, making "get the
+  -- user's latest notification" (`order by created_at desc limit 1`, used
+  -- throughout this plan's tests) non-deterministic.
+  created_at timestamptz not null default clock_timestamp()
 );
 
 create index notifications_user_id_idx on public.notifications (user_id, created_at desc);
