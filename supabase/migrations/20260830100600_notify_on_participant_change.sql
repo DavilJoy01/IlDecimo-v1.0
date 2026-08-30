@@ -1,4 +1,3 @@
--- supabase/migrations/20260830100600_notify_on_participant_change.sql
 create or replace function public.notify_on_participant_change()
 returns trigger
 language plpgsql
