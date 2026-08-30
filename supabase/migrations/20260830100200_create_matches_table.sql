@@ -48,7 +48,3 @@ create policy "matches_update_creator_only" on public.matches
 
 create policy "matches_delete_creator_only" on public.matches
   for delete to authenticated using (auth.uid() = creator_id);
-
-grant usage on schema tests to authenticated;
-grant execute on function tests.authenticate_as(uuid) to authenticated;
-grant execute on function tests.clear_authentication() to authenticated;
