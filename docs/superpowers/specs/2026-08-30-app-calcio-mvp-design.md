@@ -22,8 +22,8 @@ configurato. Questo ha guidato la scelta di uno stack fortemente managed.
   Expo Notifications per le push, `expo-location` per il GPS, `expo-secure-store` per la sessione.
 - **Backend**: Supabase — Postgres reale (non NoSQL) + PostGIS per la geolocalizzazione,
   Auth con OTP via SMS, Realtime (basato su replica logica Postgres) per le chat,
-  Storage per le foto profilo, Edge Functions (Deno/TypeScript) per la logica di business
-  che richiede più passaggi atomici, `pg_cron` per le transizioni automatiche di stato partita.
+  Storage per le foto profilo, `pg_cron` per le transizioni automatiche di stato partita,
+  `pg_net` per l'invio delle push direttamente da trigger di database (vedi nota sotto).
 - **Maps**: Google Maps Platform (Places Autocomplete per l'indirizzo del campo, Maps SDK
   per la visualizzazione, `react-native-maps` lato client).
 - **Build & pubblicazione**: EAS Build / EAS Submit per generare e pubblicare le build
@@ -130,13 +130,13 @@ calcola le distanze al volo. Solo `matches.location` (posizione del campo, non d
 |---|---|---|
 | Solo il creatore approva richieste | RLS su `match_participants` | `UPDATE` di `status` da `requested` consentito solo se `auth.uid() = matches.creator_id` |
 | Nessun ingresso automatico | RLS su `match_participants` | `INSERT` da utente crea sempre `status='requested'`; nessuna policy permette insert diretto con `approved` |
-| Max 2 uscite per coppia utente↔match | Edge Function `request_to_join` + trigger | Prima di un nuovo `requested`, verifica `leave_count >= 2` e rifiuta esplicitamente |
+| Max 2 uscite per coppia utente↔match | Trigger `BEFORE UPDATE` su `match_participants` | Prima di un nuovo `requested` (rientro dopo un `left`), verifica `leave_count >= 2` e rifiuta esplicitamente — nessuna Edge Function intermedia: l'enforcement vale per qualunque client, non solo per chi passa da una funzione specifica |
 | Modifica/cancellazione partita | RLS su `matches` | `UPDATE`/`DELETE` solo se `auth.uid() = creator_id` |
 | Accesso chat di stanza solo autorizzati | RLS su `match_messages` | richiede riga in `match_participants` con status approvato per quel match/utente |
 | Accesso chat privata | RLS su `private_messages` | permesso solo per `user_a_id`/`user_b_id` della conversazione, e solo se non c'è un `user_blocks` reciproco |
 | Password mai in chiaro | Supabase Auth | hashing gestito internamente (bcrypt) |
 | ID univoco immutabile | Trigger `BEFORE INSERT` su `users` + policy `UPDATE` che esclude la colonna | genera `FC-XXXXXX` una sola volta |
-| Transizioni automatiche stato partita | `pg_cron` + Edge Function schedulata | job periodico che aggiorna `status` in base a `start_time`/`end_time` e propaga i contatori sugli utenti |
+| Transizioni automatiche stato partita | `pg_cron` + funzione `plpgsql` | job periodico (ogni minuto) che aggiorna `status` in base a `start_time`/`end_time`, propaga i contatori sugli utenti e genera i promemoria "partita imminente" |
 
 ## 6. Struttura frontend
 
@@ -168,12 +168,16 @@ prompt originale — struttura già ottimale per questo caso d'uso).
 ## 7. Sistemi trasversali
 
 **Autenticazione**: Supabase Auth con OTP via SMS (provider Twilio o simile, costo per SMS
-da configurare). Flusso: numero → OTP → verifica → password → sessione JWT salvata in
-`expo-secure-store`. Una Edge Function `complete-registration` crea la riga `users` e genera
-l'`unique_user_id` dopo la verifica.
+da configurare — richiede che l'utente crei un account presso il provider SMS scelto).
+Flusso: numero → OTP → verifica → password → sessione JWT salvata in `expo-secure-store`.
+Subito dopo, il client inserisce direttamente la riga in `users` (con RLS che verifica
+`auth.uid() = id`); il trigger `generate_unique_user_id` genera l'`unique_user_id` a livello
+di database — non serve una Edge Function intermedia.
 
-**Notifiche push**: `push_token` registrato in `user_push_tokens` al login. Un trigger su
-`INSERT` in `notifications` invoca una Edge Function che spedisce via Expo Push API.
+**Notifiche push**: `push_token` registrato in `user_push_tokens` al login. Un trigger
+`AFTER INSERT` su `notifications` chiama `net.http_post` (estensione `pg_net`) verso l'Expo
+Push API direttamente dal database — più semplice di una Edge Function dedicata e con lo
+stesso risultato, dato che si tratta di un'unica chiamata HTTP fire-and-forget.
 
 **Chat realtime**: Supabase Realtime sui canali di `match_messages`/`private_messages`,
 nessun server WebSocket separato da gestire.
