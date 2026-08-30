@@ -80,6 +80,10 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end;
 $$;
+
+grant usage on schema tests to authenticated;
+grant execute on function tests.authenticate_as(uuid) to authenticated;
+grant execute on function tests.clear_authentication() to authenticated;
 ```
 
 - [ ] **Step 4: Write the smoke test**
