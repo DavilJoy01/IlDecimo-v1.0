@@ -3,7 +3,9 @@ create table public.match_participant_events (
   match_participant_id uuid not null references public.match_participants(id) on delete cascade,
   from_status text,
   to_status text not null,
-  changed_at timestamptz not null default now()
+  -- Use clock_timestamp() instead of now() to ensure each insert/update gets a distinct timestamp
+  -- within the same transaction, even in rapid succession. now() returns transaction start time.
+  changed_at timestamptz not null default clock_timestamp()
 );
 
 alter table public.match_participant_events enable row level security;
