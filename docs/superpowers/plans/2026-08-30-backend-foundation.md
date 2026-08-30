@@ -475,7 +475,7 @@ This is the core of REGOLA 1–4: no automatic entry, only the creator approves,
 ```sql
 -- supabase/tests/003_match_participants.test.sql
 begin;
-select plan(8);
+select plan(13);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','creator@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -519,13 +519,14 @@ select throws_ok(
 select tests.authenticate_as('33333333-3333-3333-3333-333333333333');
 update public.match_participants set status = 'approved' where id = '55555555-5555-5555-5555-555555555555';
 
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+
 select is(
   (select status from public.match_participants where id = '55555555-5555-5555-5555-555555555555'),
   'requested',
   'a random user cannot modify a participation row they are not party to; RLS silently blocks it'
 );
 
-select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 update public.match_participants set status = 'approved' where id = '55555555-5555-5555-5555-555555555555';
 
 select is(
@@ -534,6 +535,15 @@ select is(
   'the match creator can approve a participation request'
 );
 
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
+
+select throws_ok(
+  $$ update public.match_participants set status = 'active' where id = '55555555-5555-5555-5555-555555555555' $$,
+  'only the match creator can activate a participant',
+  'a participant cannot self-activate'
+);
+
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 update public.match_participants set status = 'active' where id = '55555555-5555-5555-5555-555555555555';
 
 select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
@@ -545,7 +555,13 @@ select is(
   'leaving increments leave_count to 1'
 );
 
-update public.match_participants set status = 'requested' where id = '55555555-5555-5555-5555-555555555555';
+update public.match_participants set status = 'requested', leave_count = 0 where id = '55555555-5555-5555-5555-555555555555';
+
+select is(
+  (select leave_count from public.match_participants where id = '55555555-5555-5555-5555-555555555555'),
+  1,
+  'a caller-supplied leave_count is ignored; the trigger keeps the server-computed value regardless of what the client sends'
+);
 
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 update public.match_participants set status = 'approved' where id = '55555555-5555-5555-5555-555555555555';
@@ -564,6 +580,30 @@ select throws_ok(
   $$ update public.match_participants set status = 'requested' where id = '55555555-5555-5555-5555-555555555555' $$,
   'maximum number of re-entries (2) reached for this match',
   'a third re-entry attempt is rejected after 2 leaves'
+);
+
+select throws_ok(
+  $$ update public.match_participants set status = 'left' where id = '55555555-5555-5555-5555-555555555555' $$,
+  'invalid participation status transition from left to left',
+  'an unhandled transition (already left, attempting left again) is rejected by the catch-all'
+);
+
+select tests.authenticate_as('33333333-3333-3333-3333-333333333333');
+insert into public.match_participants (id, match_id, user_id, status)
+values ('99999999-9999-9999-9999-999999999999','44444444-4444-4444-4444-444444444444','33333333-3333-3333-3333-333333333333','requested');
+
+select throws_ok(
+  $$ update public.match_participants set match_id = '77777777-7777-7777-7777-777777777777' where id = '99999999-9999-9999-9999-999999999999' $$,
+  'match_id cannot be changed',
+  'a participant cannot move their own row to a different match'
+);
+
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+
+select throws_ok(
+  $$ update public.match_participants set user_id = '11111111-1111-1111-1111-111111111111' where id = '99999999-9999-9999-9999-999999999999' $$,
+  'user_id cannot be changed',
+  'the match creator cannot reassign a participation row to a different user'
 );
 
 select * from finish();
@@ -601,23 +641,43 @@ as $$
 declare
   v_creator_id uuid;
 begin
-  select creator_id into v_creator_id from public.matches where id = coalesce(new.match_id, old.match_id);
-
   if tg_op = 'INSERT' then
     if new.status <> 'requested' then
       raise exception 'a new participation must start as requested';
     end if;
-    if new.user_id <> auth.uid() then
+    if new.user_id is distinct from auth.uid() then
       raise exception 'a user can only request participation for themselves';
     end if;
     new.join_count := 1;
     new.leave_count := 0;
     new.requested_at := now();
+    new.approved_at := null;
+    new.left_at := null;
     return new;
   end if;
 
+  -- UPDATE: the row's identity is never caller-writable, in either direction.
+  if new.match_id is distinct from old.match_id then
+    raise exception 'match_id cannot be changed';
+  end if;
+  if new.user_id is distinct from old.user_id then
+    raise exception 'user_id cannot be changed';
+  end if;
+
+  select creator_id into v_creator_id from public.matches where id = old.match_id;
+
+  -- Every derived/audit column defaults to its current value; only the
+  -- specific branch below that legitimately changes one is allowed to.
+  -- This closes the gap where a caller's UPDATE statement could set these
+  -- columns directly alongside a status change the trigger does approve.
+  new.join_count := old.join_count;
+  new.leave_count := old.leave_count;
+  new.requested_at := old.requested_at;
+  new.approved_at := old.approved_at;
+  new.left_at := old.left_at;
+
   if new.status = 'requested' and old.status = 'left' then
-    if auth.uid() <> old.user_id then
+    if auth.uid() is distinct from old.user_id then
       raise exception 'only the participant themselves can re-request to join';
     end if;
     if old.leave_count >= 2 then
@@ -629,7 +689,7 @@ begin
     new.left_at := null;
 
   elsif new.status in ('approved','rejected') and old.status = 'requested' then
-    if auth.uid() <> v_creator_id then
+    if auth.uid() is distinct from v_creator_id then
       raise exception 'only the match creator can approve or reject a request';
     end if;
     if new.status = 'approved' then
@@ -637,17 +697,21 @@ begin
     end if;
 
   elsif new.status = 'active' and old.status = 'approved' then
-    null;
+    if auth.uid() is distinct from v_creator_id then
+      raise exception 'only the match creator can activate a participant';
+    end if;
 
   elsif new.status = 'left' and old.status in ('approved','active') then
-    if auth.uid() <> old.user_id then
+    if auth.uid() is distinct from old.user_id then
       raise exception 'only the participant themselves can leave the match';
     end if;
     new.leave_count := old.leave_count + 1;
     new.left_at := now();
 
   elsif new.status = 'completed' and old.status in ('approved','active') then
-    null;
+    if auth.uid() is not null and auth.uid() is distinct from v_creator_id then
+      raise exception 'only the match creator or the system can mark a participation completed';
+    end if;
 
   else
     raise exception 'invalid participation status transition from % to %', old.status, new.status;
@@ -665,8 +729,17 @@ alter table public.match_participants enable row level security;
 
 grant select, insert, update on public.match_participants to authenticated;
 
-create policy "participants_select_authenticated" on public.match_participants
-  for select to authenticated using (true);
+create policy "participants_select_relevant" on public.match_participants
+  for select to authenticated using (
+    auth.uid() = user_id
+    or auth.uid() = (select creator_id from public.matches where id = match_id)
+    or exists (
+      select 1 from public.match_participants mp2
+      where mp2.match_id = match_participants.match_id
+        and mp2.user_id = auth.uid()
+        and mp2.status in ('approved','active','completed')
+    )
+  );
 
 create policy "participants_insert_self" on public.match_participants
   for insert to authenticated with check (auth.uid() = user_id);
@@ -686,7 +759,7 @@ create policy "participants_update_self_or_creator" on public.match_participants
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `supabase test db`
-Expected: `003_match_participants.test.sql .. ok`, all 8 assertions pass.
+Expected: `003_match_participants.test.sql .. ok`, all 13 assertions pass.
 
 - [ ] **Step 5: Commit**
 
@@ -998,14 +1071,17 @@ select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
 insert into public.match_participants (id, match_id, user_id, status)
 values ('55555555-5555-5555-5555-555555555555','44444444-4444-4444-4444-444444444444','22222222-2222-2222-2222-222222222222','requested');
 
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+
 select is(
   (select type from public.notifications where user_id = '11111111-1111-1111-1111-111111111111' order by created_at desc limit 1),
   'join_request_received',
   'the creator is notified when a new join request comes in'
 );
 
-select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 update public.match_participants set status = 'approved' where id = '55555555-5555-5555-5555-555555555555';
+
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
 
 select is(
   (select type from public.notifications where user_id = '22222222-2222-2222-2222-222222222222' order by created_at desc limit 1),
@@ -1013,6 +1089,7 @@ select is(
   'the participant is notified when their request is approved'
 );
 
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 insert into public.match_participants (id, match_id, user_id, status)
 values ('66666666-6666-6666-6666-666666666666','44444444-4444-4444-4444-444444444444','11111111-1111-1111-1111-111111111111','requested');
 -- creator inserting a self-request is nonsensical in the real app, used here only to exercise a reject path cheaply
@@ -1323,13 +1400,13 @@ select throws_ok(
 insert into public.friendships (id, requester_id, receiver_id)
 values ('99999999-9999-9999-9999-999999999999','11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222');
 
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
+
 select is(
   (select type from public.notifications where user_id = '22222222-2222-2222-2222-222222222222' order by created_at desc limit 1),
   'friend_request_received',
   'the receiver is notified of the new friend request'
 );
-
-select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
 
 select throws_ok(
   $$ insert into public.friendships (requester_id, receiver_id) values ('22222222-2222-2222-2222-222222222222','11111111-1111-1111-1111-111111111111') $$,
@@ -1851,6 +1928,8 @@ select throws_ok(
 insert into public.match_invitations (id, match_id, inviter_id, invitee_id)
 values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','44444444-4444-4444-4444-444444444444','11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222');
 
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
+
 select is(
   (select type from public.notifications where user_id = '22222222-2222-2222-2222-222222222222' order by created_at desc limit 1),
   'match_invitation',
@@ -2103,6 +2182,7 @@ values ('66666666-6666-6666-6666-666666666666','11111111-1111-1111-1111-11111111
 insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players, status)
 values ('77777777-7777-7777-7777-777777777777','11111111-1111-1111-1111-111111111111',5,'Campo Bozza','Via Bozza 1',38.1157,13.3615,'2026-09-05','20:00','21:30',10,'draft');
 
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
 insert into public.match_participants (id, match_id, user_id, status)
 values ('88888888-8888-8888-8888-888888888888','44444444-4444-4444-4444-444444444444','22222222-2222-2222-2222-222222222222','requested');
 
@@ -2226,11 +2306,16 @@ select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players)
 values ('44444444-4444-4444-4444-444444444444','11111111-1111-1111-1111-111111111111',5,'Campo Palermo','Via Roma 1',38.1157,13.3615,'2026-09-05','20:00','21:30',10);
 
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
 insert into public.match_participants (id, match_id, user_id, status)
 values ('55555555-5555-5555-5555-555555555555','44444444-4444-4444-4444-444444444444','22222222-2222-2222-2222-222222222222','requested');
+
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 update public.match_participants set status = 'approved' where id = '55555555-5555-5555-5555-555555555555';
 
 update public.matches set start_time = '21:00', end_time = '22:30' where id = '44444444-4444-4444-4444-444444444444';
+
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
 
 select is(
   (select type from public.notifications where user_id = '22222222-2222-2222-2222-222222222222' order by created_at desc limit 1),
@@ -2238,7 +2323,10 @@ select is(
   'an approved participant is notified when the match time changes'
 );
 
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 update public.matches set address = 'Via Nuova 5' where id = '44444444-4444-4444-4444-444444444444';
+
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
 
 select is(
   (select type from public.notifications where user_id = '22222222-2222-2222-2222-222222222222' order by created_at desc limit 1),
@@ -2246,7 +2334,10 @@ select is(
   'an approved participant is notified when the match address changes'
 );
 
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 update public.matches set status = 'cancelled' where id = '44444444-4444-4444-4444-444444444444';
+
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
 
 select is(
   (select type from public.notifications where user_id = '22222222-2222-2222-2222-222222222222' order by created_at desc limit 1),
@@ -2352,8 +2443,11 @@ select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players, status)
 values ('44444444-4444-4444-4444-444444444444','11111111-1111-1111-1111-111111111111',5,'Campo Palermo','Via Roma 1',38.1157,13.3615, (current_date - 1), '20:00','21:30',10,'open');
 
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
 insert into public.match_participants (id, match_id, user_id, status)
 values ('55555555-5555-5555-5555-555555555555','44444444-4444-4444-4444-444444444444','22222222-2222-2222-2222-222222222222','requested');
+
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 update public.match_participants set status = 'approved' where id = '55555555-5555-5555-5555-555555555555';
 update public.match_participants set status = 'active' where id = '55555555-5555-5555-5555-555555555555';
 
@@ -2380,17 +2474,24 @@ select is(
 insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players, status)
 values ('66666666-6666-6666-6666-666666666666','11111111-1111-1111-1111-111111111111',5,'Campo Imminente','Via Roma 2',38.1157,13.3615, current_date, to_char(now() + interval '30 minutes', 'HH24:MI'), to_char(now() + interval '90 minutes', 'HH24:MI'), 10,'open');
 
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
 insert into public.match_participants (id, match_id, user_id, status)
 values ('66666666-6666-6666-6666-666666666666','66666666-6666-6666-6666-666666666666','22222222-2222-2222-2222-222222222222','requested');
+
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 update public.match_participants set status = 'approved' where id = '66666666-6666-6666-6666-666666666666';
 
 select public.transition_match_statuses();
+
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
 
 select is(
   (select type from public.notifications where user_id = '22222222-2222-2222-2222-222222222222' and payload->>'match_id' = '66666666-6666-6666-6666-666666666666'),
   'match_reminder',
   'a reminder notification is sent when a match starts within the next hour'
 );
+
+select tests.clear_authentication();
 
 select ok(
   exists(select 1 from cron.job where jobname = 'transition-match-statuses'),
@@ -2514,7 +2615,12 @@ insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
 values ('11111111-1111-1111-1111-111111111111','+390000000001','Mario','Rossi','1990-01-01',180,'right','player');
 
-select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+-- Deliberately not calling tests.authenticate_as here: this test exercises the
+-- push-delivery trigger itself, not RLS. In production, notifications are only
+-- ever inserted by other SECURITY DEFINER functions (Tasks 7/8/9/11/12/15/16),
+-- never directly by an authenticated client (notifications has no insert grant
+-- for `authenticated`), so the fixture inserts below run as the test's default
+-- superuser role, matching how these rows are actually created.
 
 select lives_ok(
   $$ insert into public.notifications (user_id, type, payload) values ('11111111-1111-1111-1111-111111111111', 'match_reminder', '{"message":"La tua partita inizia tra 1 ora"}'::jsonb) $$,
