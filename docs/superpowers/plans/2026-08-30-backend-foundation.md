@@ -1281,17 +1281,21 @@ select throws_ok(
 insert into public.friendships (id, requester_id, receiver_id)
 values ('99999999-9999-9999-9999-999999999999','11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222');
 
-select throws_ok(
-  $$ insert into public.friendships (requester_id, receiver_id) values ('22222222-2222-2222-2222-222222222222','11111111-1111-1111-1111-111111111111') $$,
-  null,
-  'a duplicate friendship request in the opposite direction fails'
-);
-
 select is(
   (select type from public.notifications where user_id = '22222222-2222-2222-2222-222222222222' order by created_at desc limit 1),
   'friend_request_received',
   'the receiver is notified of the new friend request'
 );
+
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
+
+select throws_ok(
+  $$ insert into public.friendships (requester_id, receiver_id) values ('22222222-2222-2222-2222-222222222222','11111111-1111-1111-1111-111111111111') $$,
+  null,
+  'a duplicate friendship request in the opposite direction fails (RLS allows the insert attempt; the unique pair index rejects it)'
+);
+
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 
 select throws_ok(
   $$ update public.friendships set status = 'accepted' where id = '99999999-9999-9999-9999-999999999999' $$,
@@ -1816,10 +1820,12 @@ select is(
   'the invitee can mark the invitation as viewed'
 );
 
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+
 select throws_ok(
-  $$ insert into public.match_invitations (match_id, inviter_id, invitee_id) values ('44444444-4444-4444-4444-444444444444','22222222-2222-2222-2222-222222222222','11111111-1111-1111-1111-111111111111') $$,
+  $$ insert into public.match_invitations (match_id, inviter_id, invitee_id) values ('44444444-4444-4444-4444-444444444444','11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222') $$,
   null,
-  'a duplicate invitation for the same match/invitee pair fails'
+  'a duplicate invitation for the same match/invitee pair fails (same inviter, same invitee, so RLS allows the attempt and the unique index rejects it)'
 );
 
 select is(
