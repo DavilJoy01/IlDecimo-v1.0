@@ -20,7 +20,8 @@
 - Only the match creator may approve/reject a join request or modify/cancel a match (spec REGOLA 1).
 - Chat (`match_messages`, `private_messages`) is readable/writable only by authorized participants (spec REGOLA 6).
 - All migrations live in `supabase/migrations/`, all pgTAP tests in `supabase/tests/`, one test file per migration.
-- Every SQL migration is idempotent-safe to run in order via `supabase db reset`; every test file is self-contained (creates its own fixtures) and wrapped in `begin; ... rollback;` so tests never leak state into each other.
+- Every migration is written to be replayed **in order, from a fresh database**, via `supabase db reset` — the actual Supabase CLI workflow this plan is tested against. `create or replace function` is used because functions are genuinely redefined across later tasks; plain `create table`/`create trigger`/`create policy` are correct as-is and do NOT need `if not exists`/`drop ... if exists` guards, since `db reset` always starts from zero and each migration runs exactly once per reset, matching standard Supabase migration conventions (this plan never re-applies a single migration to an already-migrated database).
+- Every test file is self-contained (creates its own fixtures) and wrapped in `begin; ... rollback;` so tests never leak state into each other.
 - Every `security definer` function pins `set search_path = ''` (or the narrowest schema list it actually needs, e.g. `'extensions'` for PostGIS calls) — an unpinned search path on a privilege-elevated function is a real hijack vector, not a style nit.
 - `public.users.phone` is never exposed to anyone but its owner; any cross-user profile read goes through `public.user_public_profiles`, never the base table.
 
@@ -1119,16 +1120,19 @@ select is(
   'the participant is notified when their request is approved'
 );
 
-select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+select tests.authenticate_as('33333333-3333-3333-3333-333333333333');
 insert into public.match_participants (id, match_id, user_id, status)
-values ('66666666-6666-6666-6666-666666666666','44444444-4444-4444-4444-444444444444','11111111-1111-1111-1111-111111111111','requested');
--- creator inserting a self-request is nonsensical in the real app, used here only to exercise a reject path cheaply
+values ('66666666-6666-6666-6666-666666666666','44444444-4444-4444-4444-444444444444','33333333-3333-3333-3333-333333333333','requested');
+
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 update public.match_participants set status = 'rejected' where id = '66666666-6666-6666-6666-666666666666';
 
+select tests.authenticate_as('33333333-3333-3333-3333-333333333333');
+
 select is(
-  (select type from public.notifications where user_id = '11111111-1111-1111-1111-111111111111' and payload->>'match_id' = '44444444-4444-4444-4444-444444444444' and type = 'join_request_rejected'),
+  (select type from public.notifications where user_id = '33333333-3333-3333-3333-333333333333' and payload->>'match_id' = '44444444-4444-4444-4444-444444444444' and type = 'join_request_rejected'),
   'join_request_rejected',
-  'the participant is notified when their request is rejected'
+  'the participant (a distinct user from the creator) is notified when their request is rejected'
 );
 
 select * from finish();
