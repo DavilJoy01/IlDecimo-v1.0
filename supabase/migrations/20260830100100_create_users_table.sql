@@ -23,6 +23,7 @@ create or replace function public.generate_unique_user_id()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 begin
   if new.unique_user_id is not null then
@@ -41,6 +42,7 @@ create or replace function public.protect_users_row()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 begin
   if new.unique_user_id is distinct from old.unique_user_id then
@@ -59,11 +61,21 @@ alter table public.users enable row level security;
 
 grant select, insert, update on public.users to authenticated;
 
-create policy "users_select_authenticated" on public.users
-  for select to authenticated using (true);
+create policy "users_select_self" on public.users
+  for select to authenticated using (auth.uid() = id);
 
 create policy "users_insert_self" on public.users
   for insert to authenticated with check (auth.uid() = id);
 
 create policy "users_update_self" on public.users
   for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
+
+create view public.user_public_profiles
+with (security_invoker = false) as
+select
+  id, unique_user_id, first_name, last_name, birth_date, height_cm,
+  preferred_foot, player_role, profile_image_url,
+  matches_played_count, matches_completed_count, matches_abandoned_count
+from public.users;
+
+grant select on public.user_public_profiles to authenticated;

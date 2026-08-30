@@ -1,6 +1,6 @@
 -- supabase/tests/001_users.test.sql
 begin;
-select plan(6);
+select plan(9);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111', 'mario@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -44,6 +44,26 @@ select throws_ok(
      values ('22222222-2222-2222-2222-222222222222', '+390000000001', 'Luca', 'Bianchi', '1991-01-01', 175, 'left', 'goalkeeper') $$,
   null,
   'inserting a duplicate phone number fails'
+);
+
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
+
+select is(
+  (select count(*)::int from public.users where id = '11111111-1111-1111-1111-111111111111'),
+  0,
+  'a non-owner cannot see another user''s row via the base table'
+);
+
+select is(
+  (select count(*)::int from public.user_public_profiles where id = '11111111-1111-1111-1111-111111111111'),
+  1,
+  'a non-owner can see another user''s public profile via the view'
+);
+
+select throws_ok(
+  $$ select phone from public.user_public_profiles limit 1 $$,
+  null,
+  'the public profile view does not expose the phone column at all'
 );
 
 select * from finish();
