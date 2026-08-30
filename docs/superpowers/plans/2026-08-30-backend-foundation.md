@@ -852,12 +852,17 @@ Expected: FAIL — `relation "public.match_participant_events" does not exist`.
 
 ```sql
 -- supabase/migrations/20260830100400_create_match_participant_events_table.sql
+-- clock_timestamp(), not now(): now()/transaction_timestamp() returns the same
+-- value for every call within one transaction, so two events logged in the same
+-- transaction (as happens inside a single pgTAP test, and could happen in any
+-- multi-step production transaction) would tie on changed_at and make ordering
+-- by it unreliable. clock_timestamp() reflects true wall-clock time per call.
 create table public.match_participant_events (
   id uuid primary key default gen_random_uuid(),
   match_participant_id uuid not null references public.match_participants(id) on delete cascade,
   from_status text,
   to_status text not null,
-  changed_at timestamptz not null default now()
+  changed_at timestamptz not null default clock_timestamp()
 );
 
 alter table public.match_participant_events enable row level security;
