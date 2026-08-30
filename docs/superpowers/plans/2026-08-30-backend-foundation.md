@@ -1978,7 +1978,7 @@ git commit -m "feat: add block-aware private conversations and messages with rea
 ```sql
 -- supabase/tests/011_match_invitations.test.sql
 begin;
-select plan(6);
+select plan(7);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','mario@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -2018,10 +2018,22 @@ select is(
   'the invitee can mark the invitation as viewed'
 );
 
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players)
+values ('55555555-5555-5555-5555-555555555555','11111111-1111-1111-1111-111111111111',5,'Campo Mondello','Via Mare 2',38.0896,13.3854,'2026-09-06','19:00','20:30',12);
+
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
+
 select throws_ok(
-  $$ update public.match_invitations set status = 'ignored', invitee_id = '11111111-1111-1111-1111-111111111111' where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' $$,
-  'match_id, inviter_id, and invitee_id cannot be changed',
-  'the invitee cannot reassign the invitation to a different match/inviter/invitee while updating its status'
+  $$ update public.match_invitations set match_id = '55555555-5555-5555-5555-555555555555' where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' $$,
+  'match_id cannot be changed',
+  'an invitee cannot change the match_id of an invitation'
+);
+
+select throws_ok(
+  $$ update public.match_invitations set inviter_id = '22222222-2222-2222-2222-222222222222' where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' $$,
+  'inviter_id cannot be changed',
+  'an invitee cannot reassign who the invitation says invited them'
 );
 
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
@@ -2082,12 +2094,17 @@ security definer
 set search_path = ''
 as $$
 begin
-  if new.match_id is distinct from old.match_id
-    or new.inviter_id is distinct from old.inviter_id
-    or new.invitee_id is distinct from old.invitee_id
-  then
-    raise exception 'match_id, inviter_id, and invitee_id cannot be changed';
+  -- UPDATE: the row's identity columns are never caller-writable.
+  if new.match_id is distinct from old.match_id then
+    raise exception 'match_id cannot be changed';
   end if;
+  if new.inviter_id is distinct from old.inviter_id then
+    raise exception 'inviter_id cannot be changed';
+  end if;
+  if new.invitee_id is distinct from old.invitee_id then
+    raise exception 'invitee_id cannot be changed';
+  end if;
+
   return new;
 end;
 $$;
@@ -2127,7 +2144,7 @@ create trigger trg_notify_on_match_invitation
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `supabase test db`
-Expected: `011_match_invitations.test.sql .. ok`, all 6 assertions pass.
+Expected: `011_match_invitations.test.sql .. ok`, all 7 assertions pass.
 
 - [ ] **Step 5: Commit**
 
