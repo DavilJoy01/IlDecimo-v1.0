@@ -1886,7 +1886,8 @@ create policy "private_messages_insert_participant_no_block" on public.private_m
 create policy "private_messages_update_read_receipt" on public.private_messages
   for update to authenticated
   using (
-    exists (
+    sender_id is distinct from auth.uid()
+    and exists (
       select 1 from public.private_conversations c
       where c.id = private_messages.conversation_id
         and (c.user_a_id = auth.uid() or c.user_b_id = auth.uid())
@@ -1901,7 +1902,12 @@ security definer
 set search_path = ''
 as $$
 begin
-  if new.body <> old.body or new.sender_id <> old.sender_id or new.conversation_id <> old.conversation_id then
+  if new.id is distinct from old.id
+    or new.created_at is distinct from old.created_at
+    or new.body is distinct from old.body
+    or new.sender_id is distinct from old.sender_id
+    or new.conversation_id is distinct from old.conversation_id
+  then
     raise exception 'only read_at can be updated on a private message';
   end if;
   return new;
