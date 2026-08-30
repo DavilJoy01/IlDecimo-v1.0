@@ -1433,7 +1433,7 @@ git commit -m "feat: add match room chat restricted to approved participants, wi
 ```sql
 -- supabase/tests/008_friendships.test.sql
 begin;
-select plan(6);
+select plan(7);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','mario@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -1477,6 +1477,13 @@ select throws_ok(
 );
 
 select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
+
+select throws_ok(
+  $$ update public.friendships set status = 'accepted', requester_id = '33333333-3333-3333-3333-333333333333' where id = '99999999-9999-9999-9999-999999999999' $$,
+  'requester_id cannot be changed',
+  'the receiver cannot fabricate the request as having come from a different, uninvolved user while accepting it'
+);
+
 update public.friendships set status = 'accepted' where id = '99999999-9999-9999-9999-999999999999';
 
 select is(
@@ -1524,13 +1531,19 @@ security definer
 set search_path = ''
 as $$
 begin
+  if new.requester_id is distinct from old.requester_id then
+    raise exception 'requester_id cannot be changed';
+  end if;
+  if new.receiver_id is distinct from old.receiver_id then
+    raise exception 'receiver_id cannot be changed';
+  end if;
   if old.status <> 'pending' then
     raise exception 'a friendship decision cannot be changed once made';
   end if;
   if new.status not in ('accepted','rejected') then
     raise exception 'a friendship request can only be accepted or rejected';
   end if;
-  if auth.uid() <> old.receiver_id then
+  if auth.uid() is distinct from old.receiver_id then
     raise exception 'only the receiver can accept or reject a friend request';
   end if;
   return new;
@@ -1586,7 +1599,7 @@ create policy "friendships_update_by_participants" on public.friendships
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `supabase test db`
-Expected: `008_friendships.test.sql .. ok`, all 6 assertions pass.
+Expected: `008_friendships.test.sql .. ok`, all 7 assertions pass.
 
 - [ ] **Step 5: Commit**
 
