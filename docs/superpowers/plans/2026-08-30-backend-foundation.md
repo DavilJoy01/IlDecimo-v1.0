@@ -869,8 +869,18 @@ alter table public.match_participant_events enable row level security;
 
 grant select on public.match_participant_events to authenticated;
 
-create policy "participant_events_select_authenticated" on public.match_participant_events
-  for select to authenticated using (true);
+create policy "participant_events_select_relevant" on public.match_participant_events
+  for select to authenticated using (
+    exists (
+      select 1 from public.match_participants mp
+      where mp.id = match_participant_events.match_participant_id
+        and (
+          mp.user_id = auth.uid()
+          or auth.uid() = (select creator_id from public.matches where id = mp.match_id)
+          or public.is_fellow_participant(mp.match_id, auth.uid())
+        )
+    )
+  );
 
 create or replace function public.log_participant_status_change()
 returns trigger
