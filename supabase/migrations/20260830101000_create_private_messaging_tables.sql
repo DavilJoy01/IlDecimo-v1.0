@@ -74,6 +74,7 @@ create policy "private_messages_update_read_receipt" on public.private_messages
       where c.id = private_messages.conversation_id
         and (c.user_a_id = auth.uid() or c.user_b_id = auth.uid())
     )
+    and sender_id is distinct from auth.uid()
   )
   with check (true);
 
@@ -84,7 +85,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  if new.body <> old.body or new.sender_id <> old.sender_id or new.conversation_id <> old.conversation_id then
+  if new.id <> old.id or new.created_at <> old.created_at or new.body <> old.body or new.sender_id <> old.sender_id or new.conversation_id <> old.conversation_id then
     raise exception 'only read_at can be updated on a private message';
   end if;
   return new;
