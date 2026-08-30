@@ -23,6 +23,32 @@ create policy "match_invitations_insert_as_inviter" on public.match_invitations
 create policy "match_invitations_update_as_invitee" on public.match_invitations
   for update to authenticated using (auth.uid() = invitee_id) with check (auth.uid() = invitee_id);
 
+create or replace function public.protect_match_invitation_identity()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  -- UPDATE: the row's identity columns are never caller-writable.
+  if new.match_id is distinct from old.match_id then
+    raise exception 'match_id cannot be changed';
+  end if;
+  if new.inviter_id is distinct from old.inviter_id then
+    raise exception 'inviter_id cannot be changed';
+  end if;
+  if new.invitee_id is distinct from old.invitee_id then
+    raise exception 'invitee_id cannot be changed';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger trg_protect_match_invitation_identity
+  before update on public.match_invitations
+  for each row execute function public.protect_match_invitation_identity();
+
 create or replace function public.notify_on_match_invitation()
 returns trigger
 language plpgsql

@@ -1,6 +1,6 @@
 -- supabase/tests/011_match_invitations.test.sql
 begin;
-select plan(5);
+select plan(6);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','mario@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -38,6 +38,18 @@ select is(
   (select status from public.match_invitations where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
   'viewed',
   'the invitee can mark the invitation as viewed'
+);
+
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players)
+values ('55555555-5555-5555-5555-555555555555','11111111-1111-1111-1111-111111111111',5,'Campo Mondello','Via Mare 2',38.0896,13.3854,'2026-09-06','19:00','20:30',12);
+
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
+
+select throws_ok(
+  $$ update public.match_invitations set match_id = '55555555-5555-5555-5555-555555555555' where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' $$,
+  'match_id cannot be changed',
+  'an invitee cannot change the match_id of an invitation'
 );
 
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
