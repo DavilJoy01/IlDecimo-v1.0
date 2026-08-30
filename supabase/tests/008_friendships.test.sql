@@ -1,6 +1,6 @@
 -- supabase/tests/008_friendships.test.sql
 begin;
-select plan(6);
+select plan(7);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','mario@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -9,6 +9,10 @@ values ('11111111-1111-1111-1111-111111111111','+390000000001','Mario','Rossi','
 insert into auth.users (id, email) values ('22222222-2222-2222-2222-222222222222','luca@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
 values ('22222222-2222-2222-2222-222222222222','+390000000002','Luca','Bianchi','1991-01-01',175,'left','goalkeeper');
+
+insert into auth.users (id, email) values ('33333333-3333-3333-3333-333333333333','carlo@example.com');
+insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
+values ('33333333-3333-3333-3333-333333333333','+390000000003','Carlo','Verdi','1992-01-01',182,'right','player');
 
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 
@@ -44,6 +48,13 @@ select throws_ok(
 );
 
 select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
+
+select throws_ok(
+  $$ update public.friendships set status = 'accepted', requester_id = '33333333-3333-3333-3333-333333333333' where id = '99999999-9999-9999-9999-999999999999' $$,
+  'requester_id cannot be changed',
+  'the receiver cannot tamper with the requester_id when accepting'
+);
+
 update public.friendships set status = 'accepted' where id = '99999999-9999-9999-9999-999999999999';
 
 select is(

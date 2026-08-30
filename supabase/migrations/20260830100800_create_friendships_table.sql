@@ -19,6 +19,12 @@ security definer
 set search_path = ''
 as $$
 begin
+  if new.requester_id <> old.requester_id then
+    raise exception 'requester_id cannot be changed';
+  end if;
+  if new.receiver_id <> old.receiver_id then
+    raise exception 'receiver_id cannot be changed';
+  end if;
   if old.status <> 'pending' then
     raise exception 'a friendship decision cannot be changed once made';
   end if;
