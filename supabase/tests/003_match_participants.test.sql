@@ -1,5 +1,5 @@
 begin;
-select plan(8);
+select plan(13);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','creator@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -43,13 +43,14 @@ select throws_ok(
 select tests.authenticate_as('33333333-3333-3333-3333-333333333333');
 update public.match_participants set status = 'approved' where id = '55555555-5555-5555-5555-555555555555';
 
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+
 select is(
   (select status from public.match_participants where id = '55555555-5555-5555-5555-555555555555'),
   'requested',
   'a random user cannot modify a participation row they are not party to; RLS silently blocks it'
 );
 
-select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 update public.match_participants set status = 'approved' where id = '55555555-5555-5555-5555-555555555555';
 
 select is(
@@ -58,6 +59,15 @@ select is(
   'the match creator can approve a participation request'
 );
 
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
+
+select throws_ok(
+  $$ update public.match_participants set status = 'active' where id = '55555555-5555-5555-5555-555555555555' $$,
+  'only the match creator can activate a participant',
+  'a participant cannot self-activate'
+);
+
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 update public.match_participants set status = 'active' where id = '55555555-5555-5555-5555-555555555555';
 
 select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
@@ -69,7 +79,13 @@ select is(
   'leaving increments leave_count to 1'
 );
 
-update public.match_participants set status = 'requested' where id = '55555555-5555-5555-5555-555555555555';
+update public.match_participants set status = 'requested', leave_count = 0 where id = '55555555-5555-5555-5555-555555555555';
+
+select is(
+  (select leave_count from public.match_participants where id = '55555555-5555-5555-5555-555555555555'),
+  1,
+  'a caller-supplied leave_count is ignored; the trigger keeps the server-computed value regardless of what the client sends'
+);
 
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 update public.match_participants set status = 'approved' where id = '55555555-5555-5555-5555-555555555555';
@@ -88,6 +104,30 @@ select throws_ok(
   $$ update public.match_participants set status = 'requested' where id = '55555555-5555-5555-5555-555555555555' $$,
   'maximum number of re-entries (2) reached for this match',
   'a third re-entry attempt is rejected after 2 leaves'
+);
+
+select throws_ok(
+  $$ update public.match_participants set status = 'left' where id = '55555555-5555-5555-5555-555555555555' $$,
+  'invalid participation status transition from left to left',
+  'an unhandled transition (already left, attempting left again) is rejected by the catch-all'
+);
+
+select tests.authenticate_as('33333333-3333-3333-3333-333333333333');
+insert into public.match_participants (id, match_id, user_id, status)
+values ('99999999-9999-9999-9999-999999999999','44444444-4444-4444-4444-444444444444','33333333-3333-3333-3333-333333333333','requested');
+
+select throws_ok(
+  $$ update public.match_participants set match_id = '77777777-7777-7777-7777-777777777777' where id = '99999999-9999-9999-9999-999999999999' $$,
+  'match_id cannot be changed',
+  'a participant cannot move their own row to a different match'
+);
+
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+
+select throws_ok(
+  $$ update public.match_participants set user_id = '11111111-1111-1111-1111-111111111111' where id = '99999999-9999-9999-9999-999999999999' $$,
+  'user_id cannot be changed',
+  'the match creator cannot reassign a participation row to a different user'
 );
 
 select * from finish();
