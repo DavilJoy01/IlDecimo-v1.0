@@ -1978,7 +1978,7 @@ git commit -m "feat: add block-aware private conversations and messages with rea
 ```sql
 -- supabase/tests/011_match_invitations.test.sql
 begin;
-select plan(5);
+select plan(6);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','mario@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -2016,6 +2016,12 @@ select is(
   (select status from public.match_invitations where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
   'viewed',
   'the invitee can mark the invitation as viewed'
+);
+
+select throws_ok(
+  $$ update public.match_invitations set status = 'ignored', invitee_id = '11111111-1111-1111-1111-111111111111' where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' $$,
+  'match_id, inviter_id, and invitee_id cannot be changed',
+  'the invitee cannot reassign the invitation to a different match/inviter/invitee while updating its status'
 );
 
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
@@ -2069,6 +2075,27 @@ create policy "match_invitations_insert_as_inviter" on public.match_invitations
 create policy "match_invitations_update_as_invitee" on public.match_invitations
   for update to authenticated using (auth.uid() = invitee_id) with check (auth.uid() = invitee_id);
 
+create or replace function public.protect_match_invitation_identity()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.match_id is distinct from old.match_id
+    or new.inviter_id is distinct from old.inviter_id
+    or new.invitee_id is distinct from old.invitee_id
+  then
+    raise exception 'match_id, inviter_id, and invitee_id cannot be changed';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_protect_match_invitation_identity
+  before update on public.match_invitations
+  for each row execute function public.protect_match_invitation_identity();
+
 create or replace function public.notify_on_match_invitation()
 returns trigger
 language plpgsql
@@ -2100,7 +2127,7 @@ create trigger trg_notify_on_match_invitation
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `supabase test db`
-Expected: `011_match_invitations.test.sql .. ok`, all 5 assertions pass.
+Expected: `011_match_invitations.test.sql .. ok`, all 6 assertions pass.
 
 - [ ] **Step 5: Commit**
 
