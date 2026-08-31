@@ -49,7 +49,13 @@ select is(
 );
 
 insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players, status)
-values ('66666666-6666-6666-6666-666666666666','11111111-1111-1111-1111-111111111111',5,'Campo Imminente','Via Roma 2',38.1157,13.3615, current_date, to_char(now() + interval '30 minutes', 'HH24:MI')::time, to_char(now() + interval '90 minutes', 'HH24:MI')::time, 10,'open');
+values (
+  '66666666-6666-6666-6666-666666666666','11111111-1111-1111-1111-111111111111',5,'Campo Imminente','Via Roma 2',38.1157,13.3615,
+  current_date,
+  to_char((now() + interval '30 minutes') at time zone 'Europe/Rome', 'HH24:MI')::time,
+  to_char((now() + interval '90 minutes') at time zone 'Europe/Rome', 'HH24:MI')::time,
+  10,'open'
+);
 
 select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
 insert into public.match_participants (id, match_id, user_id, status)
