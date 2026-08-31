@@ -3,11 +3,14 @@ import { Slot, useRouter, useSegments } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { supabase } from '@/api/supabase';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useProfileBootstrap } from '@/hooks/useProfileBootstrap';
 
 export default function RootLayout() {
   const { session, status, setSession } = useSessionStore();
   const router = useRouter();
   const segments = useSegments();
+
+  useProfileBootstrap();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
