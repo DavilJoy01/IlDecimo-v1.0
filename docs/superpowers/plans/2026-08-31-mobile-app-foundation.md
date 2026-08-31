@@ -308,7 +308,23 @@ Also create `mobile/.env.local.example` (committed, no real values) documenting 
 
 The spec explicitly defers configuring a real SMS provider to the user (a Twilio/similar account creation Claude cannot do on their behalf). For local development and this plan's own end-to-end verification (Task 9), configure Supabase's built-in local test-OTP bypass — this only affects the local CLI stack (`supabase start`), never a linked/hosted project, since `supabase db push`/deploy don't propagate `config.toml`'s `[auth]` section.
 
-Edit `/Users/giovanni/Desktop/app calcio/supabase/config.toml`, in the `[auth.sms]` section, add:
+Edit `/Users/giovanni/Desktop/app calcio/supabase/config.toml`. Three changes
+are needed together -- `test_otp` alone is not enough: GoTrue requires
+`enable_signup = true` to accept phone signups at all, and it requires SOME
+SMS provider marked `enabled = true` or it logs `"WARN: no SMS provider is
+enabled. Disabling phone login"` on startup and disables phone auth entirely
+(confirmed empirically -- `test_otp` numbers never actually reach the
+provider, but GoTrue still checks that one is configured before allowing
+phone auth at all):
+
+In `[auth.sms]`, flip signup on:
+```toml
+[auth.sms]
+enable_signup = true
+```
+
+Add the test-OTP map (this section is commented out by default in the
+generated config -- uncomment and fill it in, don't just add a new one):
 ```toml
 [auth.sms.test_otp]
 # Local development only. A real SMS provider must be configured before this
@@ -317,7 +333,26 @@ Edit `/Users/giovanni/Desktop/app calcio/supabase/config.toml`, in the `[auth.sm
 "+390000000001" = "123456"
 ```
 
-Run `supabase stop && supabase start` (from the repo root) to apply the config change, then confirm the extensions test suite is still green: `supabase test db`.
+And enable a dummy provider so GoTrue doesn't disable phone login (real
+credentials are never used -- test_otp numbers are intercepted before any
+provider call is made):
+```toml
+[auth.sms.twilio]
+enabled = true
+account_sid = "ACdummydummydummydummydummydummy0"
+message_service_sid = "MGdummydummydummydummydummydummy0"
+auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
+```
+
+The `auth_token` line's `env(...)` substitution needs the referenced
+variable to exist wherever `supabase start` runs, even though it's never
+used for a real call -- export a dummy value in the same shell:
+`export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN="dummy_local_dev_token"`.
+
+Run `supabase stop && supabase start` (from the repo root, with that env var
+exported) to apply the config change, and confirm the startup output has no
+`"no SMS provider is enabled"` warning. Then confirm the extensions test
+suite is still green: `supabase test db`.
 
 - [ ] **Step 8: Commit**
 
@@ -833,6 +868,7 @@ git commit -m "feat: add login screen for returning users (phone + password)"
 **Files:**
 - Create: `mobile/src/hooks/useRegistration.ts`
 - Create: `mobile/src/hooks/useRegistration.test.ts`
+- Create: `mobile/src/stores/registrationStore.ts`
 - Create: `mobile/src/api/users.ts`
 - Create: `mobile/src/api/users.test.ts`
 - Create: `mobile/app/(auth)/register-phone.tsx`
@@ -843,6 +879,31 @@ git commit -m "feat: add login screen for returning users (phone + password)"
 **Interfaces:**
 - Consumes: `requestPhoneOtp`, `verifyPhoneOtp`, `setPassword` (Task 4's `src/api/auth.ts`); `useSessionStore` (Task 3).
 - Produces: `createOwnProfile(profile)` and `fetchOwnProfile(userId)` from `src/api/users.ts`, used again by Task 8 (profile screen) and later plans (settings).
+
+**Fix (discovered during Task 9's manual simulator walkthrough, applied
+retroactively to this task's own text):** `useRegistration()` is called
+independently by each of the four screens above -- Expo Router unmounts one
+screen and mounts the next on navigation, so a plain `useState` for `phone`
+inside the hook reset to `''` the moment `verify-otp.tsx` mounted its own
+fresh instance, even though `register-phone.tsx`'s instance had set it
+correctly moments earlier. `confirmOtp` then sent `phone: ''` to Supabase,
+which GoTrue rejects with `"Only an email address or phone number should be
+provided on verify"` -- confirmed empirically by POSTing `phone: ""` directly
+to `/auth/v1/verify` and reproducing the identical error. The existing unit
+tests never caught this because they call `sendOtp` then `confirmOtp` on the
+SAME `renderHook()` instance, never simulating the real unmount/remount a
+screen transition causes. Fixed by moving `phone` out of local `useState`
+into a tiny dedicated Zustand store, `mobile/src/stores/registrationStore.ts`
+(`{ phone: string; setPhone: (phone: string) => void }`, one `create()` call,
+mirroring `sessionStore.ts`'s pattern) -- module-level Zustand state survives
+across every screen's separate hook instance, the way `useSessionStore`
+already does for session/profile. `useRegistration.ts`'s `phone` line becomes
+`const phone = useRegistrationStore((s) => s.phone)` /
+`const setPhoneState = useRegistrationStore((s) => s.setPhone)` in place of
+the `useState` call; nothing else in the hook changes. Add a regression test
+to `useRegistration.test.ts` that renders TWO separate `useRegistration()`
+instances (one for `sendOtp`, a second fresh one for `confirmOtp`) to prove
+phone survives across instances the way real navigation requires.
 
 - [ ] **Step 1: Write the failing test for the users API**
 
@@ -978,9 +1039,11 @@ import { router } from 'expo-router';
 import { requestPhoneOtp, verifyPhoneOtp, setPassword } from '@/api/auth';
 import { createOwnProfile } from '@/api/users';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useRegistrationStore } from '@/stores/registrationStore';
 
 export function useRegistration() {
-  const [phone, setPhoneState] = useState('');
+  const phone = useRegistrationStore((s) => s.phone);
+  const setPhoneState = useRegistrationStore((s) => s.setPhone);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const setProfile = useSessionStore((s) => s.setProfile);
