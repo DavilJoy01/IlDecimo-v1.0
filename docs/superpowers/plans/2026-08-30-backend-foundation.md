@@ -2906,14 +2906,28 @@ The final whole-branch review (after all 17 tasks) found 2 Critical and several 
 
 10. **[Important] Realtime is not configured for any table.** The spec's headline chat feature depends on Postgres Realtime, but nothing in this plan ever added `match_messages`, `private_messages`, or `notifications` to the `supabase_realtime` publication — subscriptions would silently receive zero events. Add all three.
 
+11. **[Important — found while fixing #4, not by the final review itself] The block check on `private_conversations`/`private_messages` (Task 11) is invisible from the blocked party's own perspective, for the same RLS reason as #4.** `user_blocks_select_own` only lets the *blocker* see a block row (`using (auth.uid() = blocker_id)`); the naive `not exists (select 1 from public.user_blocks b where ...)` subquery inside `private_conversations_insert_participant_no_block` and `private_messages_insert_participant_no_block` runs under the *caller's* RLS, so when the blocked user is the one starting the conversation or sending the message, the row that blocks them is invisible to their own query and the check silently passes. This defeats blocking for the direction that matters most for harassment prevention (the blocked person reaching the blocker), on a table that exists specifically for that purpose. Same fix as #4: route both checks through `public.users_have_mutual_block()`.
+
 **Deferred to a follow-up (not fixed here — see the final review's Minor list and Ledger Triage for full reasoning):** enforcing `max_players` / the `'full'` status (a product-completeness gap, not a security hole, and the fix touches Task 4's already-heavily-scrutinized state machine trigger — safer as its own reviewed change); `matches_abandoned_count` wiring (same reason — touches the same trigger); withdrawing a pending join request or revoking a sent invitation (new features, not bugs in what shipped); notification deletion and account deletion (spec features for a later plan, not part of this backend-foundation plan's scope); the `bare auth.uid()` → `(select auth.uid())` RLS performance rewrite across every policy (a mechanical, zero-risk-but-large perf pass better done as its own change); all Minor-severity findings (cascade edge cases, push-token hygiene, notification fan-out batching, etc.).
 
 - [ ] **Step 1: Write the failing test**
 
+The test below already reflects two fixes the implementer found necessary at
+runtime, beyond transcription: (a) after switching to user 222 to reject and
+delete the first friendship row, authentication must switch *back* to user
+111 before inserting the second friendship as its requester — the original
+draft left this implicit and would have failed RLS's `auth.uid() =
+requester_id` check; (b) the "creator cannot delete a completed match"
+assertion uses a plain `delete` followed by `ok(exists(...))`, not
+`throws_ok` — RLS silently excludes the row from the `DELETE`'s matched set
+rather than raising, the same silently-rejected-not-raised pattern used
+throughout this plan for RLS `using` clauses (e.g. Task 3's and Task 4's
+tests).
+
 ```sql
 -- supabase/tests/017_final_review_hardening.test.sql
 begin;
-select plan(8);
+select plan(9);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','mario@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -2963,6 +2977,12 @@ select throws_ok(
   'a blocked user cannot send a friend request to the person who blocked them'
 );
 
+select throws_ok(
+  $$ insert into public.private_conversations (user_a_id, user_b_id) values ('22222222-2222-2222-2222-222222222222','11111111-1111-1111-1111-111111111111') $$,
+  null,
+  'a blocked user cannot start a private conversation with the person who blocked them'
+);
+
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 delete from public.user_blocks where blocker_id = '11111111-1111-1111-1111-111111111111' and blocked_id = '22222222-2222-2222-2222-222222222222';
 
@@ -2973,6 +2993,7 @@ select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
 update public.friendships set status = 'rejected' where id = '99999999-9999-9999-9999-999999999999';
 delete from public.friendships where id = '99999999-9999-9999-9999-999999999999';
 
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 insert into public.friendships (id, requester_id, receiver_id)
 values ('88888888-8888-8888-8888-888888888888','11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222');
 
@@ -2986,10 +3007,11 @@ select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players, status)
 values ('44444444-4444-4444-4444-444444444444','11111111-1111-1111-1111-111111111111',5,'Campo Palermo','Via Roma 1',38.1157,13.3615,'2026-09-05','20:00','21:30',10,'completed');
 
-select throws_ok(
-  $$ delete from public.matches where id = '44444444-4444-4444-4444-444444444444' $$,
-  null,
-  'a creator cannot delete a match that has already completed'
+delete from public.matches where id = '44444444-4444-4444-4444-444444444444';
+
+select ok(
+  exists(select 1 from public.matches where id = '44444444-4444-4444-4444-444444444444'),
+  'a creator cannot delete a match that has already completed (silently rejected by RLS, match still exists)'
 );
 
 select ok(
@@ -3088,6 +3110,14 @@ end;
 $$;
 
 -- 3. Pin every server-derived column on users, not just unique_user_id.
+--
+-- NOTE: deviates from the plan's first draft by gating the phone/stats guards
+-- on `auth.uid() is not null`. transition_match_statuses() (fix #2 above)
+-- runs as the system/cron caller (no JWT, auth.uid() is null) and writes
+-- matches_completed_count/matches_played_count directly -- an unconditional
+-- guard would block its own fix. Matches the identical carve-out pattern
+-- Task 4's enforce_participant_state_machine() already uses for its
+-- system-completable branch.
 create or replace function public.protect_users_row()
 returns trigger
 language plpgsql
@@ -3098,13 +3128,14 @@ begin
   if new.unique_user_id is distinct from old.unique_user_id then
     raise exception 'unique_user_id is immutable';
   end if;
-  if new.phone is distinct from old.phone then
+  if auth.uid() is not null and new.phone is distinct from old.phone then
     raise exception 'phone cannot be changed directly; contact support to update your phone number';
   end if;
-  if new.matches_played_count is distinct from old.matches_played_count
+  if auth.uid() is not null and (
+    new.matches_played_count is distinct from old.matches_played_count
     or new.matches_completed_count is distinct from old.matches_completed_count
     or new.matches_abandoned_count is distinct from old.matches_abandoned_count
-  then
+  ) then
     raise exception 'match statistics are server-managed and cannot be changed directly';
   end if;
   if new.created_at is distinct from old.created_at then
@@ -3116,23 +3147,62 @@ end;
 $$;
 
 -- 4. Block-aware friendships and match_invitations inserts.
+--
+-- NOTE: deviates from the plan's first draft. A raw `not exists (select 1
+-- from public.user_blocks b where ...)` subquery -- the same shape Task 11
+-- already used for private_conversations -- runs under the caller's own
+-- role, and user_blocks' RLS (user_blocks_select_own: `using (auth.uid() =
+-- blocker_id)`) only lets the *blocker* see the block row. So when the
+-- *blocked* party is the one issuing the insert, the row that blocks them is
+-- invisible to their own query and the check silently passes -- exactly the
+-- direction that matters (the blocked person reaching the blocker). Wrapping
+-- the check in a security definer helper (the same RLS-bypass pattern
+-- already used by public.is_fellow_participant for match_participants, Task
+-- 4) makes it symmetric regardless of which party is the caller.
+create or replace function public.users_have_mutual_block(p_user_a uuid, p_user_b uuid)
+returns boolean
+language sql
+security definer
+set search_path = ''
+stable
+as $$
+  select exists (
+    select 1 from public.user_blocks b
+    where (b.blocker_id = p_user_a and b.blocked_id = p_user_b)
+       or (b.blocker_id = p_user_b and b.blocked_id = p_user_a)
+  );
+$$;
+
 alter policy "friendships_insert_as_requester" on public.friendships
   with check (
     auth.uid() = requester_id
-    and not exists (
-      select 1 from public.user_blocks b
-      where (b.blocker_id = requester_id and b.blocked_id = receiver_id)
-         or (b.blocker_id = receiver_id and b.blocked_id = requester_id)
-    )
+    and not public.users_have_mutual_block(requester_id, receiver_id)
   );
 
 alter policy "match_invitations_insert_as_inviter" on public.match_invitations
   with check (
     auth.uid() = inviter_id
-    and not exists (
-      select 1 from public.user_blocks b
-      where (b.blocker_id = inviter_id and b.blocked_id = invitee_id)
-         or (b.blocker_id = invitee_id and b.blocked_id = inviter_id)
+    and not public.users_have_mutual_block(inviter_id, invitee_id)
+  );
+
+-- 11. Task 11's private_conversations/private_messages block checks have the
+-- exact same RLS-invisibility gap as #4, for the same reason -- reroute both
+-- through the same helper so the check works regardless of which party
+-- (blocker or blocked) is the one calling.
+alter policy "private_conversations_insert_participant_no_block" on public.private_conversations
+  with check (
+    (auth.uid() = user_a_id or auth.uid() = user_b_id)
+    and not public.users_have_mutual_block(user_a_id, user_b_id)
+  );
+
+alter policy "private_messages_insert_participant_no_block" on public.private_messages
+  with check (
+    sender_id = auth.uid()
+    and exists (
+      select 1 from public.private_conversations c
+      where c.id = private_messages.conversation_id
+        and (c.user_a_id = auth.uid() or c.user_b_id = auth.uid())
+        and not public.users_have_mutual_block(c.user_a_id, c.user_b_id)
     )
   );
 
@@ -3189,7 +3259,7 @@ values (
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `supabase test db`
-Expected: `017_final_review_hardening.test.sql .. ok`, all 8 assertions pass; `015_transition_match_statuses.test.sql` still passes with the corrected fixture; full suite (18 files) green.
+Expected: `017_final_review_hardening.test.sql .. ok`, all 9 assertions pass; `015_transition_match_statuses.test.sql` still passes with the corrected fixture; full suite (18 files) green.
 
 - [ ] **Step 5: Commit**
 
