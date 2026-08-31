@@ -486,7 +486,11 @@ export default function RootLayout() {
 
     if (status === 'signed-out' && !inAuthGroup) {
       router.replace('/(auth)/login');
-    } else if (status === 'needs-profile' && segments[1] !== 'create-profile') {
+    } else if (
+      status === 'needs-profile' &&
+      segments[1] !== 'create-profile' &&
+      segments[1] !== 'create-password'
+    ) {
       router.replace('/(auth)/create-profile');
     } else if (status === 'signed-in' && inAuthGroup) {
       router.replace('/(tabs)/home');
@@ -506,6 +510,17 @@ export default function RootLayout() {
 ```
 
 Note: `status === 'needs-profile'` is set once `setSession` runs; Task 4/5 are responsible for calling `setProfile` after fetching or creating the profile row so this effect can move past `needs-profile`.
+
+**Fix (discovered during Task 5's review, applied retroactively to this task's own
+text):** `verifyPhoneOtp` (Task 5) resolves Supabase's `auth.verifyOtp`, which fires
+`onAuthStateChange` and lands a session — moving `status` to `'needs-profile'` —
+before or concurrently with the hook's own `router.push('/(auth)/create-password')`.
+Without the `segments[1] !== 'create-password'` exemption above, this guard fires on
+the very next effect run and force-redirects straight to `create-profile`, so the user
+never sees the password screen and no password is ever set on the account (later
+`signInWithPassword` from Task 4's login screen then fails for that account). The
+exemption keeps the guard from bouncing a user who is correctly mid-flow on
+`create-password`.
 
 - [ ] **Step 6: Create the auth stack layout**
 
