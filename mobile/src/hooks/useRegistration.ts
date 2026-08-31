@@ -3,9 +3,11 @@ import { router } from 'expo-router';
 import { requestPhoneOtp, verifyPhoneOtp, setPassword } from '@/api/auth';
 import { createOwnProfile } from '@/api/users';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useRegistrationStore } from '@/stores/registrationStore';
 
 export function useRegistration() {
-  const [phone, setPhoneState] = useState('');
+  const phone = useRegistrationStore((s) => s.phone);
+  const setPhoneState = useRegistrationStore((s) => s.setPhone);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const setProfile = useSessionStore((s) => s.setProfile);

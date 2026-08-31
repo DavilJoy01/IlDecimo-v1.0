@@ -5,6 +5,7 @@ import { useRegistration } from './useRegistration';
 import { requestPhoneOtp, verifyPhoneOtp, setPassword } from '@/api/auth';
 import { createOwnProfile } from '@/api/users';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useRegistrationStore } from '@/stores/registrationStore';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 jest.mock('@/api/auth', () => ({
@@ -18,6 +19,7 @@ describe('useRegistration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useSessionStore.setState({ session: null, profile: null, status: 'loading' });
+    useRegistrationStore.setState({ phone: '' });
   });
 
   it('sendOtp requests an OTP, stores the phone, and navigates to verify-otp', async () => {
@@ -57,6 +59,28 @@ describe('useRegistration', () => {
 
     await act(async () => {
       await result.current.confirmOtp('123456');
+    });
+
+    expect(verifyPhoneOtp).toHaveBeenCalledWith('+390000000001', '123456');
+    expect(router.push).toHaveBeenCalledWith('/(auth)/create-password');
+  });
+
+  it('confirmOtp reads the phone set by a DIFFERENT useRegistration() instance, simulating navigating from register-phone to a freshly mounted verify-otp screen', async () => {
+    (requestPhoneOtp as jest.Mock).mockResolvedValue(undefined);
+    (verifyPhoneOtp as jest.Mock).mockResolvedValue({ session: { access_token: 't' } });
+
+    const registerPhoneScreen = await renderHook(() => useRegistration());
+    await act(async () => {
+      await registerPhoneScreen.result.current.sendOtp('+390000000001');
+    });
+    (router.push as jest.Mock).mockClear();
+
+    // A real screen transition unmounts register-phone.tsx and mounts a new
+    // verify-otp.tsx, each calling useRegistration() independently -- render
+    // a SECOND, unrelated hook instance rather than reusing the first one.
+    const verifyOtpScreen = await renderHook(() => useRegistration());
+    await act(async () => {
+      await verifyOtpScreen.result.current.confirmOtp('123456');
     });
 
     expect(verifyPhoneOtp).toHaveBeenCalledWith('+390000000001', '123456');
