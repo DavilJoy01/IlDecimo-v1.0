@@ -2927,7 +2927,7 @@ tests).
 ```sql
 -- supabase/tests/017_final_review_hardening.test.sql
 begin;
-select plan(9);
+select plan(10);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','mario@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -2983,6 +2983,16 @@ select throws_ok(
   'a blocked user cannot start a private conversation with the person who blocked them'
 );
 
+select tests.clear_authentication();
+set local role anon;
+
+select throws_ok(
+  $$ select public.users_have_mutual_block('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222') $$,
+  null,
+  'an unauthenticated caller cannot probe arbitrary user pairs for a block relationship'
+);
+
+reset role;
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 delete from public.user_blocks where blocker_id = '11111111-1111-1111-1111-111111111111' and blocked_id = '22222222-2222-2222-2222-222222222222';
 
@@ -3173,6 +3183,14 @@ as $$
   );
 $$;
 
+-- Same implicit-PUBLIC-grant-on-create gap as is_fellow_participant
+-- (Task 4)/nearby_open_matches (Task 14) -- this function's own fix comment
+-- cites is_fellow_participant as its precedent but the re-review of this
+-- task found the corresponding revoke was never actually added. Without it,
+-- any caller (anon included) can probe arbitrary (user_a, user_b) pairs and
+-- learn who blocked whom, defeating user_blocks_select_own's RLS entirely.
+revoke execute on function public.users_have_mutual_block(uuid, uuid) from public, anon;
+
 alter policy "friendships_insert_as_requester" on public.friendships
   with check (
     auth.uid() = requester_id
@@ -3259,7 +3277,7 @@ values (
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `supabase test db`
-Expected: `017_final_review_hardening.test.sql .. ok`, all 9 assertions pass; `015_transition_match_statuses.test.sql` still passes with the corrected fixture; full suite (18 files) green.
+Expected: `017_final_review_hardening.test.sql .. ok`, all 10 assertions pass; `015_transition_match_statuses.test.sql` still passes with the corrected fixture; full suite (18 files) green.
 
 - [ ] **Step 5: Commit**
 
