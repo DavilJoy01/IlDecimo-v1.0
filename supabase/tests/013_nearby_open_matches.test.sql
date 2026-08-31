@@ -1,6 +1,6 @@
 -- supabase/tests/013_nearby_open_matches.test.sql
 begin;
-select plan(4);
+select plan(5);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','creator@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -51,6 +51,14 @@ select is(
   2,
   'widening the radius to 500km also returns the far-away match, but never the draft one'
 );
+
+set local role anon;
+select throws_ok(
+  $$ select * from public.nearby_open_matches(38.1157, 13.3615, 20) $$,
+  'permission denied for function nearby_open_matches',
+  'an unauthenticated (anon) caller can no longer execute nearby_open_matches'
+);
+reset role;
 
 select * from finish();
 rollback;

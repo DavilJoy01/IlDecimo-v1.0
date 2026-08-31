@@ -37,3 +37,8 @@ as $$
 $$;
 
 grant execute on function public.nearby_open_matches(double precision, double precision, double precision) to authenticated;
+
+revoke execute on function public.nearby_open_matches(double precision, double precision, double precision) from public, anon;
+revoke execute on function public.is_fellow_participant(uuid, uuid) from public, anon;
+alter default privileges in schema public revoke execute on functions from public;
+alter default privileges for role postgres in schema public revoke execute on functions from anon;
