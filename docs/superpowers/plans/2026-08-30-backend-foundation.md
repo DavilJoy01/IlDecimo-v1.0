@@ -2875,6 +2875,331 @@ git commit -m "feat: deliver push notifications to Expo via pg_net on every noti
 
 ---
 
+### Task 18: Post-final-review hardening
+
+The final whole-branch review (after all 17 tasks) found 2 Critical and several Important issues that only show up when looking at the whole schema together. This task fixes the ones that are cheap now and expensive after real data exists; see "Deferred to a follow-up" at the end for what's deliberately parked.
+
+**Files:**
+- Create: `supabase/migrations/20260830101700_final_review_hardening.sql`
+- Create: `supabase/tests/017_final_review_hardening.test.sql`
+- Modify: `supabase/tests/015_transition_match_statuses.test.sql` (fix a timezone-interpretation mismatch this task's own fix introduces into the existing reminder-window fixture)
+
+**Findings fixed here:**
+
+1. **[CRITICAL] `user_public_profiles` readable by unauthenticated `anon`, RLS fully bypassed.** Supabase's bootstrap grants `ALL` on every `public`-schema table/view to `anon`/`authenticated`/`service_role` by default — the same class of gap Task 14 found for functions, but nobody re-checked it for tables/views. The base `users` table is protected (RLS has no policy for `anon`, so it's correctly denied), but the view runs as its owner (`security_invoker = false`, by design, so it can show other users their non-phone fields despite the base table's owner-only policy) — which means it never re-checks `anon`'s standing at all. Fix: revoke `anon`'s (and `public`'s) access to the view outright; it should only ever be read by `authenticated`, which already has its own explicit grant.
+
+2. **[CRITICAL] Match times are interpreted as UTC while users enter Italian local time.** `matches` stores a naive `date` + `time` with no timezone. `transition_match_statuses()` casts `(match_date + start_time)::timestamptz`, which resolves via the session's `TimeZone` — UTC on both local Supabase and hosted Supabase. A 20:00 kickoff entered by a Palermo user is read back as 20:00 UTC = 22:00 CEST, so every reminder fires an hour late, every match stays `open` for two extra hours after kickoff, and completion (and `matches_completed_count`) lands two hours late. Since the MVP is Italy-only, fix by interpreting stored times as `Europe/Rome` explicitly (`at time zone 'Europe/Rome'` instead of the bare `::timestamptz` cast) rather than adding a timezone column — the smallest correct fix for a single-market MVP. This also fixes a latent bug the review flagged: `matches_played_count` was never incremented anywhere (dead, always-zero column) — wire it up in the same completion loop as `matches_completed_count`, since for MVP purposes "completed" and "played" are the same event.
+
+3. **[Important] Every server-derived column on `users` was client-writable via UPDATE.** `protect_users_row()` only guarded `unique_user_id`; `phone`, `created_at`, and all three `matches_*_count` columns could be rewritten directly by their own owner — and the counts are published to every other user through `user_public_profiles`, so this is a reputation-forgery vector, and `phone` drift/squatting risk. Extend the same trigger to pin all of them, the same pattern already used for `match_participants` (Task 4), `friendships` (Task 9), and `match_invitations` (Task 12).
+
+4. **[Important] Blocking doesn't cover friend requests or match invitations.** The spec requires a blocked user to be unable to message the blocker; `private_messages`/`private_conversations` enforce this, but `friendships` and `match_invitations` have no block check at all, so a blocked user can still push a friend request or a match invitation (each generating an in-app notification and a push) at the person who blocked them — exactly the scenario App Store review will test. Add the same block-aware `not exists` check already used in `private_conversations_insert_participant_no_block` to both insert policies.
+
+5. **[Important] A creator could delete a `completed` match, destroying its participants' history and any reports filed against it.** `matches_delete_creator_only` had no status restriction. Restrict deletion to matches that haven't started yet (`draft`/`open`/`full`/`cancelled`) — a creator can still cancel or remove a match before it happens, but can no longer erase what already happened.
+
+6. **[Important] No way to unfriend, withdraw a pending friend request, or re-request after a rejection.** `friendships` had no DELETE grant at all, and `enforce_friendship_transition()` treats any non-`pending` status as terminal. All three gaps share one fix: let either party delete a friendship row in any state. Deleting an `accepted` row unfriends; deleting a `pending` row (as the requester) withdraws it; deleting a `rejected` row frees the unique pair index for a fresh request.
+
+7. **[Important] `match_messages`/`private_messages` still use `now()` for `created_at`.** Same class of bug already fixed on `match_participant_events` (Task 5) and `notifications` (Task 6/8) — `now()` is frozen for the whole transaction, and these two columns are exactly the ones a chat client will paginate/order by. Switch both to `clock_timestamp()`.
+
+8. **[Important] Missing indexes on FK/lookup columns used by RLS policies and obvious queries.** `match_participant_events.match_participant_id`, `match_participants.user_id`, `friendships.requester_id`/`receiver_id`, `match_invitations.invitee_id`, `matches.creator_id`, and the cron's own predicate (`matches(status, reminder_sent_at, match_date, start_time)`) have no supporting index — every RLS-filtered read and the once-a-minute cron sweep is a full scan.
+
+9. **[Important, cheap defense-in-depth] `tests.authenticate_as`/`tests.clear_authentication` carry the same implicit-PUBLIC-grant-on-create gap Task 14 found for other functions.** They're only reachable today because `config.toml` doesn't expose the `tests` schema to PostgREST — but that's one config line away from changing. Revoke `public` (which also blocks `anon`) now; `authenticated` and `postgres` keep their access.
+
+10. **[Important] Realtime is not configured for any table.** The spec's headline chat feature depends on Postgres Realtime, but nothing in this plan ever added `match_messages`, `private_messages`, or `notifications` to the `supabase_realtime` publication — subscriptions would silently receive zero events. Add all three.
+
+**Deferred to a follow-up (not fixed here — see the final review's Minor list and Ledger Triage for full reasoning):** enforcing `max_players` / the `'full'` status (a product-completeness gap, not a security hole, and the fix touches Task 4's already-heavily-scrutinized state machine trigger — safer as its own reviewed change); `matches_abandoned_count` wiring (same reason — touches the same trigger); withdrawing a pending join request or revoking a sent invitation (new features, not bugs in what shipped); notification deletion and account deletion (spec features for a later plan, not part of this backend-foundation plan's scope); the `bare auth.uid()` → `(select auth.uid())` RLS performance rewrite across every policy (a mechanical, zero-risk-but-large perf pass better done as its own change); all Minor-severity findings (cascade edge cases, push-token hygiene, notification fan-out batching, etc.).
+
+- [ ] **Step 1: Write the failing test**
+
+```sql
+-- supabase/tests/017_final_review_hardening.test.sql
+begin;
+select plan(8);
+
+insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','mario@example.com');
+insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
+values ('11111111-1111-1111-1111-111111111111','+390000000001','Mario','Rossi','1990-01-01',180,'right','player');
+
+insert into auth.users (id, email) values ('22222222-2222-2222-2222-222222222222','luca@example.com');
+insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
+values ('22222222-2222-2222-2222-222222222222','+390000000002','Luca','Bianchi','1991-01-01',175,'left','goalkeeper');
+
+select tests.clear_authentication();
+set local role anon;
+
+select throws_ok(
+  $$ select count(*) from public.user_public_profiles $$,
+  null,
+  'anon can no longer read user_public_profiles at all'
+);
+
+reset role;
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+
+select throws_ok(
+  $$ update public.users set matches_completed_count = 9999 where id = '11111111-1111-1111-1111-111111111111' $$,
+  'match statistics are server-managed and cannot be changed directly',
+  'a user cannot forge their own match statistics'
+);
+
+select throws_ok(
+  $$ update public.users set phone = '+390000009999' where id = '11111111-1111-1111-1111-111111111111' $$,
+  'phone cannot be changed directly; contact support to update your phone number',
+  'a user cannot change their own phone number directly'
+);
+
+insert into public.user_blocks (blocker_id, blocked_id) values ('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222');
+
+select throws_ok(
+  $$ insert into public.friendships (requester_id, receiver_id) values ('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222') $$,
+  null,
+  'a user cannot send a friend request to someone they blocked'
+);
+
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
+
+select throws_ok(
+  $$ insert into public.friendships (requester_id, receiver_id) values ('22222222-2222-2222-2222-222222222222','11111111-1111-1111-1111-111111111111') $$,
+  null,
+  'a blocked user cannot send a friend request to the person who blocked them'
+);
+
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+delete from public.user_blocks where blocker_id = '11111111-1111-1111-1111-111111111111' and blocked_id = '22222222-2222-2222-2222-222222222222';
+
+insert into public.friendships (id, requester_id, receiver_id)
+values ('99999999-9999-9999-9999-999999999999','11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222');
+
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
+update public.friendships set status = 'rejected' where id = '99999999-9999-9999-9999-999999999999';
+delete from public.friendships where id = '99999999-9999-9999-9999-999999999999';
+
+insert into public.friendships (id, requester_id, receiver_id)
+values ('88888888-8888-8888-8888-888888888888','11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222');
+
+select is(
+  (select count(*)::int from public.friendships where requester_id = '11111111-1111-1111-1111-111111111111' and receiver_id = '22222222-2222-2222-2222-222222222222'),
+  1,
+  'a fresh friend request succeeds after the previous rejected one was deleted'
+);
+
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players, status)
+values ('44444444-4444-4444-4444-444444444444','11111111-1111-1111-1111-111111111111',5,'Campo Palermo','Via Roma 1',38.1157,13.3615,'2026-09-05','20:00','21:30',10,'completed');
+
+select throws_ok(
+  $$ delete from public.matches where id = '44444444-4444-4444-4444-444444444444' $$,
+  null,
+  'a creator cannot delete a match that has already completed'
+);
+
+select ok(
+  exists(
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename in ('match_messages','private_messages','notifications')
+  ),
+  'match_messages, private_messages, and notifications are added to the realtime publication'
+);
+
+select * from finish();
+rollback;
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `supabase test db`
+Expected: FAIL — `anon` can still read `user_public_profiles`, the stat/phone updates don't raise, and the realtime/delete checks fail, since none of this migration exists yet.
+
+- [ ] **Step 3: Write the migration**
+
+```sql
+-- supabase/migrations/20260830101700_final_review_hardening.sql
+
+-- 1. CRITICAL: stop anon from reading the public-profile view via Supabase's
+-- default table/view grants, which the earlier tasks never revoked (only
+-- function-level default grants were caught and fixed, in Task 14).
+revoke all on public.user_public_profiles from anon;
+revoke all on public.user_public_profiles from public;
+
+-- 2. CRITICAL: interpret match_date/start_time/end_time as Europe/Rome local
+-- time, not the session's UTC default -- this is a single-market (Italy) MVP,
+-- so a fixed zone is the smallest correct fix. Also wires up
+-- matches_played_count, which nothing was ever incrementing.
+create or replace function public.transition_match_statuses()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_match record;
+  v_participant record;
+begin
+  for v_match in
+    select id, field_name from public.matches
+    where status in ('open','full')
+      and reminder_sent_at is null
+      and (match_date + start_time) at time zone 'Europe/Rome' <= now() + interval '1 hour'
+      and (match_date + start_time) at time zone 'Europe/Rome' > now()
+  loop
+    for v_participant in
+      select user_id from public.match_participants
+      where match_id = v_match.id and status in ('approved','active')
+    loop
+      insert into public.notifications (user_id, type, payload)
+      values (
+        v_participant.user_id,
+        'match_reminder',
+        jsonb_build_object('message', 'La tua partita a ' || v_match.field_name || ' inizia tra meno di un''ora', 'match_id', v_match.id)
+      );
+    end loop;
+
+    update public.matches set reminder_sent_at = now() where id = v_match.id;
+  end loop;
+
+  update public.matches
+  set status = 'started'
+  where status in ('open','full')
+    and (match_date + start_time) at time zone 'Europe/Rome' <= now();
+
+  for v_match in
+    select id from public.matches
+    where status = 'started'
+      and (match_date + end_time) at time zone 'Europe/Rome' <= now()
+  loop
+    for v_participant in
+      select user_id from public.match_participants
+      where match_id = v_match.id and status in ('approved','active')
+    loop
+      update public.match_participants
+      set status = 'completed'
+      where match_id = v_match.id and user_id = v_participant.user_id;
+
+      update public.users
+      set matches_completed_count = matches_completed_count + 1,
+          matches_played_count = matches_played_count + 1
+      where id = v_participant.user_id;
+    end loop;
+
+    update public.matches set status = 'completed' where id = v_match.id;
+  end loop;
+end;
+$$;
+
+-- 3. Pin every server-derived column on users, not just unique_user_id.
+create or replace function public.protect_users_row()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.unique_user_id is distinct from old.unique_user_id then
+    raise exception 'unique_user_id is immutable';
+  end if;
+  if new.phone is distinct from old.phone then
+    raise exception 'phone cannot be changed directly; contact support to update your phone number';
+  end if;
+  if new.matches_played_count is distinct from old.matches_played_count
+    or new.matches_completed_count is distinct from old.matches_completed_count
+    or new.matches_abandoned_count is distinct from old.matches_abandoned_count
+  then
+    raise exception 'match statistics are server-managed and cannot be changed directly';
+  end if;
+  if new.created_at is distinct from old.created_at then
+    raise exception 'created_at cannot be changed';
+  end if;
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+-- 4. Block-aware friendships and match_invitations inserts.
+alter policy "friendships_insert_as_requester" on public.friendships
+  with check (
+    auth.uid() = requester_id
+    and not exists (
+      select 1 from public.user_blocks b
+      where (b.blocker_id = requester_id and b.blocked_id = receiver_id)
+         or (b.blocker_id = receiver_id and b.blocked_id = requester_id)
+    )
+  );
+
+alter policy "match_invitations_insert_as_inviter" on public.match_invitations
+  with check (
+    auth.uid() = inviter_id
+    and not exists (
+      select 1 from public.user_blocks b
+      where (b.blocker_id = inviter_id and b.blocked_id = invitee_id)
+         or (b.blocker_id = invitee_id and b.blocked_id = inviter_id)
+    )
+  );
+
+-- 5. A creator can no longer delete a match that has already started or completed.
+alter policy "matches_delete_creator_only" on public.matches
+  using (auth.uid() = creator_id and status not in ('started','completed'));
+
+-- 6. Let either party delete a friendship in any state: unfriend (accepted),
+-- withdraw (pending), or clear a rejected row to allow a fresh request.
+grant delete on public.friendships to authenticated;
+
+create policy "friendships_delete_participant" on public.friendships
+  for delete to authenticated using (auth.uid() = requester_id or auth.uid() = receiver_id);
+
+-- 7. clock_timestamp(), not now(), for the two chat tables' created_at --
+-- same fix already applied to match_participant_events and notifications.
+alter table public.match_messages alter column created_at set default clock_timestamp();
+alter table public.private_messages alter column created_at set default clock_timestamp();
+
+-- 8. Indexes for RLS-filtered reads and the cron sweep.
+create index match_participant_events_match_participant_id_idx on public.match_participant_events (match_participant_id);
+create index match_participants_user_id_idx on public.match_participants (user_id);
+create index friendships_requester_id_idx on public.friendships (requester_id);
+create index friendships_receiver_id_idx on public.friendships (receiver_id);
+create index match_invitations_invitee_id_idx on public.match_invitations (invitee_id);
+create index matches_creator_id_idx on public.matches (creator_id);
+create index matches_cron_sweep_idx on public.matches (status, reminder_sent_at, match_date, start_time);
+
+-- 9. Same implicit-PUBLIC-grant-on-create gap Task 14 found, applied to the
+-- test-only helpers -- defense in depth in case the `tests` schema is ever
+-- exposed to PostgREST.
+revoke execute on function tests.authenticate_as(uuid) from public;
+revoke execute on function tests.clear_authentication() from public;
+
+-- 10. Wire the chat/notification tables into Realtime.
+alter publication supabase_realtime add table public.match_messages, public.private_messages, public.notifications;
+```
+
+Also fix the pre-existing `015_transition_match_statuses.test.sql`: its second fixture builds `start_time`/`end_time` from `to_char(now() + interval, 'HH24:MI')`, which is `now()` read in the session's UTC frame. Now that `transition_match_statuses()` interprets stored times as `Europe/Rome`, that fixture would be read back shifted by the UTC/CEST offset and the "starts within the next hour" assertion could flake. Fix by building the fixture in Rome's frame too:
+
+```sql
+-- in supabase/tests/015_transition_match_statuses.test.sql, replace the second
+-- insert into public.matches (the "Campo Imminente" one) with:
+insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players, status)
+values (
+  '66666666-6666-6666-6666-666666666666','11111111-1111-1111-1111-111111111111',5,'Campo Imminente','Via Roma 2',38.1157,13.3615,
+  current_date,
+  to_char((now() + interval '30 minutes') at time zone 'Europe/Rome', 'HH24:MI')::time,
+  to_char((now() + interval '90 minutes') at time zone 'Europe/Rome', 'HH24:MI')::time,
+  10,'open'
+);
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `supabase test db`
+Expected: `017_final_review_hardening.test.sql .. ok`, all 8 assertions pass; `015_transition_match_statuses.test.sql` still passes with the corrected fixture; full suite (18 files) green.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add supabase/migrations/20260830101700_final_review_hardening.sql supabase/tests/017_final_review_hardening.test.sql supabase/tests/015_transition_match_statuses.test.sql
+git commit -m "fix: close post-final-review Critical/Important findings (anon profile leak, match timezone, forgeable stats, block-aware requests, unfriend, realtime)"
+```
+
+---
+
 ## What this plan does not cover (by design)
 
 - Mobile app (React Native/Expo screens, navigation, Supabase client wiring) — a separate plan, since it depends on this backend existing and tested first.
