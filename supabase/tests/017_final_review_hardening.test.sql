@@ -1,6 +1,6 @@
 -- supabase/tests/017_final_review_hardening.test.sql
 begin;
-select plan(8);
+select plan(9);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','mario@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -48,6 +48,12 @@ select throws_ok(
   $$ insert into public.friendships (requester_id, receiver_id) values ('22222222-2222-2222-2222-222222222222','11111111-1111-1111-1111-111111111111') $$,
   null,
   'a blocked user cannot send a friend request to the person who blocked them'
+);
+
+select throws_ok(
+  $$ insert into public.private_conversations (user_a_id, user_b_id) values ('22222222-2222-2222-2222-222222222222','11111111-1111-1111-1111-111111111111') $$,
+  null,
+  'a blocked user cannot start a private conversation with the person who blocked them'
 );
 
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');

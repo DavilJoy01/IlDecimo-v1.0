@@ -111,9 +111,9 @@ $$;
 -- 5, "a blocked user cannot send a friend request to the person who blocked
 -- them") exercises. Wrapping the check in a security definer helper (the
 -- same RLS-bypass pattern already used by public.is_fellow_participant for
--- match_participants, Task 4) makes it symmetric. private_conversations'
--- existing check has the same latent gap but is out of scope for this task
--- (not one of the 10 findings) and is left untouched; see the task report.
+-- match_participants, Task 4) makes it symmetric. private_conversations and
+-- private_messages (Task 11) have the exact same latent gap; see finding #11
+-- below, fixed via the same helper.
 create or replace function public.users_have_mutual_block(p_user_a uuid, p_user_b uuid)
 returns boolean
 language sql
@@ -138,6 +138,27 @@ alter policy "match_invitations_insert_as_inviter" on public.match_invitations
   with check (
     auth.uid() = inviter_id
     and not public.users_have_mutual_block(inviter_id, invitee_id)
+  );
+
+-- 11. Task 11's private_conversations/private_messages block checks have the
+-- exact same RLS-invisibility gap as #4, for the same reason -- reroute both
+-- through the same helper so the check works regardless of which party
+-- (blocker or blocked) is the one calling.
+alter policy "private_conversations_insert_participant_no_block" on public.private_conversations
+  with check (
+    (auth.uid() = user_a_id or auth.uid() = user_b_id)
+    and not public.users_have_mutual_block(user_a_id, user_b_id)
+  );
+
+alter policy "private_messages_insert_participant_no_block" on public.private_messages
+  with check (
+    sender_id = auth.uid()
+    and exists (
+      select 1 from public.private_conversations c
+      where c.id = private_messages.conversation_id
+        and (c.user_a_id = auth.uid() or c.user_b_id = auth.uid())
+        and not public.users_have_mutual_block(c.user_a_id, c.user_b_id)
+    )
   );
 
 -- 5. A creator can no longer delete a match that has already started or completed.
