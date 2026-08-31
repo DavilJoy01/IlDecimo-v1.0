@@ -1,6 +1,6 @@
 -- supabase/tests/017_final_review_hardening.test.sql
 begin;
-select plan(9);
+select plan(10);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','mario@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -56,6 +56,16 @@ select throws_ok(
   'a blocked user cannot start a private conversation with the person who blocked them'
 );
 
+select tests.clear_authentication();
+set local role anon;
+
+select throws_ok(
+  $$ select public.users_have_mutual_block('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222') $$,
+  null,
+  'an unauthenticated caller cannot probe arbitrary user pairs for a block relationship'
+);
+
+reset role;
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 delete from public.user_blocks where blocker_id = '11111111-1111-1111-1111-111111111111' and blocked_id = '22222222-2222-2222-2222-222222222222';
 

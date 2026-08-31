@@ -128,6 +128,14 @@ as $$
   );
 $$;
 
+-- Same implicit-PUBLIC-grant-on-create gap as is_fellow_participant
+-- (Task 4)/nearby_open_matches (Task 14) -- this function's own fix comment
+-- cites is_fellow_participant as its precedent but the re-review of this
+-- task found the corresponding revoke was never actually added. Without it,
+-- any caller (anon included) can probe arbitrary (user_a, user_b) pairs and
+-- learn who blocked whom, defeating user_blocks_select_own's RLS entirely.
+revoke execute on function public.users_have_mutual_block(uuid, uuid) from public, anon;
+
 alter policy "friendships_insert_as_requester" on public.friendships
   with check (
     auth.uid() = requester_id
