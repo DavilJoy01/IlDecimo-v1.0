@@ -1044,7 +1044,109 @@ export function useRegistration() {
 }
 ```
 
-- [ ] **Step 6: Build the four registration screens**
+- [ ] **Step 6: Write and run the test for the registration hook**
+
+This plan's Files list for this task always intended `useRegistration.test.ts` to exist,
+but the original text never actually specified its content — a real gap, caught during
+implementation. This is the most consequential hook in the app (it drives the entire
+registration UX across 4 screens), so it gets real coverage now rather than staying
+untested:
+
+```ts
+// mobile/src/hooks/useRegistration.test.ts
+import { renderHook, act } from '@testing-library/react-native';
+import { router } from 'expo-router';
+import { useRegistration } from './useRegistration';
+import { requestPhoneOtp, verifyPhoneOtp } from '@/api/auth';
+import { createOwnProfile } from '@/api/users';
+import { useSessionStore } from '@/stores/sessionStore';
+
+jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+jest.mock('@/api/auth', () => ({
+  requestPhoneOtp: jest.fn(),
+  verifyPhoneOtp: jest.fn(),
+  setPassword: jest.fn(),
+}));
+jest.mock('@/api/users', () => ({ createOwnProfile: jest.fn() }));
+
+describe('useRegistration', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useSessionStore.setState({ session: null, profile: null, status: 'loading' });
+  });
+
+  it('sendOtp requests an OTP, stores the phone, and navigates to verify-otp', async () => {
+    (requestPhoneOtp as jest.Mock).mockResolvedValue(undefined);
+    const { result } = renderHook(() => useRegistration());
+
+    await act(async () => {
+      await result.current.sendOtp('+390000000001');
+    });
+
+    expect(requestPhoneOtp).toHaveBeenCalledWith('+390000000001');
+    expect(router.push).toHaveBeenCalledWith('/(auth)/verify-otp');
+    expect(result.current.error).toBeNull();
+  });
+
+  it('sendOtp sets an error and does not navigate when the request fails', async () => {
+    (requestPhoneOtp as jest.Mock).mockRejectedValue(new Error('rate limited'));
+    const { result } = renderHook(() => useRegistration());
+
+    await act(async () => {
+      await result.current.sendOtp('+390000000001');
+    });
+
+    expect(result.current.error).toBe('rate limited');
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it('confirmOtp verifies the code against the phone stored by sendOtp, and navigates to create-password', async () => {
+    (requestPhoneOtp as jest.Mock).mockResolvedValue(undefined);
+    (verifyPhoneOtp as jest.Mock).mockResolvedValue({ session: { access_token: 't' } });
+    const { result } = renderHook(() => useRegistration());
+
+    await act(async () => {
+      await result.current.sendOtp('+390000000001');
+    });
+    (router.push as jest.Mock).mockClear();
+
+    await act(async () => {
+      await result.current.confirmOtp('123456');
+    });
+
+    expect(verifyPhoneOtp).toHaveBeenCalledWith('+390000000001', '123456');
+    expect(router.push).toHaveBeenCalledWith('/(auth)/create-password');
+  });
+
+  it('completeProfile creates the profile, stores it in the session store, and clears any prior error', async () => {
+    (createOwnProfile as jest.Mock).mockResolvedValue({ id: 'u1', unique_user_id: 'FC-100000' });
+    const { result } = renderHook(() => useRegistration());
+
+    await act(async () => {
+      await result.current.completeProfile({
+        userId: 'u1',
+        firstName: 'Mario',
+        lastName: 'Rossi',
+        birthDate: '1990-01-01',
+        heightCm: 180,
+        preferredFoot: 'right',
+        playerRole: 'player',
+      });
+    });
+
+    expect(createOwnProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'u1', first_name: 'Mario' })
+    );
+    expect(useSessionStore.getState().profile?.unique_user_id).toBe('FC-100000');
+    expect(result.current.error).toBeNull();
+  });
+});
+```
+
+Run: `cd mobile && npm test -- useRegistration`
+Expected: 4 passing tests.
+
+- [ ] **Step 7: Build the four registration screens**
 
 ```tsx
 // mobile/app/(auth)/register-phone.tsx
@@ -1249,16 +1351,16 @@ const styles = StyleSheet.create({
 });
 ```
 
-- [ ] **Step 7: Run full test suite and typecheck**
+- [ ] **Step 8: Run full test suite and typecheck**
 
 Run: `cd mobile && npm test && npm run typecheck`
-Expected: all passing, no type errors.
+Expected: all passing (including `useRegistration.test.ts`'s 4 assertions from Step 6), no type errors.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 cd "/Users/giovanni/Desktop/app calcio"
-git add mobile/src/api/users.ts mobile/src/api/users.test.ts mobile/src/hooks/useRegistration.ts "mobile/app/(auth)/register-phone.tsx" "mobile/app/(auth)/verify-otp.tsx" "mobile/app/(auth)/create-password.tsx" "mobile/app/(auth)/create-profile.tsx"
+git add mobile/src/api/users.ts mobile/src/api/users.test.ts mobile/src/hooks/useRegistration.ts mobile/src/hooks/useRegistration.test.ts "mobile/app/(auth)/register-phone.tsx" "mobile/app/(auth)/verify-otp.tsx" "mobile/app/(auth)/create-password.tsx" "mobile/app/(auth)/create-profile.tsx"
 git commit -m "feat: add registration flow (phone, OTP, password, profile creation)"
 ```
 
