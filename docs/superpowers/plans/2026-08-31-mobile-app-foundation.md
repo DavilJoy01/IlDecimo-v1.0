@@ -36,6 +36,19 @@
 **Interfaces:**
 - Produces: a runnable Expo app skeleton with TypeScript, Expo Router, and Jest configured — every later task adds files under `mobile/app/` and `mobile/src/`.
 
+**Toolchain note:** this machine's default npm (12.0.2, via `nvm`) has a real bug in
+`npm pack --dry-run --json` (it changed from returning an array to an object for a
+single package) that breaks `create-expo-app@latest`'s own parsing of that output —
+confirmed against npm's source, not just observed. Node 24.13.0 (npm 11.6.2), already
+installed via `nvm` on this machine, doesn't have the bug. `nvm alias default 24.13.0`
+has been set so new shells pick it up automatically; if a shell still resolves to the
+buggy npm, prefix commands with:
+```bash
+export PATH="/Users/giovanni/.nvm/versions/node/v24.13.0/bin:$PATH"
+```
+This only matters for commands that hit the npm registry (`create-expo-app`,
+`expo install`) — `npm test`/`npm run typecheck` are unaffected either way.
+
 - [ ] **Step 1: Scaffold the Expo project**
 
 Run (from the repo root):
@@ -44,17 +57,25 @@ npx create-expo-app@latest mobile --template default
 cd mobile
 ```
 
-This produces an Expo Router-based TypeScript template by default (current `create-expo-app` templates ship Expo Router pre-wired).
+This produces an Expo Router-based TypeScript template by default (current
+`create-expo-app` templates ship Expo Router pre-wired) — but as of
+`expo-template-default@57.0.20`, routes live under `mobile/src/app/` and shared code
+under `mobile/src/components/`, `mobile/src/hooks/`, `mobile/src/constants/`, not at
+`mobile/app/`/`mobile/components/` as older template versions used. Step 6 below
+accounts for this.
 
 - [ ] **Step 2: Enable TypeScript strict mode**
 
-Edit `mobile/tsconfig.json` to ensure:
+The template already sets `strict: true` and a `@/*` → `./src/*` path alias. Edit
+`mobile/tsconfig.json` to ensure it reads:
 ```json
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "types": ["jest"],
     "paths": {
       "@/*": ["./src/*"]
     }
@@ -62,6 +83,10 @@ Edit `mobile/tsconfig.json` to ensure:
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
 }
 ```
+`ignoreDeprecations: "6.0"` silences TypeScript 6's `TS5101` deprecation error on
+`baseUrl` (still required here for the `@/*` alias to resolve); `types: ["jest"]` is
+needed because `@types/jest`'s globals (`describe`/`it`/`expect`) aren't picked up
+automatically under this template's resolved config.
 
 - [ ] **Step 3: Install the packages this plan needs**
 
@@ -78,11 +103,17 @@ npx expo install --dev jest-expo @testing-library/react-native @types/jest
 module.exports = {
   preset: 'jest-expo',
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)/)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?[\\w.-]*|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)/)',
   ],
-  setupFilesAfterEach: [],
+  setupFilesAfterEnv: [],
 };
 ```
+The `expo(nent)?[\w.-]*` alternative (not just `expo(nent)?`) matters: without it, only
+the literal `expo`/`exponent` package name is excluded from transformation, and every
+other unscoped `expo-*` package (`expo-modules-core`, `expo-router`, `expo-constants`,
+etc.) falls through untranspiled and breaks with `SyntaxError: Cannot use import
+statement outside a module`. `setupFilesAfterEnv` (not `setupFilesAfterEach`, which
+isn't a real Jest option) is the correct key name.
 
 Add to `mobile/package.json` scripts:
 ```json
@@ -109,9 +140,32 @@ Expected: 1 passing test.
 Run: `cd mobile && npm run typecheck`
 Expected: no errors.
 
-- [ ] **Step 6: Remove template boilerplate screens**
+- [ ] **Step 6: Reconcile the template's file layout with this plan's expected structure**
 
-The default template ships example screens/components (a tab demo, `HelloWave`, etc.). Delete `mobile/app/(tabs)/` and `mobile/app/+not-found.tsx`'s example content and `mobile/components/` template files — Task 3 replaces the navigation shell from scratch. Keep `mobile/app/_layout.tsx` as a starting point to be edited in Task 3, and keep `mobile/assets/` (icons/splash) as-is.
+Per Step 1's note, the current template puts everything under `mobile/src/`. This plan
+(and Task 3 onward) expects routes at `mobile/app/` and shared code at `mobile/src/*`
+(matching the `@/*` alias). Reconcile:
+1. Move `mobile/src/app/_layout.tsx` to `mobile/app/_layout.tsx`, rewritten as a
+   minimal, dependency-free root layout (it will be fully replaced by Task 3's
+   session-gating logic anyway — a bare `<Stack />` is enough here):
+   ```tsx
+   // mobile/app/_layout.tsx
+   import { Stack } from 'expo-router';
+
+   export default function RootLayout() {
+     return <Stack screenOptions={{ headerShown: false }} />;
+   }
+   ```
+2. Delete the template's example route screens (`mobile/src/app/index.tsx`,
+   `mobile/src/app/explore.tsx` or equivalent tab-demo files), and delete
+   `mobile/src/components/`, `mobile/src/constants/`, `mobile/src/hooks/`,
+   `mobile/src/global.css` if present — none of this plan's later tasks build on the
+   template's example UI.
+3. Result: `mobile/app/` contains only `_layout.tsx` (Task 3 adds `(auth)/` and
+   `(tabs)/` alongside it), and `mobile/src/` contains only `smoke.test.ts` — a clean
+   slate for both directories.
+
+Leave `mobile/scripts/reset-project.js` and `mobile/assets/` (icons, splash) untouched.
 
 - [ ] **Step 7: Commit**
 
