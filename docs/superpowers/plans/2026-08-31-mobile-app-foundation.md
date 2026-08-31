@@ -22,6 +22,7 @@
 - Every screen handles loading and error states explicitly — no bare `data!` assumptions, no silently swallowed errors.
 - Bottom tab labels/order match spec section 19 exactly: Home, Le mie partite, Persone, Messaggi, Profilo.
 - This plan's tests run against the local Supabase stack from the backend-foundation plan (`supabase start` must be running) — the app talks to real Postgres/RLS, not a mocked backend, for anything that isn't a pure unit test of client-side logic.
+- `mobile/src/api/supabase.ts` imports `react-native-url-polyfill`, an ESM package Jest's `transformIgnorePatterns` doesn't cover. Every test in this plan that touches a module importing `supabase.ts` (directly or transitively) already uses the factory form of `jest.mock('./supabase', () => ({ supabase: { ... } }))` (or mocks the one intermediate module, e.g. `@/api/users`) rather than a partial/auto mock — the factory form replaces the module entirely, so Jest never executes the real file or its polyfill import. Keep using that pattern for any new API-wrapper test; don't import the real `supabase.ts` unmocked in a Jest test.
 
 ---
 
@@ -189,7 +190,7 @@ git commit -m "chore: scaffold Expo mobile app with TypeScript, Expo Router, and
 
 **Interfaces:**
 - Consumes: the local Supabase stack's URL/anon key (`supabase status -o env`).
-- Produces: `supabase` (default export, a configured `SupabaseClient`) from `mobile/src/api/supabase.ts`, imported by every other `src/api/*` module in this plan.
+- Produces: `supabase` (named export, a configured `SupabaseClient`) from `mobile/src/api/supabase.ts`, imported as `import { supabase } from './supabase'` (or `@/api/supabase`) by every other `src/api/*` module and screen in this plan.
 
 - [ ] **Step 1: Write the failing test for the storage adapter**
 
