@@ -23,6 +23,7 @@
 - Bottom tab labels/order match spec section 19 exactly: Home, Le mie partite, Persone, Messaggi, Profilo.
 - This plan's tests run against the local Supabase stack from the backend-foundation plan (`supabase start` must be running) — the app talks to real Postgres/RLS, not a mocked backend, for anything that isn't a pure unit test of client-side logic.
 - `mobile/src/api/supabase.ts` imports `react-native-url-polyfill`, an ESM package Jest's `transformIgnorePatterns` doesn't cover. Every test in this plan that touches a module importing `supabase.ts` (directly or transitively) already uses the factory form of `jest.mock('./supabase', () => ({ supabase: { ... } }))` (or mocks the one intermediate module, e.g. `@/api/users`) rather than a partial/auto mock — the factory form replaces the module entirely, so Jest never executes the real file or its polyfill import. Keep using that pattern for any new API-wrapper test; don't import the real `supabase.ts` unmocked in a Jest test.
+- `@testing-library/react-native`'s `renderHook` is `async` in the installed version (14.0.1) and returns a `Promise<RenderHookResult>` — verified against the package's own source, not a style preference. Every `renderHook(...)` call in this plan's tests is `await`ed; write any new hook test the same way.
 
 ---
 
@@ -1077,7 +1078,10 @@ describe('useRegistration', () => {
 
   it('sendOtp requests an OTP, stores the phone, and navigates to verify-otp', async () => {
     (requestPhoneOtp as jest.Mock).mockResolvedValue(undefined);
-    const { result } = renderHook(() => useRegistration());
+    // @testing-library/react-native@14's renderHook returns a Promise -- await it
+    // (a real version-specific requirement, verified against the installed package's
+    // own source, not a style choice -- applies to every renderHook call in this plan).
+    const { result } = await renderHook(() => useRegistration());
 
     await act(async () => {
       await result.current.sendOtp('+390000000001');
@@ -1090,7 +1094,10 @@ describe('useRegistration', () => {
 
   it('sendOtp sets an error and does not navigate when the request fails', async () => {
     (requestPhoneOtp as jest.Mock).mockRejectedValue(new Error('rate limited'));
-    const { result } = renderHook(() => useRegistration());
+    // @testing-library/react-native@14's renderHook returns a Promise -- await it
+    // (a real version-specific requirement, verified against the installed package's
+    // own source, not a style choice -- applies to every renderHook call in this plan).
+    const { result } = await renderHook(() => useRegistration());
 
     await act(async () => {
       await result.current.sendOtp('+390000000001');
@@ -1103,7 +1110,10 @@ describe('useRegistration', () => {
   it('confirmOtp verifies the code against the phone stored by sendOtp, and navigates to create-password', async () => {
     (requestPhoneOtp as jest.Mock).mockResolvedValue(undefined);
     (verifyPhoneOtp as jest.Mock).mockResolvedValue({ session: { access_token: 't' } });
-    const { result } = renderHook(() => useRegistration());
+    // @testing-library/react-native@14's renderHook returns a Promise -- await it
+    // (a real version-specific requirement, verified against the installed package's
+    // own source, not a style choice -- applies to every renderHook call in this plan).
+    const { result } = await renderHook(() => useRegistration());
 
     await act(async () => {
       await result.current.sendOtp('+390000000001');
@@ -1120,7 +1130,10 @@ describe('useRegistration', () => {
 
   it('completeProfile creates the profile, stores it in the session store, and clears any prior error', async () => {
     (createOwnProfile as jest.Mock).mockResolvedValue({ id: 'u1', unique_user_id: 'FC-100000' });
-    const { result } = renderHook(() => useRegistration());
+    // @testing-library/react-native@14's renderHook returns a Promise -- await it
+    // (a real version-specific requirement, verified against the installed package's
+    // own source, not a style choice -- applies to every renderHook call in this plan).
+    const { result } = await renderHook(() => useRegistration());
 
     await act(async () => {
       await result.current.completeProfile({
@@ -1394,8 +1407,10 @@ describe('useProfileBootstrap', () => {
     jest.clearAllMocks();
   });
 
-  it('does nothing when there is no session', () => {
-    renderHook(() => useProfileBootstrap());
+  it('does nothing when there is no session', async () => {
+    // @testing-library/react-native@14's renderHook returns a Promise -- await it,
+    // same as every other renderHook call in this plan (see Task 5's note).
+    await renderHook(() => useProfileBootstrap());
     expect(fetchOwnProfile).not.toHaveBeenCalled();
   });
 
@@ -1403,7 +1418,7 @@ describe('useProfileBootstrap', () => {
     (fetchOwnProfile as jest.Mock).mockResolvedValue({ id: 'u1', unique_user_id: 'FC-100000' });
     useSessionStore.getState().setSession({ user: { id: 'u1' } } as never);
 
-    renderHook(() => useProfileBootstrap());
+    await renderHook(() => useProfileBootstrap());
 
     await waitFor(() => expect(fetchOwnProfile).toHaveBeenCalledWith('u1'));
     await waitFor(() => expect(useSessionStore.getState().status).toBe('signed-in'));
@@ -1413,7 +1428,7 @@ describe('useProfileBootstrap', () => {
     (fetchOwnProfile as jest.Mock).mockResolvedValue(null);
     useSessionStore.getState().setSession({ user: { id: 'u1' } } as never);
 
-    renderHook(() => useProfileBootstrap());
+    await renderHook(() => useProfileBootstrap());
 
     await waitFor(() => expect(fetchOwnProfile).toHaveBeenCalledWith('u1'));
     expect(useSessionStore.getState().status).toBe('needs-profile');
@@ -1608,7 +1623,8 @@ describe('useNearbyMatches', () => {
     });
     (fetchNearbyMatches as jest.Mock).mockResolvedValue([{ id: 'm1' }]);
 
-    const { result } = renderHook(() => useNearbyMatches());
+    // @testing-library/react-native@14's renderHook returns a Promise -- await it.
+    const { result } = await renderHook(() => useNearbyMatches());
 
     await waitFor(() => expect(result.current.matches).toHaveLength(1));
     expect(fetchNearbyMatches).toHaveBeenCalledWith(38.1157, 13.3615, 20);
@@ -1618,7 +1634,8 @@ describe('useNearbyMatches', () => {
   it('sets permissionDenied and does not fetch when permission is refused', async () => {
     (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'denied' });
 
-    const { result } = renderHook(() => useNearbyMatches());
+    // @testing-library/react-native@14's renderHook returns a Promise -- await it.
+    const { result } = await renderHook(() => useNearbyMatches());
 
     await waitFor(() => expect(result.current.permissionDenied).toBe(true));
     expect(fetchNearbyMatches).not.toHaveBeenCalled();
@@ -1631,7 +1648,8 @@ describe('useNearbyMatches', () => {
     });
     (fetchNearbyMatches as jest.Mock).mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() => useNearbyMatches());
+    // @testing-library/react-native@14's renderHook returns a Promise -- await it.
+    const { result } = await renderHook(() => useNearbyMatches());
 
     await waitFor(() => expect(result.current.error).toBe('boom'));
   });
