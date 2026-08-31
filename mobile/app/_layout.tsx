@@ -31,7 +31,11 @@ export default function RootLayout() {
 
     if (status === 'signed-out' && !inAuthGroup) {
       router.replace('/(auth)/login' as any);
-    } else if (status === 'needs-profile' && segs[1] !== 'create-profile') {
+    } else if (
+      status === 'needs-profile' &&
+      segs[1] !== 'create-profile' &&
+      segs[1] !== 'create-password'
+    ) {
       router.replace('/(auth)/create-profile' as any);
     } else if (status === 'signed-in' && inAuthGroup) {
       router.replace('/(tabs)/home' as any);
