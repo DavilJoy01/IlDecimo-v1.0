@@ -892,7 +892,15 @@ export default function MatchDetailScreen() {
     );
   }
 
-  if (error || !match) {
+  // Only the initial-fetch-never-succeeded case ("nothing to show at all")
+  // routes here. A failed update/delete on an ALREADY-loaded match must NOT
+  // hit this branch -- useMatchDetail's update()/remove() write failures into
+  // the same `error` field the initial fetch uses, but `match` stays
+  // populated across those failures (Task 2's own contract). Gating on
+  // `!match` alone (not `error || !match`) is what keeps a failed edit on
+  // the edit form and a failed delete on the detail view, instead of both
+  // ejecting the user to this generic screen.
+  if (!match) {
     return (
       <View style={styles.centered}>
         <Text style={styles.error}>{error ?? 'Partita non trovata.'}</Text>
@@ -937,6 +945,10 @@ export default function MatchDetailScreen() {
       </Text>
       <Text style={styles.meta}>Massimo {match.max_players} giocatori</Text>
       {match.description && <Text style={styles.description}>{match.description}</Text>}
+      {/* A failed delete (or any other mutation error while NOT editing)
+          surfaces here, inline, on the same detail view -- it must never
+          silently navigate away or swap in the generic not-found screen. */}
+      {error && <Text style={styles.error}>{error}</Text>}
       {isCreator && (
         <View style={styles.actions}>
           <Pressable style={styles.editButton} onPress={() => setEditing(true)}>
