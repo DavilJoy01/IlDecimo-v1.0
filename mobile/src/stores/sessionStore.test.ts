@@ -26,4 +26,25 @@ describe('useSessionStore', () => {
     useSessionStore.getState().setProfile({ id: 'u1', unique_user_id: 'FC-100000' } as never);
     expect(useSessionStore.getState().status).toBe('signed-in');
   });
+
+  it('setSession clears the previous profile when a different user session replaces it', () => {
+    useSessionStore.getState().setSession({ user: { id: 'u1' } } as never);
+    useSessionStore.getState().setProfile({ id: 'u1', unique_user_id: 'FC-100000' } as never);
+    expect(useSessionStore.getState().status).toBe('signed-in');
+
+    useSessionStore.getState().setSession(null);
+    expect(useSessionStore.getState().profile).toBeNull();
+
+    useSessionStore.getState().setSession({ user: { id: 'u2' } } as never);
+    expect(useSessionStore.getState().profile).toBeNull();
+    expect(useSessionStore.getState().status).toBe('needs-profile');
+  });
+
+  it('setSession keeps the existing profile when the same user session is refreshed', () => {
+    useSessionStore.getState().setSession({ user: { id: 'u1' } } as never);
+    useSessionStore.getState().setProfile({ id: 'u1', unique_user_id: 'FC-100000' } as never);
+    useSessionStore.getState().setSession({ user: { id: 'u1' }, access_token: 'refreshed' } as never);
+    expect(useSessionStore.getState().profile).toEqual({ id: 'u1', unique_user_id: 'FC-100000' });
+    expect(useSessionStore.getState().status).toBe('signed-in');
+  });
 });

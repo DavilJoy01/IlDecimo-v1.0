@@ -24,6 +24,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   session: null,
   profile: null,
   status: 'loading',
-  setSession: (session) => set({ session, status: computeStatus(session, get().profile) }),
+  setSession: (session) => {
+    const prev = get().profile;
+    const profile = session && prev?.id === session.user.id ? prev : null;
+    set({ session, profile, status: computeStatus(session, profile) });
+  },
   setProfile: (profile) => set({ profile, status: computeStatus(get().session, profile) }),
 }));
