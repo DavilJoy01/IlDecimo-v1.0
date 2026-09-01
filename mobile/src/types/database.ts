@@ -20,6 +20,25 @@ export interface Database {
           updated_at: string;
         };
       };
+      matches: {
+        Row: {
+          id: string;
+          creator_id: string;
+          match_type: 5 | 7 | 8;
+          field_name: string;
+          address: string;
+          latitude: number;
+          longitude: number;
+          match_date: string;
+          start_time: string;
+          end_time: string;
+          max_players: number;
+          description: string | null;
+          status: 'draft' | 'open' | 'full' | 'started' | 'completed' | 'cancelled';
+          created_at: string;
+          updated_at: string;
+        };
+      };
     };
   };
 }
