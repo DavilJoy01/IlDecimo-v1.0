@@ -1430,9 +1430,11 @@ the new match's detail page showing exactly what was entered.
 
 - [ ] **Step 5: Verify it appears in Home**
 
-Tap "← Torna alla Home". Confirm the newly created match appears in the list (it will show a
-correct, near-zero distance, since its location is your current device location, per this plan's
-own design).
+Tap "← Torna alla Home". Confirm the newly created match appears in the list (pull-to-refresh if
+needed — `useNearbyMatches` only fetches on mount, and Expo Router's Stack keeps Home mounted
+across a push/pop, so returning to it doesn't automatically re-fetch). It will show a correct,
+near-zero distance, since its location is your current device location, per this plan's own
+design.
 
 - [ ] **Step 6: Edit the match**
 
