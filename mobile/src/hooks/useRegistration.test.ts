@@ -113,6 +113,7 @@ describe('useRegistration', () => {
   });
 
   it('completeProfile creates the profile, stores it in the session store, and clears any prior error', async () => {
+    useRegistrationStore.setState({ phone: '+390000000001' });
     (createOwnProfile as jest.Mock).mockResolvedValue({ id: 'u1', unique_user_id: 'FC-100000' });
     const { result } = await renderHook(() => useRegistration());
 
@@ -129,9 +130,73 @@ describe('useRegistration', () => {
     });
 
     expect(createOwnProfile).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'u1', first_name: 'Mario' })
+      expect.objectContaining({ id: 'u1', first_name: 'Mario', phone: '+390000000001' })
     );
     expect(useSessionStore.getState().profile?.unique_user_id).toBe('FC-100000');
     expect(result.current.error).toBeNull();
+  });
+
+  it('completeProfile falls back to the session phone when the registration store has none (e.g. app relaunched mid-registration)', async () => {
+    useSessionStore.setState({
+      session: { user: { id: 'u1', phone: '390000000002' } } as never,
+      profile: null,
+      status: 'needs-profile',
+    });
+    (createOwnProfile as jest.Mock).mockResolvedValue({ id: 'u1', unique_user_id: 'FC-100000' });
+    const { result } = await renderHook(() => useRegistration());
+
+    await act(async () => {
+      await result.current.completeProfile({
+        userId: 'u1',
+        firstName: 'Mario',
+        lastName: 'Rossi',
+        birthDate: '1990-01-01',
+        heightCm: 180,
+        preferredFoot: 'right',
+        playerRole: 'player',
+      });
+    });
+
+    expect(createOwnProfile).toHaveBeenCalledWith(expect.objectContaining({ phone: '+390000000002' }));
+  });
+
+  it('completeProfile refuses to submit and sets an error when no phone is available from either source', async () => {
+    useSessionStore.setState({ session: { user: { id: 'u1' } } as never, profile: null, status: 'needs-profile' });
+    const { result } = await renderHook(() => useRegistration());
+
+    await act(async () => {
+      await result.current.completeProfile({
+        userId: 'u1',
+        firstName: 'Mario',
+        lastName: 'Rossi',
+        birthDate: '1990-01-01',
+        heightCm: 180,
+        preferredFoot: 'right',
+        playerRole: 'player',
+      });
+    });
+
+    expect(createOwnProfile).not.toHaveBeenCalled();
+    expect(result.current.error).toBeTruthy();
+  });
+
+  it('completeProfile clears the registration-scoped phone after a successful submit', async () => {
+    useRegistrationStore.setState({ phone: '+390000000001' });
+    (createOwnProfile as jest.Mock).mockResolvedValue({ id: 'u1', unique_user_id: 'FC-100000' });
+    const { result } = await renderHook(() => useRegistration());
+
+    await act(async () => {
+      await result.current.completeProfile({
+        userId: 'u1',
+        firstName: 'Mario',
+        lastName: 'Rossi',
+        birthDate: '1990-01-01',
+        heightCm: 180,
+        preferredFoot: 'right',
+        playerRole: 'player',
+      });
+    });
+
+    expect(useRegistrationStore.getState().phone).toBe('');
   });
 });

@@ -8,6 +8,7 @@ import { useRegistrationStore } from '@/stores/registrationStore';
 export function useRegistration() {
   const phone = useRegistrationStore((s) => s.phone);
   const setPhoneState = useRegistrationStore((s) => s.setPhone);
+  const session = useSessionStore((s) => s.session);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const setProfile = useSessionStore((s) => s.setProfile);
@@ -64,9 +65,21 @@ export function useRegistration() {
     setLoading(true);
     setError(null);
     try {
+      // registrationStore.phone is only populated when sendOtp ran in this app
+      // session. A user who reaches this screen via session restore (killed the
+      // app mid-registration) or via login (no profile row yet) never called
+      // sendOtp, so fall back to the session's own phone claim -- GoTrue
+      // normalizes it without a leading '+', so re-add one to match the format
+      // registrationStore/the rest of this flow already uses.
+      const sessionPhone = session?.user.phone ? `+${session.user.phone.replace(/^\+/, '')}` : '';
+      const resolvedPhone = phone || sessionPhone;
+      if (!resolvedPhone) {
+        setError('Numero di telefono mancante. Prova a rifare la registrazione dal numero di telefono.');
+        return;
+      }
       const profile = await createOwnProfile({
         id: input.userId,
-        phone,
+        phone: resolvedPhone,
         first_name: input.firstName,
         last_name: input.lastName,
         birth_date: input.birthDate,
@@ -75,6 +88,7 @@ export function useRegistration() {
         player_role: input.playerRole,
       });
       setProfile(profile);
+      setPhoneState(''); // clear now that it's persisted, so it can't leak into a later account
       // Root layout (Task 3) redirects to /(tabs)/home once status becomes 'signed-in'.
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Creazione del profilo non riuscita.');
