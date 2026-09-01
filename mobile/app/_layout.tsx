@@ -36,8 +36,7 @@ export default function RootLayout() {
       router.replace('/(auth)/login' as any);
     } else if (
       status === 'needs-profile' &&
-      segs[1] !== 'create-profile' &&
-      segs[1] !== 'create-password'
+      !(inAuthGroup && (segs[1] === 'create-profile' || segs[1] === 'create-password'))
     ) {
       router.replace('/(auth)/create-profile' as any);
     } else if (status === 'signed-in' && inAuthGroup) {
