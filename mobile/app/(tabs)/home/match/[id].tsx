@@ -113,8 +113,12 @@ export default function MatchDetailScreen() {
     );
   }
 
-  const isFull = match.max_players <= roster.approvedParticipants.length;
-  const canRequest = match.status === 'open' && !isFull;
+  // Capacity is not enforced here: RLS means a non-participant viewer never
+  // sees an accurate approvedParticipants count for this match (it's always
+  // empty for them), so a real "match is full" check would need a new
+  // backend RPC. Accepted as a known MVP limitation rather than shipping a
+  // check that silently never fires for the one viewer it's meant to protect.
+  const canRequest = match.status === 'open';
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 24 }]}>
@@ -133,6 +137,7 @@ export default function MatchDetailScreen() {
           surfaces here, inline, on the same detail view -- it must never
           silently navigate away or swap in the generic not-found screen. */}
       {error && <Text style={styles.error}>{error}</Text>}
+      {roster.error && <Text style={styles.error}>{roster.error}</Text>}
 
       {isCreator && (
         <View style={styles.actions}>
@@ -148,7 +153,6 @@ export default function MatchDetailScreen() {
       {isCreator && roster.pendingRequests.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Richieste in attesa</Text>
-          {roster.error && <Text style={styles.error}>{roster.error}</Text>}
           {roster.pendingRequests.map((profile) => (
             <ParticipantRow key={profile.participant_id} profile={profile}>
               <View style={styles.requestActions}>
@@ -184,7 +188,7 @@ export default function MatchDetailScreen() {
       {!isCreator && (
         <View style={styles.section}>
           {myParticipation.error && <Text style={styles.error}>{myParticipation.error}</Text>}
-          {!myParticipation.participation && canRequest && (
+          {!myParticipation.loading && !myParticipation.participation && canRequest && (
             <Pressable style={styles.requestButton} disabled={myParticipation.actionLoading} onPress={() => myParticipation.requestJoin()}>
               {myParticipation.actionLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.requestButtonText}>Richiedi di partecipare</Text>}
             </Pressable>
@@ -206,12 +210,15 @@ export default function MatchDetailScreen() {
           {myParticipation.participation?.status === 'left' && (
             <View>
               <Text style={styles.statusText}>Hai lasciato questa partita</Text>
-              {myParticipation.participation.leave_count < 2 && (
+              {myParticipation.participation.leave_count < 2 && canRequest && (
                 <Pressable style={styles.requestButton} disabled={myParticipation.actionLoading} onPress={() => myParticipation.requestAgain()}>
                   {myParticipation.actionLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.requestButtonText}>Richiedi di nuovo</Text>}
                 </Pressable>
               )}
             </View>
+          )}
+          {myParticipation.participation?.status === 'completed' && (
+            <Text style={styles.statusText}>Questa partita è terminata</Text>
           )}
         </View>
       )}

@@ -184,8 +184,8 @@ describe('participants api', () => {
             select: jest.fn().mockReturnValue({
               in: jest.fn().mockResolvedValue({
                 data: [
-                  { id: 'u1', first_name: 'Mario', last_name: 'Rossi', profile_image_url: null, unique_user_id: 'FC-1', player_role: 'player' },
-                  { id: 'u2', first_name: 'Luca', last_name: 'Bianchi', profile_image_url: null, unique_user_id: 'FC-2', player_role: 'goalkeeper' },
+                  { id: 'u1', first_name: 'Mario', last_name: 'Rossi', profile_image_url: null, unique_user_id: 'FC-1', player_role: 'player', preferred_foot: 'right' },
+                  { id: 'u2', first_name: 'Luca', last_name: 'Bianchi', profile_image_url: null, unique_user_id: 'FC-2', player_role: 'goalkeeper', preferred_foot: 'left' },
                 ],
                 error: null,
               }),
@@ -198,8 +198,8 @@ describe('participants api', () => {
       const result = await fetchMatchParticipantProfiles('m1');
 
       expect(result).toEqual([
-        { participant_id: 'p1', user_id: 'u1', status: 'requested', first_name: 'Mario', last_name: 'Rossi', profile_image_url: null, unique_user_id: 'FC-1', player_role: 'player' },
-        { participant_id: 'p2', user_id: 'u2', status: 'approved', first_name: 'Luca', last_name: 'Bianchi', profile_image_url: null, unique_user_id: 'FC-2', player_role: 'goalkeeper' },
+        { participant_id: 'p1', user_id: 'u1', status: 'requested', first_name: 'Mario', last_name: 'Rossi', profile_image_url: null, unique_user_id: 'FC-1', player_role: 'player', preferred_foot: 'right' },
+        { participant_id: 'p2', user_id: 'u2', status: 'approved', first_name: 'Luca', last_name: 'Bianchi', profile_image_url: null, unique_user_id: 'FC-2', player_role: 'goalkeeper', preferred_foot: 'left' },
       ]);
     });
 

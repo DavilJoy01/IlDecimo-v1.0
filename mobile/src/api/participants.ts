@@ -18,6 +18,7 @@ export interface ParticipantProfile {
   profile_image_url: string | null;
   unique_user_id: string;
   player_role: 'player' | 'goalkeeper' | 'both';
+  preferred_foot: 'left' | 'right' | 'both';
 }
 
 export interface MyMatchParticipation {
@@ -79,7 +80,7 @@ export async function fetchMatchParticipantProfiles(matchId: string): Promise<Pa
   const userIds = participants.map((p) => p.user_id);
   const { data: profiles, error: profilesError } = await supabase
     .from('user_public_profiles')
-    .select('id, first_name, last_name, profile_image_url, unique_user_id, player_role')
+    .select('id, first_name, last_name, profile_image_url, unique_user_id, player_role, preferred_foot')
     .in('id', userIds);
   if (profilesError) throw new Error(profilesError.message);
 
@@ -97,6 +98,7 @@ export async function fetchMatchParticipantProfiles(matchId: string): Promise<Pa
       profile_image_url: profile.profile_image_url,
       unique_user_id: profile.unique_user_id,
       player_role: profile.player_role,
+      preferred_foot: profile.preferred_foot,
     });
   }
   return result;

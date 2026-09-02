@@ -9,6 +9,12 @@ const ROLE_LABELS: Record<ParticipantProfile['player_role'], string> = {
   both: 'Giocatore/Portiere',
 };
 
+const FOOT_LABELS: Record<ParticipantProfile['preferred_foot'], string> = {
+  left: 'Sinistro',
+  right: 'Destro',
+  both: 'Ambidestro',
+};
+
 interface ParticipantRowProps {
   profile: ParticipantProfile;
   children?: ReactNode;
@@ -29,6 +35,7 @@ export function ParticipantRow({ profile, children }: ParticipantRowProps) {
           {profile.first_name} {profile.last_name}
         </Text>
         <Text style={styles.role}>{ROLE_LABELS[profile.player_role]}</Text>
+        <Text style={styles.role}>{FOOT_LABELS[profile.preferred_foot]} · piede preferito</Text>
       </View>
       {children}
     </View>
