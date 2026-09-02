@@ -69,3 +69,13 @@ export async function deleteMatch(id: string): Promise<void> {
   if (error) throw new Error(error.message);
   if (!data || data.length === 0) throw new Error('Impossibile cancellare la partita.');
 }
+
+export async function fetchMatchesByCreator(creatorId: string): Promise<Match[]> {
+  const { data, error } = await supabase
+    .from('matches')
+    .select()
+    .eq('creator_id', creatorId)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Match[];
+}

@@ -1,6 +1,6 @@
 // mobile/src/api/matches.test.ts
 import { supabase } from './supabase';
-import { fetchNearbyMatches, createMatch, fetchMatchById, updateMatch, deleteMatch } from './matches';
+import { fetchNearbyMatches, createMatch, fetchMatchById, updateMatch, deleteMatch, fetchMatchesByCreator } from './matches';
 
 jest.mock('./supabase', () => ({ supabase: { rpc: jest.fn(), from: jest.fn() } }));
 
@@ -183,6 +183,31 @@ describe('matches api', () => {
       (supabase.from as jest.Mock).mockReturnValue({ delete: del });
 
       await expect(deleteMatch('m1')).rejects.toThrow('Impossibile cancellare la partita.');
+    });
+  });
+
+  describe('fetchMatchesByCreator', () => {
+    it('selects matches by creator_id, newest first', async () => {
+      const order = jest.fn().mockResolvedValue({ data: [sampleMatch], error: null });
+      const eq = jest.fn().mockReturnValue({ order });
+      const select = jest.fn().mockReturnValue({ eq });
+      (supabase.from as jest.Mock).mockReturnValue({ select });
+
+      const result = await fetchMatchesByCreator('u1');
+
+      expect(supabase.from).toHaveBeenCalledWith('matches');
+      expect(eq).toHaveBeenCalledWith('creator_id', 'u1');
+      expect(order).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(result).toEqual([sampleMatch]);
+    });
+
+    it('throws the Supabase error message on failure', async () => {
+      const order = jest.fn().mockResolvedValue({ data: null, error: { message: 'fetch failed' } });
+      const eq = jest.fn().mockReturnValue({ order });
+      const select = jest.fn().mockReturnValue({ eq });
+      (supabase.from as jest.Mock).mockReturnValue({ select });
+
+      await expect(fetchMatchesByCreator('u1')).rejects.toThrow('fetch failed');
     });
   });
 });
