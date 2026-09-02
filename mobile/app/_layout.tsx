@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Slot, useRouter, useSegments } from 'expo-router';
+import { Slot, useRootNavigationState, useRouter, useSegments } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { supabase } from '@/api/supabase';
 import { useSessionStore } from '@/stores/sessionStore';
@@ -9,6 +9,7 @@ export default function RootLayout() {
   const { session, status, setSession } = useSessionStore();
   const router = useRouter();
   const segments = useSegments();
+  const rootNavigationState = useRootNavigationState();
 
   useProfileBootstrap();
 
@@ -21,6 +22,11 @@ export default function RootLayout() {
   }, [setSession]);
 
   useEffect(() => {
+    // The root navigator hasn't mounted yet — router.replace() below would
+    // silently no-op if called before this, leaving the app stuck on the
+    // unmatched `/` path (no app/index.tsx exists; every real screen lives
+    // under the (auth) or (tabs) groups).
+    if (!rootNavigationState?.key) return;
     if (status === 'loading') return;
     // `as string[]`/`as any` below: expo-router's typedRoutes experiment types
     // useSegments() as a fixed-length tuple and router.replace() against
@@ -42,7 +48,7 @@ export default function RootLayout() {
     } else if (status === 'signed-in' && inAuthGroup) {
       router.replace('/(tabs)/home' as any);
     }
-  }, [status, segments, router]);
+  }, [status, segments, router, rootNavigationState?.key]);
 
   if (status === 'loading') {
     return (
