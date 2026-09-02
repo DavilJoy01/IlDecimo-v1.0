@@ -1,11 +1,13 @@
 import { useCallback } from 'react';
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, Pressable, RefreshControl } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useNearbyMatches } from '@/hooks/useNearbyMatches';
 import { MatchCard } from '@/components/MatchCard';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { matches, loading, error, permissionDenied, refresh } = useNearbyMatches();
 
   useFocusEffect(
@@ -46,7 +48,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
       <View style={styles.headerRow}>
         <Text style={styles.header}>Partite vicino a te</Text>
         <Pressable style={styles.createButton} onPress={() => router.push('/(tabs)/home/create-match')}>
@@ -70,7 +72,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 16 },
+  container: { flex: 1 },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

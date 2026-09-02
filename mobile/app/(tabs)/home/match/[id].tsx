@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMatchDetail } from '@/hooks/useMatchDetail';
 import { useSessionStore } from '@/stores/sessionStore';
@@ -8,6 +9,7 @@ import { MatchForm, type MatchFormValues } from '@/components/MatchForm';
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const userId = useSessionStore((s) => s.session?.user.id);
   const { match, loading, error, update, remove } = useMatchDetail(id);
   const [editing, setEditing] = useState(false);
@@ -77,27 +79,29 @@ export default function MatchDetailScreen() {
 
   if (editing) {
     return (
-      <MatchForm
-        initialValues={{
-          matchType: match.match_type,
-          fieldName: match.field_name,
-          address: match.address,
-          matchDate: match.match_date,
-          startTime: match.start_time.slice(0, 5),
-          endTime: match.end_time.slice(0, 5),
-          maxPlayers: String(match.max_players),
-          description: match.description ?? '',
-        }}
-        onSubmit={handleSave}
-        submitLabel="Salva modifiche"
-        loading={saving}
-        error={error}
-      />
+      <View style={{ flex: 1, paddingTop: insets.top }}>
+        <MatchForm
+          initialValues={{
+            matchType: match.match_type,
+            fieldName: match.field_name,
+            address: match.address,
+            matchDate: match.match_date,
+            startTime: match.start_time.slice(0, 5),
+            endTime: match.end_time.slice(0, 5),
+            maxPlayers: String(match.max_players),
+            description: match.description ?? '',
+          }}
+          onSubmit={handleSave}
+          submitLabel="Salva modifiche"
+          loading={saving}
+          error={error}
+        />
+      </View>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 24 }]}>
       <Pressable onPress={() => router.back()}>
         <Text style={styles.backLink}>← Torna alla Home</Text>
       </Pressable>
@@ -128,7 +132,7 @@ export default function MatchDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 24, gap: 8 },
+  container: { paddingHorizontal: 24, paddingBottom: 24, gap: 8 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
   backLink: { color: '#1a7f37', marginBottom: 8 },
   backButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 20, marginTop: 8 },

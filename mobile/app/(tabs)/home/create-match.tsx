@@ -1,10 +1,12 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MatchForm } from '@/components/MatchForm';
 import { useCreateMatch } from '@/hooks/useCreateMatch';
 
 export default function CreateMatchScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { create, loading, error, permissionDenied } = useCreateMatch();
 
   if (permissionDenied) {
@@ -23,7 +25,7 @@ export default function CreateMatchScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 24 }]}>
       <Pressable onPress={() => router.back()}>
         <Text style={styles.backLink}>← Annulla</Text>
       </Pressable>
@@ -34,7 +36,7 @@ export default function CreateMatchScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 24, paddingHorizontal: 24 },
+  container: { flex: 1, paddingHorizontal: 24 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
   title: { fontSize: 24, fontWeight: '700', marginBottom: 8 },
   subtitle: { color: '#666', textAlign: 'center' },
