@@ -39,7 +39,7 @@ export function useCreateMatch() {
         max_players: Number(values.maxPlayers),
         description: values.description || null,
       });
-      router.push({ pathname: '/(tabs)/home/match/[id]', params: { id: match.id } });
+      router.replace({ pathname: '/(tabs)/home/match/[id]', params: { id: match.id } });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossibile creare la partita.');
     } finally {

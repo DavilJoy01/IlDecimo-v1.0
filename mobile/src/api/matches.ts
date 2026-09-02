@@ -65,6 +65,7 @@ export async function updateMatch(id: string, input: MatchEditableFields): Promi
 }
 
 export async function deleteMatch(id: string): Promise<void> {
-  const { error } = await supabase.from('matches').delete().eq('id', id);
+  const { data, error } = await supabase.from('matches').delete().eq('id', id).select('id');
   if (error) throw new Error(error.message);
+  if (!data || data.length === 0) throw new Error('Impossibile cancellare la partita.');
 }

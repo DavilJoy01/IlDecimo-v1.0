@@ -1,11 +1,18 @@
+import { useCallback } from 'react';
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, Pressable, RefreshControl } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useNearbyMatches } from '@/hooks/useNearbyMatches';
 import { MatchCard } from '@/components/MatchCard';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { matches, loading, error, permissionDenied, refresh } = useNearbyMatches();
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
+  );
 
   if (permissionDenied) {
     return (

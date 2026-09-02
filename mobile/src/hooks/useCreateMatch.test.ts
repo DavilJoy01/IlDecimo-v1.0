@@ -5,7 +5,7 @@ import { useCreateMatch } from './useCreateMatch';
 import { createMatch } from '@/api/matches';
 import { useSessionStore } from '@/stores/sessionStore';
 
-jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }));
 jest.mock('expo-location');
 jest.mock('@/api/matches', () => ({ createMatch: jest.fn() }));
 
@@ -53,7 +53,7 @@ describe('useCreateMatch', () => {
         max_players: 10,
       })
     );
-    expect(router.push).toHaveBeenCalledWith({ pathname: '/(tabs)/home/match/[id]', params: { id: 'm1' } });
+    expect(router.replace).toHaveBeenCalledWith({ pathname: '/(tabs)/home/match/[id]', params: { id: 'm1' } });
     expect(result.current.error).toBeNull();
   });
 
@@ -68,7 +68,7 @@ describe('useCreateMatch', () => {
 
     expect(result.current.permissionDenied).toBe(true);
     expect(createMatch).not.toHaveBeenCalled();
-    expect(router.push).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('sets an error and does not navigate when creating the match fails', async () => {
@@ -85,7 +85,7 @@ describe('useCreateMatch', () => {
     });
 
     expect(result.current.error).toBe('insert failed');
-    expect(router.push).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('sets an error and does not attempt location/creation when there is no session', async () => {
