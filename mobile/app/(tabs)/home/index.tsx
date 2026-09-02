@@ -1,19 +1,23 @@
+// mobile/app/(tabs)/home/index.tsx
 import { useCallback } from 'react';
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, Pressable, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useNearbyMatches } from '@/hooks/useNearbyMatches';
+import { useNotifications } from '@/hooks/useNotifications';
 import { MatchCard } from '@/components/MatchCard';
 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { matches, loading, error, permissionDenied, refresh } = useNearbyMatches();
+  const { unreadCount, refresh: refreshNotifications } = useNotifications();
 
   useFocusEffect(
     useCallback(() => {
       refresh();
-    }, [refresh])
+      refreshNotifications();
+    }, [refresh, refreshNotifications])
   );
 
   if (permissionDenied) {
@@ -51,9 +55,19 @@ export default function HomeScreen() {
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
       <View style={styles.headerRow}>
         <Text style={styles.header}>Partite vicino a te</Text>
-        <Pressable style={styles.createButton} onPress={() => router.push('/(tabs)/home/create-match')}>
-          <Text style={styles.createButtonText}>+ Crea</Text>
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable style={styles.bellButton} onPress={() => router.push('/(tabs)/home/notifications')}>
+            <Text style={styles.bellIcon}>🔔</Text>
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </Pressable>
+          <Pressable style={styles.createButton} onPress={() => router.push('/(tabs)/home/create-match')}>
+            <Text style={styles.createButtonText}>+ Crea</Text>
+          </Pressable>
+        </View>
       </View>
       <FlatList
         data={matches}
@@ -81,6 +95,22 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   header: { fontSize: 22, fontWeight: '700' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  bellButton: { position: 'relative', padding: 4 },
+  bellIcon: { fontSize: 22 },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#c0392b',
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   createButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 14 },
   createButtonText: { color: '#fff', fontWeight: '600' },
   list: { paddingHorizontal: 16, paddingBottom: 24 },
