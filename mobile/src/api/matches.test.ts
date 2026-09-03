@@ -1,6 +1,6 @@
 // mobile/src/api/matches.test.ts
 import { supabase } from './supabase';
-import { fetchNearbyMatches, createMatch, fetchMatchById, updateMatch, deleteMatch, fetchMatchesByCreator } from './matches';
+import { fetchNearbyMatches, createMatch, fetchMatchById, updateMatch, cancelMatch, fetchMatchesByCreator } from './matches';
 
 jest.mock('./supabase', () => ({ supabase: { rpc: jest.fn(), from: jest.fn() } }));
 
@@ -154,35 +154,36 @@ describe('matches api', () => {
     });
   });
 
-  describe('deleteMatch', () => {
-    it('deletes the match by id', async () => {
+  describe('cancelMatch', () => {
+    it('sets the match status to cancelled', async () => {
       const select = jest.fn().mockResolvedValue({ data: [{ id: 'm1' }], error: null });
       const eq = jest.fn().mockReturnValue({ select });
-      const del = jest.fn().mockReturnValue({ eq });
-      (supabase.from as jest.Mock).mockReturnValue({ delete: del });
+      const update = jest.fn().mockReturnValue({ eq });
+      (supabase.from as jest.Mock).mockReturnValue({ update });
 
-      await deleteMatch('m1');
+      await cancelMatch('m1');
 
       expect(supabase.from).toHaveBeenCalledWith('matches');
+      expect(update).toHaveBeenCalledWith({ status: 'cancelled' });
       expect(eq).toHaveBeenCalledWith('id', 'm1');
     });
 
     it('throws the Supabase error message on failure', async () => {
-      const select = jest.fn().mockResolvedValue({ data: null, error: { message: 'delete failed' } });
+      const select = jest.fn().mockResolvedValue({ data: null, error: { message: 'update failed' } });
       const eq = jest.fn().mockReturnValue({ select });
-      const del = jest.fn().mockReturnValue({ eq });
-      (supabase.from as jest.Mock).mockReturnValue({ delete: del });
+      const update = jest.fn().mockReturnValue({ eq });
+      (supabase.from as jest.Mock).mockReturnValue({ update });
 
-      await expect(deleteMatch('m1')).rejects.toThrow('delete failed');
+      await expect(cancelMatch('m1')).rejects.toThrow('update failed');
     });
 
-    it('throws when no row was deleted (RLS filtered it out or it does not exist)', async () => {
+    it('throws when no row was updated (RLS filtered it out or it does not exist)', async () => {
       const select = jest.fn().mockResolvedValue({ data: [], error: null });
       const eq = jest.fn().mockReturnValue({ select });
-      const del = jest.fn().mockReturnValue({ eq });
-      (supabase.from as jest.Mock).mockReturnValue({ delete: del });
+      const update = jest.fn().mockReturnValue({ eq });
+      (supabase.from as jest.Mock).mockReturnValue({ update });
 
-      await expect(deleteMatch('m1')).rejects.toThrow('Impossibile cancellare la partita.');
+      await expect(cancelMatch('m1')).rejects.toThrow('Impossibile cancellare la partita.');
     });
   });
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchMatchById, updateMatch, deleteMatch, type Match, type MatchEditableFields } from '@/api/matches';
+import { fetchMatchById, updateMatch, cancelMatch, type Match, type MatchEditableFields } from '@/api/matches';
 
 export function useMatchDetail(matchId: string) {
   const [match, setMatch] = useState<Match | null>(null);
@@ -38,7 +38,7 @@ export function useMatchDetail(matchId: string) {
   async function remove(): Promise<boolean> {
     setError(null);
     try {
-      await deleteMatch(matchId);
+      await cancelMatch(matchId);
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossibile cancellare la partita.');

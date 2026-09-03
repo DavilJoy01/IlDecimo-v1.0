@@ -1,11 +1,11 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useMatchDetail } from './useMatchDetail';
-import { fetchMatchById, updateMatch, deleteMatch } from '@/api/matches';
+import { fetchMatchById, updateMatch, cancelMatch } from '@/api/matches';
 
 jest.mock('@/api/matches', () => ({
   fetchMatchById: jest.fn(),
   updateMatch: jest.fn(),
-  deleteMatch: jest.fn(),
+  cancelMatch: jest.fn(),
 }));
 
 const sampleMatch = {
@@ -98,9 +98,9 @@ describe('useMatchDetail', () => {
     expect(result.current.match).toEqual(sampleMatch);
   });
 
-  it('remove calls deleteMatch and returns true on success', async () => {
+  it('remove calls cancelMatch and returns true on success', async () => {
     (fetchMatchById as jest.Mock).mockResolvedValue(sampleMatch);
-    (deleteMatch as jest.Mock).mockResolvedValue(undefined);
+    (cancelMatch as jest.Mock).mockResolvedValue(undefined);
 
     const { result } = await renderHook(() => useMatchDetail('m1'));
     await waitFor(() => expect(result.current.match).toEqual(sampleMatch));
@@ -110,13 +110,13 @@ describe('useMatchDetail', () => {
       success = await result.current.remove();
     });
 
-    expect(deleteMatch).toHaveBeenCalledWith('m1');
+    expect(cancelMatch).toHaveBeenCalledWith('m1');
     expect(success).toBe(true);
   });
 
   it('remove sets an error and returns false on failure', async () => {
     (fetchMatchById as jest.Mock).mockResolvedValue(sampleMatch);
-    (deleteMatch as jest.Mock).mockRejectedValue(new Error('delete failed'));
+    (cancelMatch as jest.Mock).mockRejectedValue(new Error('delete failed'));
 
     const { result } = await renderHook(() => useMatchDetail('m1'));
     await waitFor(() => expect(result.current.match).toEqual(sampleMatch));

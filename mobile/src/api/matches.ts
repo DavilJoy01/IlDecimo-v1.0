@@ -64,8 +64,12 @@ export async function updateMatch(id: string, input: MatchEditableFields): Promi
   return data as Match;
 }
 
-export async function deleteMatch(id: string): Promise<void> {
-  const { data, error } = await supabase.from('matches').delete().eq('id', id).select('id');
+// A hard DELETE would cascade-delete match_participants (and every other
+// FK'd row) silently -- no notification to approved players, no history.
+// Cancelling is a status update instead, which the existing lifecycle
+// trigger picks up to notify approved/active participants.
+export async function cancelMatch(id: string): Promise<void> {
+  const { data, error } = await supabase.from('matches').update({ status: 'cancelled' }).eq('id', id).select('id');
   if (error) throw new Error(error.message);
   if (!data || data.length === 0) throw new Error('Impossibile cancellare la partita.');
 }

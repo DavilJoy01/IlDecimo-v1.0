@@ -1,5 +1,5 @@
 begin;
-select plan(5);
+select plan(6);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','creator@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -50,6 +50,19 @@ delete from public.matches where id = '33333333-3333-3333-3333-333333333333';
 select ok(
   exists(select 1 from public.matches where id = '33333333-3333-3333-3333-333333333333'),
   'a non-creator delete is silently rejected by RLS, match still exists'
+);
+
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+
+insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players, status)
+values ('55555555-5555-5555-5555-555555555555','11111111-1111-1111-1111-111111111111',5,'Campo Iniziata','Via Roma 2',38.1157,13.3615,'2026-09-05','20:00','21:30',10,'started');
+
+update public.matches set status = 'cancelled' where id = '55555555-5555-5555-5555-555555555555';
+
+select is(
+  (select status from public.matches where id = '55555555-5555-5555-5555-555555555555'),
+  'started',
+  'the creator cannot cancel (or otherwise update) a match that has already started'
 );
 
 select * from finish();
