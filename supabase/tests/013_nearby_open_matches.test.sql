@@ -1,6 +1,6 @@
 -- supabase/tests/013_nearby_open_matches.test.sql
 begin;
-select plan(5);
+select plan(6);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','creator@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -50,6 +50,13 @@ select is(
   (select count(*)::int from public.nearby_open_matches(38.1157, 13.3615, 500)),
   2,
   'widening the radius to 500km also returns the far-away match, but never the draft one'
+);
+
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+select is(
+  (select count(*)::int from public.nearby_open_matches(38.1157, 13.3615, 20)),
+  0,
+  'the creator does not see their own open match in their own nearby-matches search'
 );
 
 set local role anon;
