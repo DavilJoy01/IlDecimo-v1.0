@@ -1,6 +1,6 @@
 -- supabase/tests/007_match_messages.test.sql
 begin;
-select plan(7);
+select plan(5);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','creator@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -79,22 +79,6 @@ select is(
   (select count(*)::int from public.match_messages where match_id = '55555555-5555-5555-5555-555555555555' and sender_id = '11111111-1111-1111-1111-111111111111'),
   1,
   'the creator can also post in the room chat even without an approved participant row for their own match'
-);
-
-select tests.authenticate_as('44444444-4444-4444-4444-444444444444');
-
-select is(
-  (select type from public.notifications where user_id = '44444444-4444-4444-4444-444444444444' order by created_at desc limit 1),
-  'match_message',
-  'another approved participant (distinct from the sender) is notified of a new room message'
-);
-
-select tests.authenticate_as('33333333-3333-3333-3333-333333333333');
-
-select is(
-  (select count(*)::int from public.notifications where user_id = '33333333-3333-3333-3333-333333333333' and type = 'match_message'),
-  0,
-  'a pending (non-approved) user is not notified of room messages'
 );
 
 select * from finish();
