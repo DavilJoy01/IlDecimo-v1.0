@@ -26,13 +26,10 @@ function mockChannel() {
 
 describe('useMatchChat', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     useSessionStore.setState({ session: { user: { id: 'u1' } } as never, profile: ownProfile as never, status: 'signed-in' });
     (fetchMatchMessages as jest.Mock).mockResolvedValue([]);
     (fetchChatParticipants as jest.Mock).mockResolvedValue([otherParticipant]);
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
   });
 
   it('fetches messages and participants on mount, and subscribes to the match channel', async () => {
@@ -50,7 +47,7 @@ describe('useMatchChat', () => {
     const { result, unmount } = await renderHook(() => useMatchChat('m1'));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    unmount();
+    await unmount();
 
     expect(supabase.removeChannel).toHaveBeenCalledWith(channel);
   });
@@ -61,7 +58,7 @@ describe('useMatchChat', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     const onInsert = channel.on.mock.calls[0][2];
-    act(() => {
+    await act(async () => {
       onInsert({ new: { id: 'm2', match_id: 'm1', sender_id: 'u2', body: 'ciao', created_at: '2026-09-04T10:00:00Z' } });
     });
 
@@ -76,7 +73,7 @@ describe('useMatchChat', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     const onInsert = channel.on.mock.calls[0][2];
-    act(() => {
+    await act(async () => {
       onInsert({ new: { id: 'm3', match_id: 'm1', sender_id: 'u1', body: 'mio', created_at: '2026-09-04T10:00:00Z' } });
     });
 
