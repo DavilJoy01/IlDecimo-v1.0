@@ -1,4 +1,4 @@
-// mobile/app/(tabs)/home/match/[id].tsx
+// mobile/app/(tabs)/home/match/[id]/index.tsx
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
