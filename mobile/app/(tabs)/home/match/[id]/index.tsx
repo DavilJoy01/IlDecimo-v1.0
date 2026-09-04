@@ -119,6 +119,8 @@ export default function MatchDetailScreen() {
   // backend RPC. Accepted as a known MVP limitation rather than shipping a
   // check that silently never fires for the one viewer it's meant to protect.
   const canRequest = match.status === 'open';
+  const canAccessChat =
+    isCreator || ['approved', 'active', 'completed'].includes(myParticipation.participation?.status ?? '');
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 24 }]}>
@@ -138,6 +140,15 @@ export default function MatchDetailScreen() {
           silently navigate away or swap in the generic not-found screen. */}
       {error && <Text style={styles.error}>{error}</Text>}
       {roster.error && <Text style={styles.error}>{roster.error}</Text>}
+
+      {canAccessChat && (
+        <Pressable
+          style={styles.chatButton}
+          onPress={() => router.push({ pathname: '/(tabs)/home/match/[id]/chat', params: { id } })}
+        >
+          <Text style={styles.chatButtonText}>💬 Chat</Text>
+        </Pressable>
+      )}
 
       {isCreator && (
         <View style={styles.actions}>
@@ -236,6 +247,8 @@ const styles = StyleSheet.create({
   meta: { color: '#444', fontSize: 16 },
   description: { color: '#333', marginTop: 8 },
   error: { color: '#c0392b', textAlign: 'center' },
+  chatButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginTop: 8 },
+  chatButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   actions: { marginTop: 24, gap: 12 },
   editButton: { backgroundColor: '#1a7f37', borderRadius: 8, padding: 14, alignItems: 'center' },
   editButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
