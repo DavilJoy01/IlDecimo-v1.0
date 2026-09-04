@@ -1,6 +1,6 @@
 -- supabase/tests/007_match_messages.test.sql
 begin;
-select plan(6);
+select plan(7);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','creator@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -68,8 +68,17 @@ select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 
 select is(
   (select count(*)::int from public.match_messages where match_id = '55555555-5555-5555-5555-555555555555'),
-  0,
-  'the creator cannot read the room chat before being an approved participant themselves'
+  1,
+  'the creator can read the room chat even without an approved participant row for their own match'
+);
+
+insert into public.match_messages (match_id, sender_id, body)
+values ('55555555-5555-5555-5555-555555555555','11111111-1111-1111-1111-111111111111','Ciao, sono il creatore');
+
+select is(
+  (select count(*)::int from public.match_messages where match_id = '55555555-5555-5555-5555-555555555555' and sender_id = '11111111-1111-1111-1111-111111111111'),
+  1,
+  'the creator can also post in the room chat even without an approved participant row for their own match'
 );
 
 select tests.authenticate_as('44444444-4444-4444-4444-444444444444');
