@@ -12,8 +12,12 @@ export default function NotificationsScreen() {
 
   function handlePress(notification: AppNotification) {
     if (!notification.read_at) markRead(notification.id);
-    if (notification.payload.match_id) {
-      router.push({ pathname: '/(tabs)/home/match/[id]', params: { id: notification.payload.match_id } });
+    if (!notification.payload.match_id) return;
+    const id = notification.payload.match_id;
+    if (notification.type === 'match_message' || notification.type === 'match_message_mention') {
+      router.push({ pathname: '/(tabs)/home/match/[id]/chat', params: { id } });
+    } else {
+      router.push({ pathname: '/(tabs)/home/match/[id]', params: { id } });
     }
   }
 
