@@ -132,5 +132,20 @@ describe('matchMessages api', () => {
 
       await expect(sendMatchMessage('match1', 'ciao', [])).rejects.toThrow('send failed');
     });
+
+    it('translates a known backend authorization error to Italian', async () => {
+      (supabase.rpc as jest.Mock).mockResolvedValue({ data: null, error: { message: 'not authorized to post in this match room' } });
+
+      await expect(sendMatchMessage('match1', 'ciao', [])).rejects.toThrow('Non sei autorizzato a scrivere in questa chat.');
+    });
+
+    it('translates a body-length constraint violation to Italian', async () => {
+      (supabase.rpc as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { message: 'new row for relation "match_messages" violates check constraint "match_messages_body_check"' },
+      });
+
+      await expect(sendMatchMessage('match1', 'x'.repeat(3000), [])).rejects.toThrow('Il messaggio è troppo lungo (massimo 2000 caratteri).');
+    });
   });
 });

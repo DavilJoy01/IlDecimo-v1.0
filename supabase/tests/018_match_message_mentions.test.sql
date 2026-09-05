@@ -1,6 +1,6 @@
 -- supabase/tests/018_match_message_mentions.test.sql
 begin;
-select plan(4);
+select plan(5);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','creator@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -40,8 +40,30 @@ select is(
 select throws_ok(
   $$ insert into public.match_message_mentions (message_id, mentioned_user_id)
      values ('99999999-9999-9999-9999-999999999999','33333333-3333-3333-3333-333333333333') $$,
-  'cannot mention a user who is not the creator or an approved/active participant of this match',
-  'mentioning a user who is not the creator or an approved/active participant is rejected'
+  'cannot mention a user who is not the creator or an approved/active/completed participant of this match',
+  'mentioning a user who is not the creator or an approved/active/completed participant is rejected'
+);
+
+-- transition_match_statuses() (the periodic cron) flips every
+-- approved/active participant to completed shortly after a match ends --
+-- 'completed' is the steady state of any past match's chat, not a rare edge
+-- case, so mentioning a completed participant must keep working. Use a FRESH
+-- message + mention insert (not the pre-existing row from above) so this
+-- actually exercises the trigger against Luca's new status, rather than
+-- reading a row the trigger validated back when Luca was still 'approved'.
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
+update public.match_participants set status = 'completed' where id = '66666666-6666-6666-6666-666666666666';
+
+insert into public.match_messages (id, match_id, sender_id, body)
+values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','55555555-5555-5555-5555-555555555555','11111111-1111-1111-1111-111111111111','Grazie per oggi Luca');
+
+insert into public.match_message_mentions (message_id, mentioned_user_id)
+values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','22222222-2222-2222-2222-222222222222');
+
+select is(
+  (select count(*)::int from public.match_message_mentions where message_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
+  1,
+  'a completed participant can still be mentioned'
 );
 
 select tests.authenticate_as('22222222-2222-2222-2222-222222222222');

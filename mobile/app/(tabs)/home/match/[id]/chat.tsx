@@ -64,11 +64,22 @@ export default function MatchChatScreen() {
       keyboardVerticalOffset={insets.top}
     >
       <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
-        <Pressable onPress={() => router.back()}>
+        {/* Always navigates to the match detail explicitly, rather than
+            router.back() -- this screen is also reachable directly from a
+            notification tap (Task 8), where "back" would return to
+            Notifications instead of the partita the label promises. */}
+        <Pressable onPress={() => router.replace({ pathname: '/(tabs)/home/match/[id]', params: { id } })}>
           <Text style={styles.backLink}>← Torna alla partita</Text>
         </Pressable>
         <Text style={styles.header}>Chat</Text>
-        {chat.error && <Text style={styles.error}>{chat.error}</Text>}
+        {chat.error && (
+          <View>
+            <Text style={styles.error}>{chat.error}</Text>
+            <Pressable style={styles.retryButton} onPress={() => chat.refresh()}>
+              <Text style={styles.retryButtonText}>Riprova</Text>
+            </Pressable>
+          </View>
+        )}
 
         <FlatList
           data={chat.messages}
@@ -97,6 +108,7 @@ export default function MatchChatScreen() {
             onChangeText={setInputText}
             placeholder="Scrivi un messaggio..."
             multiline
+            maxLength={2000}
           />
           <Pressable style={styles.sendButton} disabled={chat.sending || !inputText.trim()} onPress={handleSend}>
             {chat.sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendButtonText}>Invia</Text>}
@@ -125,6 +137,8 @@ const styles = StyleSheet.create({
   backLink: { color: '#1a7f37', marginBottom: 8 },
   header: { fontSize: 22, fontWeight: '700', marginBottom: 8 },
   error: { color: '#c0392b', marginBottom: 8 },
+  retryButton: { alignSelf: 'flex-start', backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 16, marginBottom: 8 },
+  retryButtonText: { color: '#fff', fontWeight: '600' },
   messageList: { paddingVertical: 8, gap: 8 },
   bubbleRow: { flexDirection: 'row' },
   bubbleRowOwn: { justifyContent: 'flex-end' },
