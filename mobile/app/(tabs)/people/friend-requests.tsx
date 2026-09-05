@@ -12,7 +12,7 @@ export default function FriendRequestsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
-      <Pressable onPress={() => router.back()}>
+      <Pressable onPress={() => router.replace('/(tabs)/people')}>
         <Text style={styles.backLink}>← Torna a Persone</Text>
       </Pressable>
       <Text style={styles.header}>Richieste di amicizia</Text>

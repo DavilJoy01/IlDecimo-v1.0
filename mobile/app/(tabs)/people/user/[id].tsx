@@ -58,7 +58,7 @@ export default function UserProfileScreen() {
     return (
       <View style={styles.centered}>
         <Text style={styles.error}>{error ?? 'Utente non trovato.'}</Text>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Pressable style={styles.backButton} onPress={() => router.replace('/(tabs)/people')}>
           <Text style={styles.backButtonText}>← Torna indietro</Text>
         </Pressable>
       </View>
@@ -67,7 +67,7 @@ export default function UserProfileScreen() {
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 24 }]}>
-      <Pressable onPress={() => router.back()}>
+      <Pressable onPress={() => router.replace('/(tabs)/people')}>
         <Text style={styles.backLink}>← Torna indietro</Text>
       </Pressable>
 
