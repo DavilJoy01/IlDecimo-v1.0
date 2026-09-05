@@ -12,6 +12,19 @@ export default function NotificationsScreen() {
 
   function handlePress(notification: AppNotification) {
     if (!notification.read_at) markRead(notification.id);
+
+    if (notification.type === 'friend_request_received') {
+      router.push('/(tabs)/people/friend-requests');
+      return;
+    }
+    if (notification.type === 'friend_request_approved' || notification.type === 'friend_request_rejected') {
+      const userId = notification.payload.user_id;
+      if (typeof userId === 'string') {
+        router.push({ pathname: '/(tabs)/people/user/[id]', params: { id: userId } });
+      }
+      return;
+    }
+
     if (!notification.payload.match_id) return;
     const id = notification.payload.match_id;
     if (notification.type === 'match_message' || notification.type === 'match_message_mention') {
