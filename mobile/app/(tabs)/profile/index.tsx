@@ -1,18 +1,7 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useSessionStore } from '@/stores/sessionStore';
 import { supabase } from '@/api/supabase';
-
-const FOOT_LABELS: Record<string, string> = { left: 'Sinistro', right: 'Destro', both: 'Entrambi' };
-const ROLE_LABELS: Record<string, string> = { player: 'Giocatore', goalkeeper: 'Portiere', both: 'Entrambi' };
-
-function calculateAge(birthDate: string): number {
-  const birth = new Date(birthDate);
-  const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
-  return age;
-}
+import { calculateAge, FOOT_LABELS, ROLE_LABELS } from '@/utils/profileDisplay';
 
 export default function ProfileScreen() {
   const profile = useSessionStore((s) => s.profile);
