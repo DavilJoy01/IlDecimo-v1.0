@@ -17,7 +17,9 @@ describe('useUserSearch', () => {
 
     const { result } = await renderHook(() => useUserSearch());
 
-    act(() => result.current.setQuery('FC-100002'));
+    await act(async () => {
+      result.current.setQuery('FC-100002');
+    });
     await act(async () => {
       await result.current.search();
     });
@@ -32,7 +34,9 @@ describe('useUserSearch', () => {
 
     const { result } = await renderHook(() => useUserSearch());
 
-    act(() => result.current.setQuery('FC-999999'));
+    await act(async () => {
+      result.current.setQuery('FC-999999');
+    });
     await act(async () => {
       await result.current.search();
     });
@@ -46,7 +50,9 @@ describe('useUserSearch', () => {
 
     const { result } = await renderHook(() => useUserSearch());
 
-    act(() => result.current.setQuery('FC-100002'));
+    await act(async () => {
+      result.current.setQuery('FC-100002');
+    });
     await act(async () => {
       await result.current.search();
     });
