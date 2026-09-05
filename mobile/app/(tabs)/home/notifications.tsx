@@ -24,6 +24,13 @@ export default function NotificationsScreen() {
       }
       return;
     }
+    if (notification.type === 'private_message') {
+      const conversationId = notification.payload.conversation_id;
+      if (typeof conversationId === 'string') {
+        router.push({ pathname: '/(tabs)/messages/[id]', params: { id: conversationId } });
+      }
+      return;
+    }
 
     if (!notification.payload.match_id) return;
     const id = notification.payload.match_id;
