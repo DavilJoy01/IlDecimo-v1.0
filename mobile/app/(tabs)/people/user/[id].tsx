@@ -136,7 +136,7 @@ export default function UserProfileScreen() {
       {status.kind !== 'blocked_by_me' && (
         <View style={styles.moderation}>
           {!reportOpen ? (
-            <Pressable onPress={() => setReportOpen(true)}>
+            <Pressable disabled={actionLoading} onPress={() => setReportOpen(true)}>
               <Text style={styles.reportLink}>Segnala</Text>
             </Pressable>
           ) : (
@@ -154,7 +154,7 @@ export default function UserProfileScreen() {
               </Pressable>
             </View>
           )}
-          <Pressable onPress={confirmBlock}>
+          <Pressable disabled={actionLoading} onPress={confirmBlock}>
             <Text style={styles.blockLink}>Blocca</Text>
           </Pressable>
         </View>

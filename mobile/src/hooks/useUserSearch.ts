@@ -16,7 +16,10 @@ export function useUserSearch() {
     setError(null);
     setNotFound(false);
     try {
-      const found = await searchUserByCode(trimmed);
+      // unique_user_id codes are always stored upper-case ('FC-100002'); the
+      // input's autoCapitalize doesn't cover paste or autofill, so normalize
+      // here rather than silently reporting "not found" for a valid code.
+      const found = await searchUserByCode(trimmed.toUpperCase());
       setResult(found);
       setNotFound(found === null);
     } catch (err) {

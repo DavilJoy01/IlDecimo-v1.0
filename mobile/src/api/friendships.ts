@@ -37,6 +37,11 @@ function translateFriendshipError(message: string, code?: string): string {
   // the caller (invisible to the caller, so no specific message is safe to
   // show; see this plan's design spec, section 4.1's "Risks" note).
   if (code === '42501') return 'Non è possibile inviare una richiesta a questo utente.';
+  // 23505 = Postgres unique_violation -- friendships_unique_pair_idx is
+  // status-agnostic, so this can still fire as a defensive fallback (e.g. a
+  // second rapid tap racing sendFriendRequest's own delete-then-insert
+  // below) even though the normal path clears a stale rejected row first.
+  if (code === '23505') return 'Esiste già una richiesta o un’amicizia con questo utente.';
   return message;
 }
 
@@ -164,6 +169,21 @@ export async function fetchFriendshipStatus(userId: string, otherUserId: string)
 }
 
 export async function sendFriendRequest(userId: string, otherUserId: string): Promise<void> {
+  // friendships_unique_pair_idx is status-agnostic, so a previously-rejected
+  // row between these two users would otherwise collide with this insert
+  // (23505) forever -- a rejected friendship has no other in-app path to
+  // deletion (see fetchFriendshipStatus's own comment: 'rejected' reports as
+  // 'none', matching the spec's delete+re-insert re-request flow, but
+  // nothing actually did the delete half until now). Either party may
+  // delete any status via friendships_delete_participant, so clear a stale
+  // rejected row first -- a no-op delete (nothing rejected exists) is safe
+  // and cheap.
+  await supabase
+    .from('friendships')
+    .delete()
+    .eq('status', 'rejected')
+    .or(`and(requester_id.eq.${userId},receiver_id.eq.${otherUserId}),and(requester_id.eq.${otherUserId},receiver_id.eq.${userId})`);
+
   const { error } = await supabase.from('friendships').insert([{ requester_id: userId, receiver_id: otherUserId }]);
   if (error) throw new Error(translateFriendshipError(error.message, error.code));
 }

@@ -276,26 +276,41 @@ describe('friendships api', () => {
   });
 
   describe('sendFriendRequest', () => {
-    it('inserts a friendships row', async () => {
-      const insert = jest.fn().mockResolvedValue({ error: null });
-      (supabase.from as jest.Mock).mockReturnValue({ insert });
+    function mockDeleteThenInsert(insertResult: { error: unknown }) {
+      const deleteOr = jest.fn().mockResolvedValue({ error: null });
+      const deleteEq = jest.fn().mockReturnValue({ or: deleteOr });
+      const del = jest.fn().mockReturnValue({ eq: deleteEq });
+      const insert = jest.fn().mockResolvedValue(insertResult);
+      (supabase.from as jest.Mock).mockReturnValue({ delete: del, insert });
+      return { del, deleteEq, deleteOr, insert };
+    }
+
+    it('clears any stale rejected row for the pair before inserting', async () => {
+      const { del, deleteEq, deleteOr, insert } = mockDeleteThenInsert({ error: null });
 
       await sendFriendRequest('u1', 'u2');
 
       expect(supabase.from).toHaveBeenCalledWith('friendships');
+      expect(del).toHaveBeenCalled();
+      expect(deleteEq).toHaveBeenCalledWith('status', 'rejected');
+      expect(deleteOr).toHaveBeenCalledWith('and(requester_id.eq.u1,receiver_id.eq.u2),and(requester_id.eq.u2,receiver_id.eq.u1)');
       expect(insert).toHaveBeenCalledWith([{ requester_id: 'u1', receiver_id: 'u2' }]);
     });
 
     it('translates an RLS-denial error (blocked by the other user) to a generic Italian message', async () => {
-      const insert = jest.fn().mockResolvedValue({ error: { message: 'new row violates row-level security policy for table "friendships"', code: '42501' } });
-      (supabase.from as jest.Mock).mockReturnValue({ insert });
+      mockDeleteThenInsert({ error: { message: 'new row violates row-level security policy for table "friendships"', code: '42501' } });
 
       await expect(sendFriendRequest('u1', 'u2')).rejects.toThrow('Non è possibile inviare una richiesta a questo utente.');
     });
 
+    it('translates a unique-constraint violation to a generic Italian message', async () => {
+      mockDeleteThenInsert({ error: { message: 'duplicate key value violates unique constraint "friendships_unique_pair_idx"', code: '23505' } });
+
+      await expect(sendFriendRequest('u1', 'u2')).rejects.toThrow('Esiste già una richiesta o un’amicizia con questo utente.');
+    });
+
     it('throws the raw Supabase error message for any other failure', async () => {
-      const insert = jest.fn().mockResolvedValue({ error: { message: 'network error', code: '500' } });
-      (supabase.from as jest.Mock).mockReturnValue({ insert });
+      mockDeleteThenInsert({ error: { message: 'network error', code: '500' } });
 
       await expect(sendFriendRequest('u1', 'u2')).rejects.toThrow('network error');
     });

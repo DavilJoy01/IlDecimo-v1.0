@@ -60,6 +60,21 @@ describe('useUserSearch', () => {
     expect(result.current.error).toBe('search failed');
   });
 
+  it('uppercases the query before searching (pasted/autofilled codes are not always upper-case)', async () => {
+    (searchUserByCode as jest.Mock).mockResolvedValue(found);
+
+    const { result } = await renderHook(() => useUserSearch());
+
+    await act(async () => {
+      result.current.setQuery('fc-100002');
+    });
+    await act(async () => {
+      await result.current.search();
+    });
+
+    expect(searchUserByCode).toHaveBeenCalledWith('FC-100002');
+  });
+
   it('does nothing on an empty query', async () => {
     const { result } = await renderHook(() => useUserSearch());
 
