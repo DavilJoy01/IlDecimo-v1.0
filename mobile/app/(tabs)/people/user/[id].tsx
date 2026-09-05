@@ -6,6 +6,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useSessionStore } from '@/stores/sessionStore';
 import { calculateAge, FOOT_LABELS, ROLE_LABELS } from '@/utils/profileDisplay';
+import { findOrCreateConversation } from '@/api/privateMessages';
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -16,6 +17,20 @@ export default function UserProfileScreen() {
     useUserProfile(id);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('');
+  const [messageLoading, setMessageLoading] = useState(false);
+
+  async function handleMessage() {
+    if (!ownUserId) return;
+    setMessageLoading(true);
+    try {
+      const conversationId = await findOrCreateConversation(ownUserId, id);
+      router.push({ pathname: '/(tabs)/messages/[id]', params: { id: conversationId } });
+    } catch (err) {
+      Alert.alert('Errore', err instanceof Error ? err.message : 'Impossibile aprire la chat.');
+    } finally {
+      setMessageLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (ownUserId && id === ownUserId) {
@@ -134,6 +149,12 @@ export default function UserProfileScreen() {
       </View>
 
       {status.kind !== 'blocked_by_me' && (
+        <Pressable style={styles.messageButton} disabled={messageLoading} onPress={handleMessage}>
+          {messageLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.messageButtonText}>💬 Messaggio</Text>}
+        </Pressable>
+      )}
+
+      {status.kind !== 'blocked_by_me' && (
         <View style={styles.moderation}>
           {!reportOpen ? (
             <Pressable disabled={actionLoading} onPress={() => setReportOpen(true)}>
@@ -188,6 +209,8 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 18, fontWeight: '700' },
   statLabel: { color: '#666', fontSize: 12 },
   actions: { flexDirection: 'row', gap: 12, marginTop: 16 },
+  messageButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginTop: 16, width: '100%' },
+  messageButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   primaryButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
   primaryButtonText: { color: '#fff', fontWeight: '600' },
   secondaryButton: { backgroundColor: '#c0392b', borderRadius: 8, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
