@@ -3,11 +3,14 @@ import { View, Text, FlatList, ActivityIndicator, StyleSheet, Pressable } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useSessionStore } from '@/stores/sessionStore';
+import { markInvitationViewed } from '@/api/matchInvitations';
 import type { AppNotification } from '@/api/notifications';
 
 export default function NotificationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const userId = useSessionStore((s) => s.session?.user.id);
   const { notifications, loading, error, markRead, refresh } = useNotifications();
 
   function handlePress(notification: AppNotification) {
@@ -28,6 +31,18 @@ export default function NotificationsScreen() {
       const conversationId = notification.payload.conversation_id;
       if (typeof conversationId === 'string') {
         router.push({ pathname: '/(tabs)/messages/[id]', params: { id: conversationId } });
+      }
+      return;
+    }
+    if (notification.type === 'match_invitation') {
+      const matchId = notification.payload.match_id;
+      if (typeof matchId === 'string') {
+        // Best-effort, matches this codebase's established "don't block
+        // navigation on a secondary write" convention (see
+        // markConversationRead's usage in messaggi's chat screen) -- a
+        // failure here must never prevent the user reaching the match.
+        if (userId) markInvitationViewed(matchId, userId).catch(() => {});
+        router.push({ pathname: '/(tabs)/home/match/[id]', params: { id: matchId } });
       }
       return;
     }
