@@ -1,9 +1,11 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSessionStore } from '@/stores/sessionStore';
 import { supabase } from '@/api/supabase';
 import { calculateAge, FOOT_LABELS, ROLE_LABELS } from '@/utils/profileDisplay';
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const profile = useSessionStore((s) => s.profile);
 
   if (!profile) return null; // unreachable in practice: this screen is only mounted once status === 'signed-in'
@@ -26,6 +28,10 @@ export default function ProfileScreen() {
         <Stat label="Giocate" value={String(profile.matches_played_count)} />
         <Stat label="Completate" value={String(profile.matches_completed_count)} />
       </View>
+
+      <Pressable style={styles.editButton} onPress={() => router.push('/(tabs)/profile/edit')}>
+        <Text style={styles.editButtonText}>Modifica profilo</Text>
+      </Pressable>
 
       <Pressable style={styles.logoutButton} onPress={() => supabase.auth.signOut()}>
         <Text style={styles.logoutText}>Esci</Text>
@@ -53,6 +59,8 @@ const styles = StyleSheet.create({
   stat: { alignItems: 'center' },
   statValue: { fontSize: 18, fontWeight: '700' },
   statLabel: { color: '#666', fontSize: 12 },
+  editButton: { marginTop: 24, backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 24 },
+  editButtonText: { color: '#fff', fontWeight: '600' },
   logoutButton: { marginTop: 32, borderWidth: 1, borderColor: '#c0392b', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 24 },
   logoutText: { color: '#c0392b', fontWeight: '600' },
 });
