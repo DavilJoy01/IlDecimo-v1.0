@@ -1,5 +1,17 @@
 import { supabase } from './supabase';
 
+// Errors surfaced here are backend-internal English strings (a raw RLS-
+// denial error), never shown verbatim in this all-Italian UI.
+function translateMessagingError(message: string, code?: string): string {
+  // 42501 = Postgres insufficient_privilege, the code an RLS `with check`
+  // denial surfaces as -- covers the case where the OTHER user has blocked
+  // the caller (invisible to the caller, so no specific message is safe to
+  // show; mirrors friendships.ts's translateFriendshipError and its own
+  // comment on the identical 42501 case).
+  if (code === '42501') return 'Non è possibile inviare un messaggio a questo utente.';
+  return message;
+}
+
 export interface PrivateMessage {
   id: string;
   conversation_id: string;
@@ -110,10 +122,10 @@ export async function findOrCreateConversation(userId: string, otherUserId: stri
         .select('id')
         .or(pairFilter)
         .single();
-      if (recoverError) throw new Error(recoverError.message);
+      if (recoverError) throw new Error(translateMessagingError(recoverError.message, recoverError.code));
       return recovered.id;
     }
-    throw new Error(insertError.message);
+    throw new Error(translateMessagingError(insertError.message, insertError.code));
   }
   return created.id;
 }
@@ -140,7 +152,7 @@ export async function sendPrivateMessage(conversationId: string, senderId: strin
     .insert([{ conversation_id: conversationId, sender_id: senderId, body }])
     .select('id, conversation_id, sender_id, body, read_at, created_at')
     .single();
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(translateMessagingError(error.message, error.code));
   return data as PrivateMessage;
 }
 

@@ -154,6 +154,19 @@ describe('privateMessages api', () => {
 
       await expect(findOrCreateConversation('u1', 'u2')).rejects.toThrow('network error');
     });
+
+    it('translates an RLS-denial error (blocked by the other user) to a generic Italian message', async () => {
+      const maybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
+      const or = jest.fn().mockReturnValue({ maybeSingle });
+      const insertSingle = jest.fn().mockResolvedValue({
+        data: null,
+        error: { message: 'new row violates row-level security policy for table "private_conversations"', code: '42501' },
+      });
+      const insert = jest.fn().mockReturnValue({ select: jest.fn().mockReturnValue({ single: insertSingle }) });
+      (supabase.from as jest.Mock).mockReturnValue({ select: jest.fn().mockReturnValue({ or }), insert });
+
+      await expect(findOrCreateConversation('u1', 'u2')).rejects.toThrow('Non è possibile inviare un messaggio a questo utente.');
+    });
   });
 
   describe('fetchMessages', () => {
@@ -209,6 +222,17 @@ describe('privateMessages api', () => {
       (supabase.from as jest.Mock).mockReturnValue({ insert: jest.fn().mockReturnValue({ select }) });
 
       await expect(sendPrivateMessage('c1', 'u1', 'ciao')).rejects.toThrow('send failed');
+    });
+
+    it('translates an RLS-denial error (blocked by the other user) to a generic Italian message', async () => {
+      const single = jest.fn().mockResolvedValue({
+        data: null,
+        error: { message: 'new row violates row-level security policy for table "private_messages"', code: '42501' },
+      });
+      const select = jest.fn().mockReturnValue({ single });
+      (supabase.from as jest.Mock).mockReturnValue({ insert: jest.fn().mockReturnValue({ select }) });
+
+      await expect(sendPrivateMessage('c1', 'u1', 'ciao')).rejects.toThrow('Non è possibile inviare un messaggio a questo utente.');
     });
   });
 
