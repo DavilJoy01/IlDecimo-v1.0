@@ -20,3 +20,35 @@ export async function fetchOwnProfile(userId: string): Promise<UserProfile | nul
   if (error && error.code !== 'PGRST116') throw new Error(error.message);
   return (data as UserProfile) ?? null;
 }
+
+// Matches the three exact messages raised by the pre-existing
+// protect_users_row trigger (supabase/migrations/20260830101700_final_
+// review_hardening.sql) when this update touches phone/unique_user_id/
+// a match-count column -- this feature never sends those fields itself
+// (the form doesn't expose them), so hitting this is only reachable via
+// a compromised/desynced client, but the trigger's plain RAISE EXCEPTIONs
+// (no explicit SQLSTATE, so Postgres surfaces each as P0001, not a
+// standard RLS/constraint code like 42501 or 23505) must never leak
+// their English text into this all-Italian UI. Matched by message text,
+// not code, for that reason.
+const PROTECTED_FIELD_MESSAGES = new Set([
+  'unique_user_id is immutable',
+  'phone cannot be changed directly; contact support to update your phone number',
+  'match statistics are server-managed and cannot be changed directly',
+]);
+
+function translateProfileUpdateError(message: string): string {
+  if (PROTECTED_FIELD_MESSAGES.has(message)) {
+    return 'Non è possibile modificare questi dati del profilo.';
+  }
+  return message;
+}
+
+export async function updateOwnProfile(
+  userId: string,
+  fields: Partial<Pick<UserProfile, 'first_name' | 'last_name' | 'birth_date' | 'height_cm' | 'preferred_foot' | 'player_role' | 'profile_image_url'>>
+): Promise<UserProfile> {
+  const { data, error } = await supabase.from('users').update(fields).eq('id', userId).select().single();
+  if (error) throw new Error(translateProfileUpdateError(error.message));
+  return data as UserProfile;
+}
