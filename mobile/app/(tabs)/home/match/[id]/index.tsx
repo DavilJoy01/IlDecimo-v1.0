@@ -161,7 +161,7 @@ export default function MatchDetailScreen() {
         </View>
       )}
 
-      {isCreator && (
+      {isCreator && canRequest && (
         <Pressable
           style={styles.inviteButton}
           onPress={() => router.push({ pathname: '/(tabs)/home/match/[id]/invite', params: { id } })}
