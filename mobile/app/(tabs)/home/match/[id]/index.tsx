@@ -161,6 +161,15 @@ export default function MatchDetailScreen() {
         </View>
       )}
 
+      {isCreator && (
+        <Pressable
+          style={styles.inviteButton}
+          onPress={() => router.push({ pathname: '/(tabs)/home/match/[id]/invite', params: { id } })}
+        >
+          <Text style={styles.inviteButtonText}>Invita amici</Text>
+        </Pressable>
+      )}
+
       {isCreator && roster.pendingRequests.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Richieste in attesa</Text>
@@ -254,6 +263,8 @@ const styles = StyleSheet.create({
   editButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   deleteButton: { backgroundColor: '#c0392b', borderRadius: 8, padding: 14, alignItems: 'center' },
   deleteButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  inviteButton: { backgroundColor: '#1a7f37', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 12 },
+  inviteButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   section: { marginTop: 24, gap: 4 },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
   requestActions: { flexDirection: 'row', gap: 8 },
