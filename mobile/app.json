@@ -34,7 +34,13 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Consente all'app di accedere alle tue foto per impostare l'immagine del profilo."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
