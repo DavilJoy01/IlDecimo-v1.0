@@ -4,7 +4,7 @@
 
 **Goal:** Let a signed-in user edit their own profile (name, birth date, height, preferred foot, role, and profile photo), currently view-only.
 
-**Architecture:** Two new backend migrations (an immutable-fields trigger on `users`, a new public Storage bucket for photos), a small mobile data layer, a shared `ProfileForm` component extracted from the existing registration screen, and a new edit screen.
+**Architecture:** One new backend migration (a public Storage bucket for photos — `users`' identity fields turned out to already be protected by a pre-existing trigger, see Task 1), a small mobile data layer, a shared `ProfileForm` component extracted from the existing registration screen, and a new edit screen.
 
 **Tech Stack:** React Native (Expo Router), Supabase JS client + Storage, `expo-image-picker`, `expo-file-system`, `base64-arraybuffer`, Jest, pgTAP.
 
@@ -12,8 +12,8 @@
 
 ## Global Constraints
 
-- Editable fields: `first_name`, `last_name`, `birth_date`, `height_cm`, `preferred_foot`, `player_role`, `profile_image_url`. Never editable via this feature: `phone`, `unique_user_id`, `matches_played_count`, `matches_completed_count`, `matches_abandoned_count` — enforced server-side by a new trigger, not just by the client omitting them from its update payload.
-- The immutable-fields trigger raises a plain `RAISE EXCEPTION` (no explicit `SQLSTATE`), which Postgres surfaces as `P0001` — not `42501` or `23505`. Any client-side error translation for this specific failure must match on the exception's message text, not assume a specific standard error code.
+- Editable fields: `first_name`, `last_name`, `birth_date`, `height_cm`, `preferred_foot`, `player_role`, `profile_image_url`. Never editable via this feature: `phone`, `unique_user_id`, `matches_played_count`, `matches_completed_count`, `matches_abandoned_count` — **already** enforced server-side by the pre-existing `trg_protect_users_row` trigger (`public.protect_users_row()`, defined in `supabase/migrations/20260830101700_final_review_hardening.sql`), not by anything this plan adds. Do NOT add a new trigger for this — see Task 1.
+- `protect_users_row` raises three separate plain `RAISE EXCEPTION`s (no explicit `SQLSTATE`, so Postgres surfaces each as `P0001` — not `42501`/`23505`), gated on `auth.uid() is not null` (so service-role/unauthenticated writes, like the match-completion cron's own writes to the match-count columns, are unaffected): `'unique_user_id is immutable'`, `'phone cannot be changed directly; contact support to update your phone number'`, `'match statistics are server-managed and cannot be changed directly'`. Any client-side error translation for these must match on message text, not a standard error code.
 - The Storage bucket `profile-images` is public (`insert into storage.buckets (..., public) values (..., true)`); reads need no auth, writes are restricted per-user via `(storage.foldername(name))[1] = auth.uid()::text`.
 - Every uploaded file's path must be `<user_id>/<timestamp>.jpg` (timestamp in milliseconds via `Date.now()`) — this guarantees a fresh public URL on every new upload, so no client/CDN cache can ever serve a stale photo under an old URL, and removes any need for `upsert: true` or delete-before-upload logic.
 - `expo-image-picker` and `expo-file-system` are new dependencies — install with `npx expo install expo-image-picker expo-file-system` (not plain `npm install`, so Expo resolves SDK-57-compatible versions). `base64-arraybuffer` is a small, dependency-free, framework-agnostic base64 decoder — install with `npm install base64-arraybuffer` (a plain npm package, not an Expo/RN-specific one, so `npx expo install` does not apply to it).
@@ -23,140 +23,28 @@
 
 ---
 
-### Task 1: Immutable-fields trigger on `users`
+### Task 1: SKIPPED — immutable-fields protection already exists
 
-**Files:**
-- Create: `supabase/migrations/20260907100000_restrict_users_update_self.sql`
-- Test: `supabase/tests/023_restrict_users_update_self.test.sql`
+**This task, as originally written, proposed a new trigger to protect
+`phone`/`unique_user_id`/the three match-count columns.** A first
+implementation attempt discovered that `public.users` already has this
+exact protection via a pre-existing trigger, `trg_protect_users_row`
+(function `protect_users_row()`, defined in
+`supabase/migrations/20260830101700_final_review_hardening.sql`) — see
+this plan's Global Constraints for its three exact exception messages.
+The original spec/plan were wrong: they were written after checking only
+the `users_update_self` RLS policy (which genuinely has no column
+restriction), not the table's existing triggers.
 
-**Interfaces:**
-- Produces: a `before update on public.users` trigger that rejects (raises an exception) any update attempting to change `phone`, `unique_user_id`, `matches_played_count`, `matches_completed_count`, or `matches_abandoned_count`. All other columns remain freely updatable by the row's own owner (the pre-existing `users_update_self` policy, `auth.uid() = id`, is untouched by this task).
+**No migration, no new pgTAP file, no commit for this task.** Nothing to
+implement — proceed directly to Task 2. Task 3 (below) has already been
+corrected to translate the three real, pre-existing exception messages
+instead of a new consolidated one.
 
-- [ ] **Step 1: Write the failing pgTAP test**
-
-```sql
--- supabase/tests/023_restrict_users_update_self.test.sql
-begin;
-select plan(8);
-
-select tests.create_supabase_user('editor', 'editor@example.com');
-select tests.authenticate_as('editor');
-
-insert into public.users (id, unique_user_id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
-values (tests.get_supabase_uid('editor'), 'FC-900001', '+390000900001', 'Anna', 'Neri', '1995-05-05', 168, 'right', 'player');
-
--- Editable fields: update succeeds.
-select lives_ok(
-  $$ update public.users set first_name = 'Anna Maria', last_name = 'Verdi', birth_date = '1995-06-06', height_cm = 170, preferred_foot = 'left', player_role = 'goalkeeper', profile_image_url = 'https://example.com/photo.jpg' where id = tests.get_supabase_uid('editor') $$,
-  'updating only editable fields succeeds'
-);
-
-select is(
-  (select first_name from public.users where id = tests.get_supabase_uid('editor')),
-  'Anna Maria',
-  'first_name was actually updated'
-);
-
--- Protected fields: each one individually rejected.
-select throws_ok(
-  $$ update public.users set phone = '+390000999999' where id = tests.get_supabase_uid('editor') $$,
-  'cannot modify phone, unique_user_id, or match count fields',
-  'changing phone is rejected'
-);
-
-select throws_ok(
-  $$ update public.users set unique_user_id = 'FC-999999' where id = tests.get_supabase_uid('editor') $$,
-  'cannot modify phone, unique_user_id, or match count fields',
-  'changing unique_user_id is rejected'
-);
-
-select throws_ok(
-  $$ update public.users set matches_played_count = 99 where id = tests.get_supabase_uid('editor') $$,
-  'cannot modify phone, unique_user_id, or match count fields',
-  'changing matches_played_count is rejected'
-);
-
-select throws_ok(
-  $$ update public.users set matches_completed_count = 99 where id = tests.get_supabase_uid('editor') $$,
-  'cannot modify phone, unique_user_id, or match count fields',
-  'changing matches_completed_count is rejected'
-);
-
-select throws_ok(
-  $$ update public.users set matches_abandoned_count = 99 where id = tests.get_supabase_uid('editor') $$,
-  'cannot modify phone, unique_user_id, or match count fields',
-  'changing matches_abandoned_count is rejected'
-);
-
--- A rejected update must not partially apply -- phone stays what it was before any of the above attempts.
-select is(
-  (select phone from public.users where id = tests.get_supabase_uid('editor')),
-  '+390000900001',
-  'phone is unchanged after all the rejected attempts'
-);
-
-select * from finish();
-rollback;
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `cd supabase && npx supabase test db`
-Expected: FAIL — `public.users` has no such trigger yet, so every `throws_ok` fails (the update succeeds instead of raising) and the `lives_ok`/`is` checks may also behave unexpectedly since the table isn't in the state the test assumes yet.
-
-- [ ] **Step 3: Write the migration**
-
-```sql
--- supabase/migrations/20260907100000_restrict_users_update_self.sql
--- A policy's USING/WITH CHECK cannot compare a column's OLD value against
--- its NEW value in one expression -- that comparison needs a trigger, the
--- same pattern already used in this schema for protect_match_invitation_
--- identity/protect_private_message_immutable_fields. security definer +
--- set search_path = '' is not strictly required here (this trigger reads
--- only OLD/NEW of the row already being modified, no external queries),
--- but every trigger function in this schema uses it as a standing
--- hardening convention, so this one does too for consistency.
-create or replace function public.protect_users_identity_fields()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  if new.phone is distinct from old.phone
-     or new.unique_user_id is distinct from old.unique_user_id
-     or new.matches_played_count is distinct from old.matches_played_count
-     or new.matches_completed_count is distinct from old.matches_completed_count
-     or new.matches_abandoned_count is distinct from old.matches_abandoned_count
-  then
-    raise exception 'cannot modify phone, unique_user_id, or match count fields';
-  end if;
-  return new;
-end;
-$$;
-
-create trigger trg_protect_users_identity_fields
-  before update on public.users
-  for each row execute function public.protect_users_identity_fields();
-```
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `cd supabase && npx supabase test db`
-Expected: PASS, all 8 assertions in `023_restrict_users_update_self.test.sql`, plus every pre-existing pgTAP file still green (the full suite, not just the new file — a trigger on `users` is exactly the kind of change that can silently break an unrelated test that inserts/updates a `users` row).
-
-- [ ] **Step 5: Commit**
-
-```bash
-cd "/path/to/this/worktree"
-git add supabase/migrations/20260907100000_restrict_users_update_self.sql supabase/tests/023_restrict_users_update_self.test.sql
-git commit -m "$(cat <<'EOF'
-feat: add trigger protecting phone/unique_user_id/match counts on users
-
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
-EOF
-)"
-```
+If you are an implementer who was somehow dispatched this task anyway:
+stop, do not write any SQL, and report `DONE` with a note that Task 1 is
+a no-op per this plan text — do not re-litigate this by re-discovering
+the same trigger from scratch.
 
 ---
 
@@ -200,7 +88,7 @@ create policy "profile_images_delete_own"
 - [ ] **Step 2: Apply the migration and verify the bucket exists**
 
 Run: `cd supabase && npx supabase db reset` (or, if already applied by the running local instance, verify directly: `docker exec supabase_db_backend-foundation psql -U postgres -d postgres -c "select id, public from storage.buckets;"` should show one row, `profile-images | t`).
-Expected: the bucket and its four policies exist; the full pgTAP suite from Task 1 still passes after the reset (a `db reset` replays every migration from scratch).
+Expected: the bucket and its four policies exist; the full pgTAP suite still passes after the reset (a `db reset` replays every migration from scratch) — this is the first migration this plan actually adds, so this is also the first point where the pre-existing suite gets re-verified against this branch's changes.
 
 - [ ] **Step 3: Commit**
 
@@ -276,11 +164,12 @@ describe('users api', () => {
       expect(result).toEqual(updatedRow);
     });
 
-    it('translates the immutable-fields trigger exception into a neutral Italian message', async () => {
-      const single = jest.fn().mockResolvedValue({
-        data: null,
-        error: { message: 'cannot modify phone, unique_user_id, or match count fields', code: 'P0001' },
-      });
+    it.each([
+      ['unique_user_id is immutable'],
+      ['phone cannot be changed directly; contact support to update your phone number'],
+      ['match statistics are server-managed and cannot be changed directly'],
+    ])('translates the pre-existing protect_users_row exception "%s" into a neutral Italian message', async (rawMessage) => {
+      const single = jest.fn().mockResolvedValue({ data: null, error: { message: rawMessage, code: 'P0001' } });
       const select = jest.fn().mockReturnValue({ single });
       const eq = jest.fn().mockReturnValue({ select });
       const update = jest.fn().mockReturnValue({ eq });
@@ -312,13 +201,24 @@ Expected: FAIL — `updateOwnProfile` is not exported yet.
 Add to `mobile/src/api/users.ts` (keep `createOwnProfile` and `fetchOwnProfile` exactly as they are):
 
 ```ts
-// Matches the exact text raised by trg_protect_users_identity_fields
-// (supabase/migrations/20260907100000_restrict_users_update_self.sql) --
-// a plain RAISE EXCEPTION with no explicit SQLSTATE, which Postgres
-// surfaces as P0001, not a standard RLS/constraint code like 42501 or
-// 23505. Matched by message text, not code, for that reason.
+// Matches the three exact messages raised by the pre-existing
+// protect_users_row trigger (supabase/migrations/20260830101700_final_
+// review_hardening.sql) when this update touches phone/unique_user_id/
+// a match-count column -- this feature never sends those fields itself
+// (the form doesn't expose them), so hitting this is only reachable via
+// a compromised/desynced client, but the trigger's plain RAISE EXCEPTIONs
+// (no explicit SQLSTATE, so Postgres surfaces each as P0001, not a
+// standard RLS/constraint code like 42501 or 23505) must never leak
+// their English text into this all-Italian UI. Matched by message text,
+// not code, for that reason.
+const PROTECTED_FIELD_MESSAGES = new Set([
+  'unique_user_id is immutable',
+  'phone cannot be changed directly; contact support to update your phone number',
+  'match statistics are server-managed and cannot be changed directly',
+]);
+
 function translateProfileUpdateError(message: string): string {
-  if (message === 'cannot modify phone, unique_user_id, or match count fields') {
+  if (PROTECTED_FIELD_MESSAGES.has(message)) {
     return 'Non è possibile modificare questi dati del profilo.';
   }
   return message;
@@ -1155,7 +1055,7 @@ EOF
 - [ ] **Step 1: Run the full automated suite one more time**
 
 Run: `cd mobile && npm run typecheck && npm test` and `cd supabase && npx supabase test db`
-Expected: typecheck clean; full Jest suite green (prior total + this plan's new tests: 3 from Task 3 + 2 from Task 4 + 4 from Task 7 = 9 new tests); full pgTAP suite green (prior file count + this plan's `023_restrict_users_update_self.test.sql`, 8 assertions).
+Expected: typecheck clean; full Jest suite green (prior total + this plan's new tests: 5 from Task 3 (1 update-fields test + 3 parametrized error-translation cases + 1 unrelated-error passthrough) + 2 from Task 4 + 4 from Task 7 = 11 new tests); full pgTAP suite green at its pre-existing count (this plan adds no new pgTAP file — Task 1 turned out to be unnecessary, see its entry in the plan).
 
 - [ ] **Step 2: Live walkthrough in the iOS Simulator**
 
