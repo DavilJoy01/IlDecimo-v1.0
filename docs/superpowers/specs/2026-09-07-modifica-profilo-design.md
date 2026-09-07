@@ -51,58 +51,46 @@ questo progetto per la prima volta — nessun bucket esiste ancora.
 
 ## 3. Backend
 
-Due nuove migrazioni.
+Una sola nuova migrazione — vedi la correzione sotto.
 
-### 3.1 Restringere `users_update_self` ai soli campi editabili
+### 3.1 Restringere `users_update_self` ai soli campi editabili — **CORREZIONE: non serve, esiste già**
 
-Una policy RLS (`USING`/`WITH CHECK`) non ha accesso diretto sia al valore
-OLD che al valore NEW di una colonna nello stesso confronto — quel
-confronto esplicito richiede un trigger, esattamente il pattern già
-usato più volte in questo stesso schema per proteggere campi immutabili
-(`protect_match_invitation_identity`, `protect_private_message_immutable_fields`).
-Questa migrazione segue lo stesso pattern invece di forzare la policy a
-fare qualcosa per cui non è pensata:
+**Questa sezione, nella sua versione originale, proponeva un nuovo
+trigger per proteggere `phone`/`unique_user_id`/i tre contatori
+partite.** Durante l'implementazione (Task 1 del piano) è emerso che
+questo gap **non esiste**: `public.users` ha già un trigger
+`trg_protect_users_row` (funzione `protect_users_row`, definita in
+`supabase/migrations/20260830101700_final_review_hardening.sql`) che
+protegge esattamente questi campi:
 
 ```sql
--- supabase/migrations/20260907100000_restrict_users_update_self.sql
-create or replace function public.protect_users_identity_fields()
-returns trigger
-language plpgsql
-as $$
-begin
-  if new.phone is distinct from old.phone
-     or new.unique_user_id is distinct from old.unique_user_id
-     or new.matches_played_count is distinct from old.matches_played_count
-     or new.matches_completed_count is distinct from old.matches_completed_count
-     or new.matches_abandoned_count is distinct from old.matches_abandoned_count
-  then
-    raise exception 'cannot modify phone, unique_user_id, or match count fields';
-  end if;
-  return new;
-end;
-$$;
-
-create trigger trg_protect_users_identity_fields
-  before update on public.users
-  for each row execute function public.protect_users_identity_fields();
+-- già esistente, nessuna modifica necessaria
+if new.unique_user_id is distinct from old.unique_user_id then
+  raise exception 'unique_user_id is immutable';
+end if;
+if auth.uid() is not null and new.phone is distinct from old.phone then
+  raise exception 'phone cannot be changed directly; contact support to update your phone number';
+end if;
+if auth.uid() is not null and (
+  new.matches_played_count is distinct from old.matches_played_count
+  or new.matches_completed_count is distinct from old.matches_completed_count
+  or new.matches_abandoned_count is distinct from old.matches_abandoned_count
+) then
+  raise exception 'match statistics are server-managed and cannot be changed directly';
+end if;
 ```
 
-`phone`/`unique_user_id`/i tre contatori devono restare identici al
-valore già presente in tabella — qualunque tentativo di cambiarli fa
-fallire l'intero update con l'eccezione sollevata dal trigger (Postgres
-la restituisce come errore generico, non un `42501` RLS — la funzione
-lato client che traduce l'errore in §4.1 controlla il testo del
-messaggio per questo caso specifico, non solo il codice). Non serve
-`security definer`/`set search_path` qui (a differenza dei trigger che
-scrivono su ALTRE tabelle, come quelli citati sopra): questo trigger
-legge solo `OLD`/`NEW` della riga già in corso di modifica, non esegue
-query proprie, quindi gira correttamente sotto qualunque ruolo invochi
-l'update.
+Questo era un errore di analisi in fase di brainstorming: era stata
+controllata solo la policy RLS (`users_update_self`, che davvero non
+restringe le colonne), non i trigger sulla tabella. **Nessuna nuova
+migrazione serve per questo punto.** La funzione client che traduce
+l'errore in §4.1 deve tradurre i tre messaggi già esistenti sopra, non
+un messaggio nuovo consolidato come nella bozza originale.
 
 `first_name`, `last_name`, `birth_date`, `height_cm`, `preferred_foot`,
 `player_role`, `profile_image_url` restano liberamente scrivibili (già
 validati dai check constraint esistenti sulla tabella per altezza/piede/
-ruolo).
+ruolo) e non sono toccati da `protect_users_row`.
 
 ### 3.2 Bucket Storage per le foto profilo
 
@@ -150,13 +138,17 @@ Nuove funzioni:
   'first_name' | 'last_name' | 'birth_date' | 'height_cm' |
   'preferred_foot' | 'player_role' | 'profile_image_url'>>):
   Promise<UserProfile>` — `update` parziale, solo i campi passati.
-  Traduce l'errore sollevato dal trigger `trg_protect_users_identity_fields`
-  di §3.1 (riconoscibile dal testo del messaggio, non da un codice
-  Postgres standard come `42501`/`23505` — un `RAISE EXCEPTION` senza
-  `SQLSTATE` esplicito arriva come `P0001`) in un messaggio neutro
-  italiano. Scenario che il client stesso non dovrebbe mai produrre dato
-  che il form non espone quei campi — resta comunque una difesa contro
-  un client compromesso/desincronizzato.
+  Traduce ciascuno dei tre messaggi già sollevati dal trigger
+  preesistente `protect_users_row` (§3.1 — non un codice Postgres
+  standard come `42501`/`23505`, un `RAISE EXCEPTION` senza `SQLSTATE`
+  esplicito arriva come `P0001`, quindi il match è sul testo del
+  messaggio): `'unique_user_id is immutable'`,
+  `'phone cannot be changed directly; contact support to update your phone number'`,
+  `'match statistics are server-managed and cannot be changed directly'`
+  — ciascuno in un messaggio neutro italiano. Scenario che il client
+  stesso non dovrebbe mai produrre dato che il form non espone quei
+  campi — resta comunque una difesa contro un client compromesso/
+  desincronizzato.
 - `uploadProfileImage(userId: string, localUri: string): Promise<string>`
   — legge il file locale via `expo-file-system` (`readAsStringAsync` con
   `encoding: 'base64'`, poi decodificato a `ArrayBuffer` per l'upload —
@@ -314,11 +306,12 @@ Jest per `updateOwnProfile`/`uploadProfileImage` (client Supabase/Storage
 mockato, stesso stile a catena già consolidato in questo progetto — il
 mock di `supabase.storage.from(...).upload(...)`/`.getPublicUrl(...)`
 segue lo stesso schema a metodi concatenati già usato per `.from(...).select(...)`),
-per `useEditProfile`. pgTAP per il nuovo trigger: un update sui
-soli campi editabili passa; un tentativo che include anche `phone`,
-`unique_user_id`, o uno dei tre contatori viene rifiutato dall'eccezione
-del trigger, testato per ciascun campo separatamente (5 casi, uno per
-ogni campo protetto). Nessun test pgTAP
+per `useEditProfile`. Nessun nuovo test pgTAP per la protezione dei
+campi — il trigger preesistente `protect_users_row` (§3.1) è già
+coperto dai test esistenti (`001_users.test.sql`,
+`017_final_review_hardening.test.sql`); questa spec non aggiunge alcun
+comportamento backend nuovo su quel fronte, solo la traduzione lato
+client dei suoi messaggi già esistenti. Nessun test pgTAP
 dedicato per le policy dello storage bucket — questo progetto non ha
 finora scritto test pgTAP per `storage.objects` (nessun bucket esisteva
 prima), e improvvisare un framework di test per lo storage sarebbe
@@ -348,12 +341,10 @@ propaghi senza bisogno di toccarli).
   meccanismo di pulizia (es. una funzione che cancella la foto precedente
   dopo un upload riuscito) è un miglioramento rimandabile, non richiesto
   ora.
-- Il trigger di §3.1 blocca la modifica dei campi protetti anche per un
-  eventuale futuro pannello di amministrazione che dovesse aggiornare
-  quei contatori direttamente sulla riga di un utente (oggi nessun
-  meccanismo del genere esiste — i contatori sono scritti solo da
-  trigger di sistema legati al ciclo di vita delle partite). Se in
-  futuro servisse un update legittimo di quei campi da un contesto
-  diverso dall'utente stesso, andrà fatto con un ruolo/una funzione
-  `security definer` che bypassa questo trigger (o un flag di contesto),
-  non modificando il trigger stesso.
+- Il trigger preesistente `protect_users_row` (§3.1) già gestisce
+  correttamente il caso di un futuro pannello di amministrazione: è
+  gated su `auth.uid() is not null`, quindi un update da un contesto
+  service-role/non autenticato (come già fa
+  `transition_match_statuses()` per i contatori a fine partita) non
+  viene bloccato. Nessuna azione richiesta da questa spec su questo
+  fronte.
