@@ -34,7 +34,7 @@ export default function PrivateChatScreen() {
     if (success) setInputText('');
   }
 
-  if (chat.loading) {
+  if (chat.loading && chat.messages.length === 0) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" />
