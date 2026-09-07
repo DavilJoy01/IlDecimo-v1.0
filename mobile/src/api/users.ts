@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import type { Database } from '@/types/database';
+import * as FileSystem from 'expo-file-system';
+import { decode } from 'base64-arraybuffer';
 
 type UserProfile = Database['public']['Tables']['users']['Row'];
 type NewUserProfile = Pick<
@@ -51,4 +53,22 @@ export async function updateOwnProfile(
   const { data, error } = await supabase.from('users').update(fields).eq('id', userId).select().single();
   if (error) throw new Error(translateProfileUpdateError(error.message));
   return data as UserProfile;
+}
+
+// Reads the local file as base64 and decodes to an ArrayBuffer for the
+// upload -- fetch(uri).blob() is not reliable for local file:// URIs on
+// React Native, this base64-round-trip is the pattern Supabase's own
+// docs recommend for Expo. The millisecond timestamp in the path
+// guarantees a fresh public URL on every upload, so no cache (client or
+// CDN) can ever serve a stale photo under an old URL, and there's never
+// a need for upsert or a delete-before-upload step.
+export async function uploadProfileImage(userId: string, localUri: string): Promise<string> {
+  const base64 = await FileSystem.readAsStringAsync(localUri, { encoding: 'base64' });
+  const path = `${userId}/${Date.now()}.jpg`;
+  const { error: uploadError } = await supabase.storage
+    .from('profile-images')
+    .upload(path, decode(base64), { contentType: 'image/jpeg', upsert: false });
+  if (uploadError) throw new Error(uploadError.message);
+  const { data } = supabase.storage.from('profile-images').getPublicUrl(path);
+  return data.publicUrl;
 }
