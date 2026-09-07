@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { fetchFriends } from './friendships';
 
 export interface InvitableFriend {
   user_id: string;
@@ -14,43 +15,30 @@ export interface InvitableFriend {
 // translateFriendshipError and privateMessages.ts's translateMessagingError).
 function translateInvitationError(message: string, code?: string): string {
   if (code === '42501') return 'Non è possibile invitare questo utente.';
+  if (code === '23505') return 'Questo utente è già stato invitato a questa partita.';
   return message;
 }
 
-// user_public_profiles is a VIEW with no PostgREST-discoverable FK from
-// friendships.requester_id/receiver_id, so the friends lookup is two
-// queries + a client-side merge (same shape as friendships.ts's own
-// fetchFriends), then two more queries (existing participants, existing
-// invitees for this match) reduced to exclusion sets client-side -- the
-// same multi-query-merge pattern already established in messaggi's
-// fetchConversations and persone's fetchFriends, not a new approach.
+// Friends lookup delegates to friendships.ts's own fetchFriends rather than
+// duplicating its two-query merge -- FriendProfile carries an extra
+// unique_user_id field InvitableFriend doesn't need, dropped in the map
+// below. The exclusion queries (existing participants, existing invitees
+// for this match) run in parallel and are reduced to exclusion sets
+// client-side -- the same multi-query-merge pattern already established in
+// messaggi's fetchConversations and persone's fetchFriends, not a new
+// approach.
 export async function fetchInvitableFriends(userId: string, matchId: string): Promise<InvitableFriend[]> {
-  const { data: friendshipRows, error: friendshipsError } = await supabase
-    .from('friendships')
-    .select('requester_id, receiver_id')
-    .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`)
-    .eq('status', 'accepted');
-  if (friendshipsError) throw new Error(friendshipsError.message);
-  if (!friendshipRows || friendshipRows.length === 0) return [];
+  const friends = await fetchFriends(userId);
+  if (friends.length === 0) return [];
 
-  const friendIds = friendshipRows.map((r) => (r.requester_id === userId ? r.receiver_id : r.requester_id));
-
-  const { data: profiles, error: profilesError } = await supabase
-    .from('user_public_profiles')
-    .select('id, first_name, last_name, profile_image_url')
-    .in('id', friendIds);
-  if (profilesError) throw new Error(profilesError.message);
-
-  const { data: participantRows, error: participantsError } = await supabase
-    .from('match_participants')
-    .select('user_id')
-    .eq('match_id', matchId);
+  const [
+    { data: participantRows, error: participantsError },
+    { data: invitationRows, error: invitationsError },
+  ] = await Promise.all([
+    supabase.from('match_participants').select('user_id').eq('match_id', matchId),
+    supabase.from('match_invitations').select('invitee_id').eq('match_id', matchId),
+  ]);
   if (participantsError) throw new Error(participantsError.message);
-
-  const { data: invitationRows, error: invitationsError } = await supabase
-    .from('match_invitations')
-    .select('invitee_id')
-    .eq('match_id', matchId);
   if (invitationsError) throw new Error(invitationsError.message);
 
   // Excludes ANY existing state (any participant status, any invitation
@@ -62,21 +50,26 @@ export async function fetchInvitableFriends(userId: string, matchId: string): Pr
     ...(invitationRows ?? []).map((r) => r.invitee_id),
   ]);
 
-  return (profiles ?? [])
-    .filter((p) => !excluded.has(p.id))
-    .map((p) => ({
-      user_id: p.id,
-      first_name: p.first_name,
-      last_name: p.last_name,
-      profile_image_url: p.profile_image_url,
+  return friends
+    .filter((f) => !excluded.has(f.user_id))
+    .map((f) => ({
+      user_id: f.user_id,
+      first_name: f.first_name,
+      last_name: f.last_name,
+      profile_image_url: f.profile_image_url,
     }));
 }
 
-// No 23505-recovery needed here (unlike findOrCreateConversation in
-// messaggi): fetchInvitableFriends already excludes anyone with an
-// existing invitation, so a duplicate can only happen from a genuine
-// double-tap race on the same friend -- the translated error below is an
-// acceptable outcome for that narrow case, no recovery path needed.
+// fetchInvitableFriends's exclusion query for existing invitations is
+// RLS-scoped (match_invitations_select_participants: auth.uid() =
+// inviter_id or auth.uid() = invitee_id), so it only sees invitations the
+// CURRENT caller sent or received -- not every invitation for this match.
+// If a DIFFERENT inviter already invited this friend, the current caller's
+// exclusion list won't know about it, and their own insert can still hit
+// the (match_id, invitee_id) unique constraint (23505). That case, plus a
+// genuine double-tap race on the same friend, are both reachable here --
+// translateInvitationError now maps 23505 to a neutral message instead of
+// throwing the raw Postgres string.
 export async function sendMatchInvitation(matchId: string, inviterId: string, inviteeId: string): Promise<void> {
   const { error } = await supabase
     .from('match_invitations')

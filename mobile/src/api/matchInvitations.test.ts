@@ -1,44 +1,21 @@
 import { supabase } from './supabase';
+import { fetchFriends } from './friendships';
 import { fetchInvitableFriends, sendMatchInvitation, markInvitationViewed } from './matchInvitations';
 
 jest.mock('./supabase', () => ({ supabase: { from: jest.fn() } }));
+jest.mock('./friendships', () => ({ fetchFriends: jest.fn() }));
 
 describe('matchInvitations api', () => {
   afterEach(() => jest.clearAllMocks());
 
   describe('fetchInvitableFriends', () => {
     it('returns friends minus existing participants and existing invitees', async () => {
+      (fetchFriends as jest.Mock).mockResolvedValue([
+        { user_id: 'u2', unique_user_id: 'code2', first_name: 'Luca', last_name: 'Bianchi', profile_image_url: null },
+        { user_id: 'u3', unique_user_id: 'code3', first_name: 'Gino', last_name: 'Verdi', profile_image_url: null },
+        { user_id: 'u4', unique_user_id: 'code4', first_name: 'Anna', last_name: 'Neri', profile_image_url: null },
+      ]);
       (supabase.from as jest.Mock).mockImplementation((table: string) => {
-        if (table === 'friendships') {
-          return {
-            select: jest.fn().mockReturnValue({
-              or: jest.fn().mockReturnValue({
-                eq: jest.fn().mockResolvedValue({
-                  data: [
-                    { requester_id: 'u1', receiver_id: 'u2' },
-                    { requester_id: 'u3', receiver_id: 'u1' },
-                    { requester_id: 'u1', receiver_id: 'u4' },
-                  ],
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === 'user_public_profiles') {
-          return {
-            select: jest.fn().mockReturnValue({
-              in: jest.fn().mockResolvedValue({
-                data: [
-                  { id: 'u2', first_name: 'Luca', last_name: 'Bianchi', profile_image_url: null },
-                  { id: 'u3', first_name: 'Gino', last_name: 'Verdi', profile_image_url: null },
-                  { id: 'u4', first_name: 'Anna', last_name: 'Neri', profile_image_url: null },
-                ],
-                error: null,
-              }),
-            }),
-          };
-        }
         if (table === 'match_participants') {
           return {
             select: jest.fn().mockReturnValue({
@@ -63,23 +40,12 @@ describe('matchInvitations api', () => {
     });
 
     it('returns an empty array without querying anything else when there are no friendships', async () => {
-      const eq = jest.fn().mockResolvedValue({ data: [], error: null });
-      const or = jest.fn().mockReturnValue({ eq });
-      const fromMock = jest.fn().mockReturnValue({ select: jest.fn().mockReturnValue({ or }) });
-      (supabase.from as jest.Mock).mockImplementation(fromMock);
+      (fetchFriends as jest.Mock).mockResolvedValue([]);
 
       const result = await fetchInvitableFriends('u1', 'm1');
 
       expect(result).toEqual([]);
-      expect(fromMock).toHaveBeenCalledTimes(1);
-    });
-
-    it('throws the Supabase error message when the friendships query fails', async () => {
-      const eq = jest.fn().mockResolvedValue({ data: null, error: { message: 'boom' } });
-      const or = jest.fn().mockReturnValue({ eq });
-      (supabase.from as jest.Mock).mockReturnValue({ select: jest.fn().mockReturnValue({ or }) });
-
-      await expect(fetchInvitableFriends('u1', 'm1')).rejects.toThrow('boom');
+      expect(supabase.from).not.toHaveBeenCalled();
     });
   });
 
@@ -101,6 +67,15 @@ describe('matchInvitations api', () => {
       (supabase.from as jest.Mock).mockReturnValue({ insert: insertMock });
 
       await expect(sendMatchInvitation('m1', 'u1', 'u2')).rejects.toThrow('Non è possibile invitare questo utente.');
+    });
+
+    it('translates a 23505 unique-constraint violation into a neutral Italian message', async () => {
+      const insertMock = jest.fn().mockResolvedValue({
+        error: { message: 'duplicate key value violates unique constraint "match_invitations_match_id_invitee_id_key"', code: '23505' },
+      });
+      (supabase.from as jest.Mock).mockReturnValue({ insert: insertMock });
+
+      await expect(sendMatchInvitation('m1', 'u1', 'u2')).rejects.toThrow('Questo utente è già stato invitato a questa partita.');
     });
 
     it('throws the raw message for a non-42501 error', async () => {
