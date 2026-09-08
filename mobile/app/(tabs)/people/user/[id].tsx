@@ -1,6 +1,6 @@
 // mobile/app/(tabs)/people/user/[id].tsx
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, TextInput, ActivityIndicator, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, Pressable, TextInput, ActivityIndicator, StyleSheet, Alert, ScrollView, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -86,9 +86,13 @@ export default function UserProfileScreen() {
         <Text style={styles.backLink}>← Torna indietro</Text>
       </Pressable>
 
-      <View style={styles.avatarPlaceholder}>
-        <Text style={styles.avatarInitial}>{profile.first_name.charAt(0)}</Text>
-      </View>
+      {profile.profile_image_url ? (
+        <Image source={{ uri: profile.profile_image_url }} style={styles.avatarPlaceholder} />
+      ) : (
+        <View style={styles.avatarPlaceholder}>
+          <Text style={styles.avatarInitial}>{profile.first_name.charAt(0)}</Text>
+        </View>
+      )}
       <Text style={styles.name}>{profile.first_name} {profile.last_name}</Text>
       <Text style={styles.uniqueId}>{profile.unique_user_id}</Text>
 

@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSessionStore } from '@/stores/sessionStore';
 import { supabase } from '@/api/supabase';
@@ -12,9 +12,13 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.avatarPlaceholder}>
-        <Text style={styles.avatarInitial}>{profile.first_name.charAt(0)}</Text>
-      </View>
+      {profile.profile_image_url ? (
+        <Image source={{ uri: profile.profile_image_url }} style={styles.avatarPlaceholder} />
+      ) : (
+        <View style={styles.avatarPlaceholder}>
+          <Text style={styles.avatarInitial}>{profile.first_name.charAt(0)}</Text>
+        </View>
+      )}
       <Text style={styles.name}>{profile.first_name} {profile.last_name}</Text>
       <Text style={styles.uniqueId}>{profile.unique_user_id}</Text>
 
