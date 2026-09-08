@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useSessionStore } from '@/stores/sessionStore';
 import { supabase } from '@/api/supabase';
 import { calculateAge, FOOT_LABELS, ROLE_LABELS } from '@/utils/profileDisplay';
+import { colors, typography, spacing, withPressed } from '@/theme';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -33,11 +34,11 @@ export default function ProfileScreen() {
         <Stat label="Completate" value={String(profile.matches_completed_count)} />
       </View>
 
-      <Pressable style={styles.editButton} onPress={() => router.push('/(tabs)/profile/edit')}>
+      <Pressable style={withPressed(styles.editButton)} onPress={() => router.push('/(tabs)/profile/edit')}>
         <Text style={styles.editButtonText}>Modifica profilo</Text>
       </Pressable>
 
-      <Pressable style={styles.logoutButton} onPress={() => supabase.auth.signOut()}>
+      <Pressable style={withPressed(styles.logoutButton)} onPress={() => supabase.auth.signOut()}>
         <Text style={styles.logoutText}>Esci</Text>
       </Pressable>
     </View>
@@ -54,18 +55,18 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', padding: 24, paddingTop: 48 },
-  avatar: { width: 88, height: 88, borderRadius: 44, marginBottom: 12 },
-  avatarPlaceholder: { backgroundColor: '#1a7f37', alignItems: 'center', justifyContent: 'center' },
-  avatarInitial: { color: '#fff', fontSize: 36, fontWeight: '700' },
-  name: { fontSize: 22, fontWeight: '700' },
-  uniqueId: { color: '#666', marginBottom: 24 },
-  statsRow: { flexDirection: 'row', gap: 24, marginBottom: 16 },
+  container: { backgroundColor: colors.background, flex: 1, alignItems: 'center', padding: spacing.spaceLg, paddingTop: 48 },
+  avatar: { width: 88, height: 88, borderRadius: 44, marginBottom: spacing.spaceSm },
+  avatarPlaceholder: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  avatarInitial: { color: colors.onPrimary, fontFamily: 'Sora_700Bold', fontSize: 36 },
+  name: typography.screenTitle,
+  uniqueId: { color: colors.muted, marginBottom: spacing.spaceLg, ...typography.meta },
+  statsRow: { flexDirection: 'row', gap: spacing.spaceLg, marginBottom: spacing.spaceMd },
   stat: { alignItems: 'center' },
-  statValue: { fontSize: 18, fontWeight: '700' },
-  statLabel: { color: '#666', fontSize: 12 },
-  editButton: { marginTop: 24, backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 24 },
-  editButtonText: { color: '#fff', fontWeight: '600' },
-  logoutButton: { marginTop: 32, borderWidth: 1, borderColor: '#c0392b', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 24 },
-  logoutText: { color: '#c0392b', fontWeight: '600' },
+  statValue: { ...typography.label, fontSize: 18 },
+  statLabel: { color: colors.muted, ...typography.caption },
+  editButton: { marginTop: spacing.spaceLg, backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 10, paddingHorizontal: spacing.spaceLg },
+  editButtonText: { color: colors.onPrimary, ...typography.label },
+  logoutButton: { marginTop: spacing.spaceLg + spacing.spaceXs, borderWidth: 1, borderColor: colors.danger, borderRadius: spacing.radiusControl, paddingVertical: 10, paddingHorizontal: spacing.spaceLg },
+  logoutText: { color: colors.danger, ...typography.label },
 });
