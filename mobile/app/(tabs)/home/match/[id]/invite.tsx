@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useInvitableFriends } from '@/hooks/useInvitableFriends';
 import { useMatchDetail } from '@/hooks/useMatchDetail';
 import { useSessionStore } from '@/stores/sessionStore';
+import { colors, typography, spacing, withPressed } from '@/theme';
 
 export default function InviteFriendsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,7 +41,7 @@ export default function InviteFriendsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
-      <Pressable onPress={() => router.back()}>
+      <Pressable hitSlop={8} onPress={() => router.back()}>
         <Text style={styles.backLink}>← Torna alla partita</Text>
       </Pressable>
       <Text style={styles.header}>Invita amici</Text>
@@ -53,7 +54,7 @@ export default function InviteFriendsScreen() {
             <Text style={styles.friendName}>
               {item.first_name} {item.last_name}
             </Text>
-            <Pressable style={styles.inviteButton} disabled={inviting} onPress={() => invite(item.user_id)}>
+            <Pressable style={withPressed(styles.inviteButton)} disabled={inviting} onPress={() => invite(item.user_id)}>
               {inviting ? <ActivityIndicator color="#fff" /> : <Text style={styles.inviteButtonText}>Invita</Text>}
             </Pressable>
           </View>
@@ -68,15 +69,15 @@ export default function InviteFriendsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 16 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  backLink: { color: '#1a7f37', marginBottom: 8 },
-  header: { fontSize: 22, fontWeight: '700', marginBottom: 12 },
-  error: { color: '#c0392b', marginBottom: 8 },
-  subtitle: { color: '#666', textAlign: 'center', marginTop: 24 },
-  list: { paddingBottom: 24 },
-  friendRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  friendName: { fontSize: 16, fontWeight: '600' },
-  inviteButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 16, minWidth: 80, alignItems: 'center' },
-  inviteButtonText: { color: '#fff', fontWeight: '600' },
+  container: { backgroundColor: colors.background, flex: 1, paddingHorizontal: spacing.spaceMd },
+  centered: { backgroundColor: colors.background, flex: 1, alignItems: 'center', justifyContent: 'center' },
+  backLink: { color: colors.primary, marginBottom: spacing.spaceXs },
+  header: { ...typography.screenTitle, marginBottom: spacing.spaceSm },
+  error: { color: colors.danger, marginBottom: spacing.spaceXs },
+  subtitle: { color: colors.muted, textAlign: 'center', marginTop: spacing.spaceLg, ...typography.body },
+  list: { paddingBottom: spacing.spaceLg },
+  friendRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.spaceSm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  friendName: typography.label,
+  inviteButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceMd, minWidth: 80, alignItems: 'center' },
+  inviteButtonText: { color: colors.onPrimary, ...typography.label },
 });

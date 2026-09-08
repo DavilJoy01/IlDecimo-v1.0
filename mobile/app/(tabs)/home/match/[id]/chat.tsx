@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMatchChat } from '@/hooks/useMatchChat';
 import { useSessionStore } from '@/stores/sessionStore';
+import { colors, typography, spacing, withPressed } from '@/theme';
 import type { ChatMessageWithSender, ChatParticipant } from '@/api/matchMessages';
 
 export default function MatchChatScreen() {
@@ -68,14 +69,14 @@ export default function MatchChatScreen() {
             router.back() -- this screen is also reachable directly from a
             notification tap (Task 8), where "back" would return to
             Notifications instead of the partita the label promises. */}
-        <Pressable onPress={() => router.replace({ pathname: '/(tabs)/home/match/[id]', params: { id } })}>
+        <Pressable hitSlop={8} onPress={() => router.replace({ pathname: '/(tabs)/home/match/[id]', params: { id } })}>
           <Text style={styles.backLink}>← Torna alla partita</Text>
         </Pressable>
         <Text style={styles.header}>Chat</Text>
         {chat.error && (
           <View>
             <Text style={styles.error}>{chat.error}</Text>
-            <Pressable style={styles.retryButton} onPress={() => chat.refresh()}>
+            <Pressable style={withPressed(styles.retryButton)} onPress={() => chat.refresh()}>
               <Text style={styles.retryButtonText}>Riprova</Text>
             </Pressable>
           </View>
@@ -110,7 +111,7 @@ export default function MatchChatScreen() {
             multiline
             maxLength={2000}
           />
-          <Pressable style={styles.sendButton} disabled={chat.sending || !inputText.trim()} onPress={handleSend}>
+          <Pressable style={withPressed(styles.sendButton)} disabled={chat.sending || !inputText.trim()} onPress={handleSend}>
             {chat.sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendButtonText}>Invia</Text>}
           </Pressable>
         </View>
@@ -125,36 +126,37 @@ function MessageBubble({ message, isOwn }: { message: ChatMessageWithSender; isO
       <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
         {!isOwn && <Text style={styles.senderName}>{message.sender.first_name} {message.sender.last_name}</Text>}
         <Text style={isOwn ? styles.bubbleTextOwn : styles.bubbleTextOther}>{message.body}</Text>
-        <Text style={styles.timestamp}>{new Date(message.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</Text>
+        <Text style={isOwn ? styles.timestampOwn : styles.timestampOther}>{new Date(message.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 16 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  backLink: { color: '#1a7f37', marginBottom: 8 },
-  header: { fontSize: 22, fontWeight: '700', marginBottom: 8 },
-  error: { color: '#c0392b', marginBottom: 8 },
-  retryButton: { alignSelf: 'flex-start', backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 16, marginBottom: 8 },
-  retryButtonText: { color: '#fff', fontWeight: '600' },
-  messageList: { paddingVertical: 8, gap: 8 },
+  container: { backgroundColor: colors.background, flex: 1, paddingHorizontal: spacing.spaceMd },
+  centered: { backgroundColor: colors.background, flex: 1, alignItems: 'center', justifyContent: 'center' },
+  backLink: { color: colors.primary, marginBottom: spacing.spaceXs },
+  header: { ...typography.screenTitle, marginBottom: spacing.spaceXs },
+  error: { color: colors.danger, marginBottom: spacing.spaceXs },
+  retryButton: { alignSelf: 'flex-start', backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceMd, marginBottom: spacing.spaceXs },
+  retryButtonText: { color: colors.onPrimary, ...typography.label },
+  messageList: { paddingVertical: spacing.spaceXs, gap: spacing.spaceXs },
   bubbleRow: { flexDirection: 'row' },
   bubbleRowOwn: { justifyContent: 'flex-end' },
   bubbleRowOther: { justifyContent: 'flex-start' },
-  bubble: { maxWidth: '80%', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
-  bubbleOwn: { backgroundColor: '#1a7f37' },
-  bubbleOther: { backgroundColor: '#eee' },
-  senderName: { fontSize: 12, fontWeight: '600', color: '#666', marginBottom: 2 },
-  bubbleTextOwn: { color: '#fff', fontSize: 15 },
-  bubbleTextOther: { color: '#222', fontSize: 15 },
-  timestamp: { fontSize: 10, color: '#ccc', marginTop: 4, alignSelf: 'flex-end' },
-  mentionList: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee', borderRadius: 8, marginBottom: 4, maxHeight: 160 },
-  mentionItem: { paddingVertical: 8, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  mentionItemText: { fontSize: 15 },
-  inputRow: { flexDirection: 'row', gap: 8, paddingVertical: 8, alignItems: 'flex-end' },
-  input: { flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, maxHeight: 100 },
-  sendButton: { backgroundColor: '#1a7f37', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, justifyContent: 'center' },
-  sendButtonText: { color: '#fff', fontWeight: '600' },
+  bubble: { maxWidth: '80%', borderRadius: spacing.radiusCard, paddingHorizontal: spacing.spaceSm, paddingVertical: spacing.spaceXs },
+  bubbleOwn: { backgroundColor: colors.primary },
+  bubbleOther: { backgroundColor: colors.border },
+  senderName: { ...typography.caption, color: colors.muted, marginBottom: 2 },
+  bubbleTextOwn: { color: colors.onPrimary, ...typography.body },
+  bubbleTextOther: { color: colors.ink, ...typography.body },
+  timestampOwn: { fontSize: 10, color: colors.primaryTint, marginTop: 4, alignSelf: 'flex-end' },
+  timestampOther: { fontSize: 10, color: colors.muted, marginTop: 4, alignSelf: 'flex-end' },
+  mentionList: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, marginBottom: 4, maxHeight: 160 },
+  mentionItem: { paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceSm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  mentionItemText: typography.body,
+  inputRow: { flexDirection: 'row', gap: spacing.spaceXs, paddingVertical: spacing.spaceXs, alignItems: 'flex-end' },
+  input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusPill, paddingHorizontal: spacing.spaceMd, paddingVertical: 10, maxHeight: 100, ...typography.body },
+  sendButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusPill, paddingHorizontal: spacing.spaceMd, paddingVertical: 10, justifyContent: 'center' },
+  sendButtonText: { color: colors.onPrimary, ...typography.label },
 });
