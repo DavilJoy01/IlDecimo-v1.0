@@ -12,8 +12,14 @@ function formatDateInput(date: Date): string {
 }
 
 function parseDateInput(value: string): Date {
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? new Date(2000, 0, 1) : parsed;
+  // Parse the YYYY-MM-DD parts directly into a local-time Date instead of
+  // `new Date(value)`, which treats a date-only string as UTC midnight --
+  // that reads back one day earlier than formatDateInput's local getters
+  // would produce for any timezone west of UTC.
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return new Date(2000, 0, 1);
+  const [, year, month, day] = match;
+  return new Date(Number(year), Number(month) - 1, Number(day));
 }
 
 const FEET = ['left', 'right', 'both'] as const;
@@ -58,7 +64,9 @@ export function ProfileForm({
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const canSubmit = !!(firstName && lastName && birthDate && heightCm);
+  const heightValue = Number(heightCm);
+  const isHeightValid = Number.isInteger(heightValue) && heightValue > 0 && heightValue < 250;
+  const canSubmit = !!(firstName && lastName && birthDate && heightCm) && isHeightValid;
 
   async function handlePickImage() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -111,6 +119,7 @@ export function ProfileForm({
         </Pressable>
       )}
       <TextInput style={styles.input} placeholder="Altezza (cm)" keyboardType="number-pad" value={heightCm} onChangeText={setHeightCm} />
+      {!!heightCm && !isHeightValid && <Text style={styles.error}>Inserisci un'altezza valida in centimetri (1-249).</Text>}
       <Text style={styles.label}>Piede preferito</Text>
       <View style={styles.row}>
         {FEET.map((foot) => (
