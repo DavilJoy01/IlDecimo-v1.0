@@ -139,30 +139,30 @@ describe('users api', () => {
       await expect(updateOwnProfile('u1', { first_name: 'X' })).rejects.toThrow('network error');
     });
   });
-});
 
-describe('uploadProfileImage', () => {
-  it('reads the local file, uploads it, and returns the public URL', async () => {
-    (FileSystem.readAsStringAsync as jest.Mock).mockResolvedValue('ZmFrZS1pbWFnZS1kYXRh'); // base64 of "fake-image-data"
-    const upload = jest.fn().mockResolvedValue({ data: { path: 'u1/1700000000000.jpg' }, error: null });
-    const getPublicUrl = jest.fn().mockReturnValue({ data: { publicUrl: 'https://storage.example.com/profile-images/u1/1700000000000.jpg' } });
-    (supabase.storage as unknown as { from: jest.Mock }) = { from: jest.fn().mockReturnValue({ upload, getPublicUrl }) } as never;
+  describe('uploadProfileImage', () => {
+    it('reads the local file, uploads it, and returns the public URL', async () => {
+      (FileSystem.readAsStringAsync as jest.Mock).mockResolvedValue('ZmFrZS1pbWFnZS1kYXRh'); // base64 of "fake-image-data"
+      const upload = jest.fn().mockResolvedValue({ data: { path: 'u1/1700000000000.jpg' }, error: null });
+      const getPublicUrl = jest.fn().mockReturnValue({ data: { publicUrl: 'https://storage.example.com/profile-images/u1/1700000000000.jpg' } });
+      (supabase.storage as unknown as { from: jest.Mock }) = { from: jest.fn().mockReturnValue({ upload, getPublicUrl }) } as never;
 
-    const result = await uploadProfileImage('u1', 'file:///tmp/photo.jpg');
+      const result = await uploadProfileImage('u1', 'file:///tmp/photo.jpg');
 
-    expect(FileSystem.readAsStringAsync).toHaveBeenCalledWith('file:///tmp/photo.jpg', { encoding: 'base64' });
-    expect(supabase.storage.from).toHaveBeenCalledWith('profile-images');
-    expect(upload.mock.calls[0][0]).toMatch(/^u1\/\d+\.jpg$/);
-    expect(upload.mock.calls[0][2]).toEqual({ contentType: 'image/jpeg', upsert: false });
-    expect(getPublicUrl).toHaveBeenCalledWith(upload.mock.calls[0][0]);
-    expect(result).toBe('https://storage.example.com/profile-images/u1/1700000000000.jpg');
-  });
+      expect(FileSystem.readAsStringAsync).toHaveBeenCalledWith('file:///tmp/photo.jpg', { encoding: 'base64' });
+      expect(supabase.storage.from).toHaveBeenCalledWith('profile-images');
+      expect(upload.mock.calls[0][0]).toMatch(/^u1\/\d+\.jpg$/);
+      expect(upload.mock.calls[0][2]).toEqual({ contentType: 'image/jpeg', upsert: false });
+      expect(getPublicUrl).toHaveBeenCalledWith(upload.mock.calls[0][0]);
+      expect(result).toBe('https://storage.example.com/profile-images/u1/1700000000000.jpg');
+    });
 
-  it('throws the raw Supabase error message when the upload fails', async () => {
-    (FileSystem.readAsStringAsync as jest.Mock).mockResolvedValue('ZmFrZS1pbWFnZS1kYXRh');
-    const upload = jest.fn().mockResolvedValue({ data: null, error: { message: 'storage quota exceeded' } });
-    (supabase.storage as unknown as { from: jest.Mock }) = { from: jest.fn().mockReturnValue({ upload, getPublicUrl: jest.fn() }) } as never;
+    it('throws the raw Supabase error message when the upload fails', async () => {
+      (FileSystem.readAsStringAsync as jest.Mock).mockResolvedValue('ZmFrZS1pbWFnZS1kYXRh');
+      const upload = jest.fn().mockResolvedValue({ data: null, error: { message: 'storage quota exceeded' } });
+      (supabase.storage as unknown as { from: jest.Mock }) = { from: jest.fn().mockReturnValue({ upload, getPublicUrl: jest.fn() }) } as never;
 
-    await expect(uploadProfileImage('u1', 'file:///tmp/photo.jpg')).rejects.toThrow('storage quota exceeded');
+      await expect(uploadProfileImage('u1', 'file:///tmp/photo.jpg')).rejects.toThrow('storage quota exceeded');
+    });
   });
 });
