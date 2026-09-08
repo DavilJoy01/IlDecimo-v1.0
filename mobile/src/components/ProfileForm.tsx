@@ -1,7 +1,20 @@
 import { useState } from 'react';
-import { View, TextInput, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Image } from 'react-native';
+import { View, TextInput, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Image, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { FOOT_LABELS, ROLE_LABELS } from '@/utils/profileDisplay';
+
+function formatDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateInput(value: string): Date {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? new Date(2000, 0, 1) : parsed;
+}
 
 const FEET = ['left', 'right', 'both'] as const;
 const ROLES = ['player', 'goalkeeper', 'both'] as const;
@@ -43,6 +56,7 @@ export function ProfileForm({
   const [preferredFoot, setPreferredFoot] = useState<(typeof FEET)[number]>(initialValues?.preferredFoot ?? 'right');
   const [playerRole, setPlayerRole] = useState<(typeof ROLES)[number]>(initialValues?.playerRole ?? 'player');
   const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const canSubmit = !!(firstName && lastName && birthDate && heightCm);
 
@@ -54,6 +68,11 @@ export function ProfileForm({
       setPreviewUri(result.assets[0].uri);
       onImageSelected?.(result.assets[0].uri);
     }
+  }
+
+  function handleDateChange(event: DateTimePickerEvent, selectedDate?: Date) {
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (event.type === 'set' && selectedDate) setBirthDate(formatDateInput(selectedDate));
   }
 
   return (
@@ -72,7 +91,25 @@ export function ProfileForm({
       )}
       <TextInput style={styles.input} placeholder="Nome" value={firstName} onChangeText={setFirstName} />
       <TextInput style={styles.input} placeholder="Cognome" value={lastName} onChangeText={setLastName} />
-      <TextInput style={styles.input} placeholder="Data di nascita (AAAA-MM-GG)" value={birthDate} onChangeText={setBirthDate} />
+      <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
+        <Text style={birthDate ? styles.dateValue : styles.datePlaceholder}>{birthDate || 'Data di nascita'}</Text>
+      </Pressable>
+      {showDatePicker && (
+        <DateTimePicker
+          value={parseDateInput(birthDate)}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          locale="it-IT"
+          maximumDate={new Date()}
+          onChange={handleDateChange}
+          {...(Platform.OS === 'ios' ? { style: styles.iosDatePicker } : {})}
+        />
+      )}
+      {Platform.OS === 'ios' && showDatePicker && (
+        <Pressable style={styles.dateDoneButton} onPress={() => setShowDatePicker(false)}>
+          <Text style={styles.dateDoneText}>Fatto</Text>
+        </Pressable>
+      )}
       <TextInput style={styles.input} placeholder="Altezza (cm)" keyboardType="number-pad" value={heightCm} onChangeText={setHeightCm} />
       <Text style={styles.label}>Piede preferito</Text>
       <View style={styles.row}>
@@ -110,6 +147,11 @@ const styles = StyleSheet.create({
   avatarPlaceholderText: { color: '#fff', fontSize: 36, fontWeight: '700' },
   avatarHint: { color: '#1a7f37', fontSize: 13, marginTop: 8, fontWeight: '600' },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16 },
+  dateValue: { fontSize: 16, color: '#000' },
+  datePlaceholder: { fontSize: 16, color: '#999' },
+  iosDatePicker: { alignSelf: 'center' },
+  dateDoneButton: { alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: 8, marginTop: -8 },
+  dateDoneText: { color: '#1a7f37', fontWeight: '600', fontSize: 15 },
   label: { fontWeight: '600', marginTop: 8 },
   row: { flexDirection: 'row', gap: 8 },
   chip: { borderWidth: 1, borderColor: '#ccc', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16 },

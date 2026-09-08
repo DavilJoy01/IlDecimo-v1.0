@@ -40,7 +40,8 @@
         {
           "photosPermission": "Consente all'app di accedere alle tue foto per impostare l'immagine del profilo."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,
