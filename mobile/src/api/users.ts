@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import type { Database } from '@/types/database';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
 
 type UserProfile = Database['public']['Tables']['users']['Row'];

@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { createOwnProfile, fetchOwnProfile, updateOwnProfile, uploadProfileImage } from './users';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 jest.mock('./supabase', () => ({
   supabase: {
@@ -8,7 +8,7 @@ jest.mock('./supabase', () => ({
   },
 }));
 
-jest.mock('expo-file-system', () => ({ readAsStringAsync: jest.fn(), EncodingType: { Base64: 'base64' } }));
+jest.mock('expo-file-system/legacy', () => ({ readAsStringAsync: jest.fn(), EncodingType: { Base64: 'base64' } }));
 
 describe('users api', () => {
   afterEach(() => jest.clearAllMocks());
