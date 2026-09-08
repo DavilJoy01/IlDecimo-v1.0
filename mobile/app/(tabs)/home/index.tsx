@@ -55,19 +55,14 @@ export default function HomeScreen() {
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
       <View style={styles.headerRow}>
         <Text style={styles.header}>Partite vicino a te</Text>
-        <View style={styles.headerActions}>
-          <Pressable style={styles.bellButton} onPress={() => router.push('/(tabs)/home/notifications')}>
-            <Text style={styles.bellIcon}>🔔</Text>
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-              </View>
-            )}
-          </Pressable>
-          <Pressable style={styles.createButton} onPress={() => router.push('/(tabs)/home/create-match')}>
-            <Text style={styles.createButtonText}>+ Crea</Text>
-          </Pressable>
-        </View>
+        <Pressable style={styles.bellButton} onPress={() => router.push('/(tabs)/home/notifications')}>
+          <Text style={styles.bellIcon}>🔔</Text>
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </View>
+          )}
+        </Pressable>
       </View>
       <FlatList
         data={matches}
@@ -95,7 +90,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   header: { fontSize: 22, fontWeight: '700' },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   bellButton: { position: 'relative', padding: 4 },
   bellIcon: { fontSize: 22 },
   badge: {
@@ -111,8 +105,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  createButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 14 },
-  createButtonText: { color: '#fff', fontWeight: '600' },
   list: { paddingHorizontal: 16, paddingBottom: 24 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
   title: { fontSize: 20, fontWeight: '700', textAlign: 'center' },

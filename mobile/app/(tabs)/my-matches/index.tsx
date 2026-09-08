@@ -51,7 +51,12 @@ export default function MyMatchesScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
-      <Text style={styles.header}>Le mie partite</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.header}>Le mie partite</Text>
+        <Pressable style={styles.createButton} onPress={() => router.push('/(tabs)/home/create-match')}>
+          <Text style={styles.createButtonText}>+ Crea</Text>
+        </Pressable>
+      </View>
       {error && <Text style={styles.error}>{error}</Text>}
       <SectionList
         sections={sections}
@@ -78,7 +83,10 @@ export default function MyMatchesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 16 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { fontSize: 22, fontWeight: '700', marginBottom: 12 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  header: { fontSize: 22, fontWeight: '700' },
+  createButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 14 },
+  createButtonText: { color: '#fff', fontWeight: '600' },
   error: { color: '#c0392b', marginBottom: 8 },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginTop: 16, marginBottom: 8 },
   row: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
