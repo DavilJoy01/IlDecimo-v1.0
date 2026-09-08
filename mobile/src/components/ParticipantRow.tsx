@@ -2,6 +2,7 @@
 import type { ReactNode } from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import type { ParticipantProfile } from '@/api/participants';
+import { colors, typography, spacing } from '@/theme';
 
 const ROLE_LABELS: Record<ParticipantProfile['player_role'], string> = {
   player: 'Giocatore',
@@ -43,11 +44,11 @@ export function ParticipantRow({ profile, children }: ParticipantRowProps) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.spaceSm, paddingVertical: spacing.spaceXs },
   avatar: { width: 40, height: 40, borderRadius: 20 },
-  avatarPlaceholder: { backgroundColor: '#1a7f37', alignItems: 'center', justifyContent: 'center' },
-  avatarInitial: { color: '#fff', fontWeight: '700' },
+  avatarPlaceholder: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  avatarInitial: { color: colors.onPrimary, fontFamily: 'Sora_700Bold' },
   info: { flex: 1 },
-  name: { fontWeight: '600' },
-  role: { color: '#666', fontSize: 13 },
+  name: typography.label,
+  role: { color: colors.muted, ...typography.meta },
 });

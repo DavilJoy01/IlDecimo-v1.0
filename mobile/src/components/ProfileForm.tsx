@@ -3,6 +3,7 @@ import { View, TextInput, Text, Pressable, StyleSheet, ActivityIndicator, Scroll
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { FOOT_LABELS, ROLE_LABELS } from '@/utils/profileDisplay';
+import { colors, typography, spacing, withPressed } from '@/theme';
 
 function formatDateInput(date: Date): string {
   const year = date.getFullYear();
@@ -114,7 +115,11 @@ export function ProfileForm({
         />
       )}
       {Platform.OS === 'ios' && showDatePicker && (
-        <Pressable style={styles.dateDoneButton} onPress={() => setShowDatePicker(false)}>
+        <Pressable
+          style={styles.dateDoneButton}
+          onPress={() => setShowDatePicker(false)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
           <Text style={styles.dateDoneText}>Fatto</Text>
         </Pressable>
       )}
@@ -138,7 +143,7 @@ export function ProfileForm({
       </View>
       {error && <Text style={styles.error}>{error}</Text>}
       <Pressable
-        style={styles.button}
+        style={withPressed(styles.button)}
         disabled={loading || !canSubmit}
         onPress={() => onSubmit({ firstName, lastName, birthDate, heightCm, preferredFoot, playerRole })}
       >
@@ -149,25 +154,25 @@ export function ProfileForm({
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 24, gap: 12 },
-  avatarWrapper: { alignItems: 'center', marginBottom: 12 },
+  container: { backgroundColor: colors.background, padding: spacing.spaceLg, gap: spacing.spaceSm },
+  avatarWrapper: { alignItems: 'center', marginBottom: spacing.spaceSm },
   avatar: { width: 88, height: 88, borderRadius: 44 },
-  avatarPlaceholder: { backgroundColor: '#1a7f37', alignItems: 'center', justifyContent: 'center' },
-  avatarPlaceholderText: { color: '#fff', fontSize: 36, fontWeight: '700' },
-  avatarHint: { color: '#1a7f37', fontSize: 13, marginTop: 8, fontWeight: '600' },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16 },
-  dateValue: { fontSize: 16, color: '#000' },
-  datePlaceholder: { fontSize: 16, color: '#999' },
+  avatarPlaceholder: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  avatarPlaceholderText: { color: colors.onPrimary, fontFamily: 'Sora_700Bold', fontSize: 36 },
+  avatarHint: { color: colors.primary, ...typography.meta, marginTop: spacing.spaceXs, fontFamily: 'WorkSans_600SemiBold' },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, ...typography.body },
+  dateValue: { ...typography.body, color: colors.ink },
+  datePlaceholder: { ...typography.body, color: colors.muted },
   iosDatePicker: { alignSelf: 'center' },
-  dateDoneButton: { alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: 8, marginTop: -8 },
-  dateDoneText: { color: '#1a7f37', fontWeight: '600', fontSize: 15 },
-  label: { fontWeight: '600', marginTop: 8 },
-  row: { flexDirection: 'row', gap: 8 },
-  chip: { borderWidth: 1, borderColor: '#ccc', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16 },
-  chipSelected: { backgroundColor: '#1a7f37', borderColor: '#1a7f37' },
-  chipText: { color: '#333' },
-  chipTextSelected: { color: '#fff' },
-  button: { backgroundColor: '#1a7f37', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 16 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  error: { color: '#c0392b' },
+  dateDoneButton: { alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: spacing.spaceXs, marginTop: -8 },
+  dateDoneText: { color: colors.primary, fontFamily: 'WorkSans_600SemiBold', fontSize: 15 },
+  label: { fontFamily: 'WorkSans_600SemiBold', fontSize: 15, marginTop: spacing.spaceXs },
+  row: { flexDirection: 'row', gap: spacing.spaceXs },
+  chip: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusPill, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceMd },
+  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { color: colors.ink, ...typography.body },
+  chipTextSelected: { color: colors.onPrimary, ...typography.body },
+  button: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, padding: 14, alignItems: 'center', marginTop: spacing.spaceMd },
+  buttonText: { color: colors.onPrimary, ...typography.label, fontSize: 16 },
+  error: { color: colors.danger },
 });

@@ -1,6 +1,7 @@
 // mobile/src/components/MatchCard.tsx
 import { View, Text, StyleSheet } from 'react-native';
 import type { NearbyMatch } from '@/api/matches';
+import { colors, typography, spacing } from '@/theme';
 
 export function MatchCard({ match }: { match: NearbyMatch }) {
   const spotsLeft = match.max_players - match.approved_players_count;
@@ -17,8 +18,8 @@ export function MatchCard({ match }: { match: NearbyMatch }) {
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 12, padding: 16, gap: 4, marginBottom: 12 },
-  fieldName: { fontSize: 18, fontWeight: '700' },
-  meta: { color: '#444' },
-  spots: { color: '#1a7f37', fontWeight: '600', marginTop: 4 },
+  card: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusCard, padding: spacing.spaceMd, gap: 4, marginBottom: spacing.spaceSm },
+  fieldName: { ...typography.label, fontSize: 18 },
+  meta: { color: colors.ink, ...typography.body },
+  spots: { color: colors.primary, fontFamily: 'WorkSans_600SemiBold', fontSize: 15, marginTop: 4 },
 });

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { colors, typography, spacing, withPressed } from '@/theme';
 
 const MATCH_TYPES = [5, 7, 8] as const;
 const DEFAULT_MAX_PLAYERS: Record<(typeof MATCH_TYPES)[number], number> = { 5: 10, 7: 14, 8: 16 };
@@ -90,7 +91,7 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
       />
       {error && <Text style={styles.error}>{error}</Text>}
       <Pressable
-        style={styles.button}
+        style={withPressed(styles.button)}
         disabled={loading || !canSubmit}
         onPress={() =>
           onSubmit({ matchType, fieldName, address, matchDate, startTime, endTime, maxPlayers, description })
@@ -103,16 +104,16 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 24, gap: 12 },
-  label: { fontWeight: '600', marginTop: 8 },
-  row: { flexDirection: 'row', gap: 8 },
-  chip: { borderWidth: 1, borderColor: '#ccc', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16 },
-  chipSelected: { backgroundColor: '#1a7f37', borderColor: '#1a7f37' },
-  chipText: { color: '#333' },
-  chipTextSelected: { color: '#fff' },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16 },
+  container: { backgroundColor: colors.background, padding: spacing.spaceLg, gap: spacing.spaceSm },
+  label: { fontFamily: 'WorkSans_600SemiBold', fontSize: 15, marginTop: spacing.spaceXs },
+  row: { flexDirection: 'row', gap: spacing.spaceXs },
+  chip: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusPill, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceMd },
+  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { color: colors.ink, ...typography.body },
+  chipTextSelected: { color: colors.onPrimary, ...typography.body },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, ...typography.body },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
-  button: { backgroundColor: '#1a7f37', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 16 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  error: { color: '#c0392b' },
+  button: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, padding: 14, alignItems: 'center', marginTop: spacing.spaceMd },
+  buttonText: { color: colors.onPrimary, ...typography.label, fontSize: 16 },
+  error: { color: colors.danger },
 });
