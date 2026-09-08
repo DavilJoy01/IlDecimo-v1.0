@@ -1,9 +1,11 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRegistration } from '@/hooks/useRegistration';
 import { useSessionStore } from '@/stores/sessionStore';
 import { ProfileForm, type ProfileFormValues } from '@/components/ProfileForm';
 
 export default function CreateProfileScreen() {
+  const insets = useSafeAreaInsets();
   const userId = useSessionStore((s) => s.session?.user.id);
   const { completeProfile, loading, error } = useRegistration();
 
@@ -21,7 +23,7 @@ export default function CreateProfileScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 24 }]}>
       <Text style={styles.title}>Crea il tuo profilo</Text>
       <ProfileForm onSubmit={handleSubmit} submitLabel="Crea profilo" loading={loading} error={error} />
     </View>
@@ -29,6 +31,6 @@ export default function CreateProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 24 },
+  container: { flex: 1 },
   title: { fontSize: 28, fontWeight: '700', paddingHorizontal: 24 },
 });
