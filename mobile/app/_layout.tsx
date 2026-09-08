@@ -1,12 +1,27 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Slot, useRootNavigationState, useRouter, useSegments } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+import { useFonts, Sora_600SemiBold, Sora_700Bold } from '@expo-google-fonts/sora';
+import { WorkSans_400Regular, WorkSans_500Medium, WorkSans_600SemiBold } from '@expo-google-fonts/work-sans';
 import { supabase } from '@/api/supabase';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useProfileBootstrap } from '@/hooks/useProfileBootstrap';
 
+SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
   const { session, status, setSession } = useSessionStore();
+  const [fontsLoaded] = useFonts({
+    Sora_600SemiBold,
+    Sora_700Bold,
+    WorkSans_400Regular,
+    WorkSans_500Medium,
+    WorkSans_600SemiBold,
+  });
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded && status !== 'loading') await SplashScreen.hideAsync();
+  }, [fontsLoaded, status]);
   const router = useRouter();
   const segments = useSegments();
   const rootNavigationState = useRootNavigationState();
@@ -50,13 +65,20 @@ export default function RootLayout() {
     }
   }, [status, segments, router, rootNavigationState?.key]);
 
-  if (status === 'loading') {
+  if (status === 'loading' || !fontsLoaded) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <View
+        style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+        onLayout={onLayoutRootView}
+      >
         <ActivityIndicator />
       </View>
     );
   }
 
-  return <Slot />;
+  return (
+    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+      <Slot />
+    </View>
+  );
 }
