@@ -2,6 +2,7 @@
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { colors, typography, spacing } from '@/theme';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useSessionStore } from '@/stores/sessionStore';
 import { markInvitationViewed } from '@/api/matchInvitations';
@@ -66,7 +67,7 @@ export default function NotificationsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
-      <Pressable onPress={() => router.back()}>
+      <Pressable onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <Text style={styles.backLink}>← Torna alla Home</Text>
       </Pressable>
       <Text style={styles.header}>Notifiche</Text>
@@ -90,15 +91,15 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 16 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  backLink: { color: '#1a7f37', marginBottom: 8 },
-  header: { fontSize: 22, fontWeight: '700', marginBottom: 12 },
-  error: { color: '#c0392b', marginBottom: 8 },
-  list: { paddingBottom: 24 },
-  item: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  itemUnread: { backgroundColor: '#f0f8f2' },
-  message: { fontSize: 15 },
-  date: { color: '#888', fontSize: 12, marginTop: 4 },
-  subtitle: { color: '#666', textAlign: 'center', marginTop: 24 },
+  container: { backgroundColor: colors.background, flex: 1, paddingHorizontal: spacing.spaceMd },
+  centered: { backgroundColor: colors.background, flex: 1, alignItems: 'center', justifyContent: 'center' },
+  backLink: { color: colors.primary, marginBottom: spacing.spaceXs },
+  header: { ...typography.screenTitle, marginBottom: spacing.spaceSm },
+  error: { color: colors.danger, marginBottom: spacing.spaceXs },
+  list: { paddingBottom: spacing.spaceLg },
+  item: { paddingVertical: spacing.spaceSm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  itemUnread: { backgroundColor: colors.primaryTint },
+  message: typography.body,
+  date: { color: colors.muted, ...typography.caption, marginTop: 4 },
+  subtitle: { color: colors.muted, textAlign: 'center', marginTop: spacing.spaceLg, ...typography.body },
 });
