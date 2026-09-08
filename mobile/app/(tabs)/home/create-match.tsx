@@ -18,7 +18,7 @@ export default function CreateMatchScreen() {
           come posizione del campo.
         </Text>
         <Pressable style={styles.button} onPress={() => router.back()}>
-          <Text style={styles.buttonText}>Torna alla Home</Text>
+          <Text style={styles.buttonText}>Torna indietro</Text>
         </Pressable>
       </View>
     );
