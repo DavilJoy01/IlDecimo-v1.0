@@ -55,7 +55,7 @@ export default function InviteFriendsScreen() {
               {item.first_name} {item.last_name}
             </Text>
             <Pressable style={withPressed(styles.inviteButton)} disabled={inviting} onPress={() => invite(item.user_id)}>
-              {inviting ? <ActivityIndicator color="#fff" /> : <Text style={styles.inviteButtonText}>Invita</Text>}
+              {inviting ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.inviteButtonText}>Invita</Text>}
             </Pressable>
           </View>
         )}

@@ -113,7 +113,7 @@ export default function UserProfileScreen() {
       <View style={styles.actions}>
         {status.kind === 'none' && (
           <Pressable style={withPressed(styles.primaryButton)} disabled={actionLoading} onPress={sendRequest}>
-            {actionLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Invia richiesta</Text>}
+            {actionLoading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.primaryButtonText}>Invia richiesta</Text>}
           </Pressable>
         )}
         {status.kind === 'pending_outgoing' && (
@@ -155,7 +155,7 @@ export default function UserProfileScreen() {
 
       {status.kind !== 'blocked_by_me' && (
         <Pressable style={withPressed(styles.messageButton)} disabled={messageLoading} onPress={handleMessage}>
-          {messageLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.messageButtonText}>💬 Messaggio</Text>}
+          {messageLoading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.messageButtonText}>💬 Messaggio</Text>}
         </Pressable>
       )}
 

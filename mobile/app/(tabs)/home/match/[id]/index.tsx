@@ -157,7 +157,7 @@ export default function MatchDetailScreen() {
             <Text style={styles.editButtonText}>Modifica</Text>
           </Pressable>
           <Pressable style={withPressed(styles.deleteButton)} onPress={confirmDelete} disabled={deleting}>
-            {deleting ? <ActivityIndicator color="#fff" /> : <Text style={styles.deleteButtonText}>Cancella partita</Text>}
+            {deleting ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.deleteButtonText}>Cancella partita</Text>}
           </Pressable>
         </View>
       )}
@@ -211,7 +211,7 @@ export default function MatchDetailScreen() {
           {myParticipation.error && <Text style={styles.error}>{myParticipation.error}</Text>}
           {!myParticipation.loading && !myParticipation.participation && canRequest && (
             <Pressable style={withPressed(styles.requestButton)} disabled={myParticipation.actionLoading} onPress={() => myParticipation.requestJoin()}>
-              {myParticipation.actionLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.requestButtonText}>Richiedi di partecipare</Text>}
+              {myParticipation.actionLoading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.requestButtonText}>Richiedi di partecipare</Text>}
             </Pressable>
           )}
           {myParticipation.participation?.status === 'requested' && (
@@ -221,7 +221,7 @@ export default function MatchDetailScreen() {
             <View>
               <Text style={styles.statusTextSuccess}>Sei dentro ✅</Text>
               <Pressable style={withPressed(styles.leaveButton)} disabled={myParticipation.actionLoading} onPress={confirmLeave}>
-                {myParticipation.actionLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.leaveButtonText}>Abbandona partita</Text>}
+                {myParticipation.actionLoading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.leaveButtonText}>Abbandona partita</Text>}
               </Pressable>
             </View>
           )}
@@ -233,7 +233,7 @@ export default function MatchDetailScreen() {
               <Text style={styles.statusText}>Hai lasciato questa partita</Text>
               {myParticipation.participation.leave_count < 2 && canRequest && (
                 <Pressable style={withPressed(styles.requestButton)} disabled={myParticipation.actionLoading} onPress={() => myParticipation.requestAgain()}>
-                  {myParticipation.actionLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.requestButtonText}>Richiedi di nuovo</Text>}
+                  {myParticipation.actionLoading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.requestButtonText}>Richiedi di nuovo</Text>}
                 </Pressable>
               )}
             </View>

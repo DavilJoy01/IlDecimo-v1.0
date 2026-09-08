@@ -147,7 +147,7 @@ export function ProfileForm({
         disabled={loading || !canSubmit}
         onPress={() => onSubmit({ firstName, lastName, birthDate, heightCm, preferredFoot, playerRole })}
       >
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{submitLabel}</Text>}
+        {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.buttonText}>{submitLabel}</Text>}
       </Pressable>
     </ScrollView>
   );

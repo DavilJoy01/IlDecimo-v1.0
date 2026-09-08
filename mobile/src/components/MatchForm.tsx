@@ -97,7 +97,7 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
           onSubmit({ matchType, fieldName, address, matchDate, startTime, endTime, maxPlayers, description })
         }
       >
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{submitLabel}</Text>}
+        {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.buttonText}>{submitLabel}</Text>}
       </Pressable>
     </ScrollView>
   );

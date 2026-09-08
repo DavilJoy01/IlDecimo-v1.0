@@ -27,7 +27,7 @@ export default function PeopleScreen() {
           autoCapitalize="characters"
         />
         <Pressable style={withPressed(styles.searchButton)} disabled={search.loading || !search.query.trim()} onPress={search.search}>
-          {search.loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.searchButtonText}>Cerca</Text>}
+          {search.loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.searchButtonText}>Cerca</Text>}
         </Pressable>
       </View>
       {search.error && <Text style={styles.error}>{search.error}</Text>}

@@ -83,7 +83,7 @@ export default function PrivateChatScreen() {
             maxLength={2000}
           />
           <Pressable style={withPressed(styles.sendButton)} disabled={chat.sending || !inputText.trim()} onPress={handleSend}>
-            {chat.sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendButtonText}>Invia</Text>}
+            {chat.sending ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.sendButtonText}>Invia</Text>}
           </Pressable>
         </View>
       </View>
