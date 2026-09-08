@@ -87,10 +87,10 @@ export default function UserProfileScreen() {
       </Pressable>
 
       {profile.profile_image_url ? (
-        <Image source={{ uri: profile.profile_image_url }} style={styles.avatarPlaceholder} />
+        <Image source={{ uri: profile.profile_image_url }} style={styles.avatar} />
       ) : (
-        <View style={styles.avatarPlaceholder}>
-          <Text style={styles.avatarInitial}>{profile.first_name.charAt(0)}</Text>
+        <View style={[styles.avatar, styles.avatarPlaceholder]}>
+          <Text style={styles.avatarInitial}>{profile.first_name.charAt(0).toUpperCase()}</Text>
         </View>
       )}
       <Text style={styles.name}>{profile.first_name} {profile.last_name}</Text>
@@ -204,7 +204,8 @@ const styles = StyleSheet.create({
   backButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 20, marginTop: 8 },
   backButtonText: { color: '#fff', fontWeight: '600' },
   error: { color: '#c0392b', marginBottom: 8, textAlign: 'center' },
-  avatarPlaceholder: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#1a7f37', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  avatar: { width: 88, height: 88, borderRadius: 44, marginBottom: 12 },
+  avatarPlaceholder: { backgroundColor: '#1a7f37', alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { color: '#fff', fontSize: 36, fontWeight: '700' },
   name: { fontSize: 22, fontWeight: '700' },
   uniqueId: { color: '#666', marginBottom: 24 },
