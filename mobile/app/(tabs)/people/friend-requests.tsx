@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFriendRequests } from '@/hooks/useFriendRequests';
 import type { FriendRequest } from '@/api/friendships';
+import { colors, typography, spacing, withPressed } from '@/theme';
 
 export default function FriendRequestsScreen() {
   const insets = useSafeAreaInsets();
@@ -12,7 +13,7 @@ export default function FriendRequestsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
-      <Pressable onPress={() => router.replace('/(tabs)/people')}>
+      <Pressable onPress={() => router.replace('/(tabs)/people')} hitSlop={8}>
         <Text style={styles.backLink}>← Torna a Persone</Text>
       </Pressable>
       <Text style={styles.header}>Richieste di amicizia</Text>
@@ -28,10 +29,10 @@ export default function FriendRequestsScreen() {
             scrollEnabled={false}
             renderItem={({ item }) => (
               <RequestRow request={item}>
-                <Pressable style={styles.acceptButton} disabled={requests.loading} onPress={() => requests.accept(item.id)}>
+                <Pressable style={withPressed(styles.acceptButton)} disabled={requests.loading} onPress={() => requests.accept(item.id)}>
                   <Text style={styles.acceptButtonText}>Accetta</Text>
                 </Pressable>
-                <Pressable style={styles.rejectButton} disabled={requests.loading} onPress={() => requests.reject(item.id)}>
+                <Pressable style={withPressed(styles.rejectButton)} disabled={requests.loading} onPress={() => requests.reject(item.id)}>
                   <Text style={styles.rejectButtonText}>Rifiuta</Text>
                 </Pressable>
               </RequestRow>
@@ -46,7 +47,7 @@ export default function FriendRequestsScreen() {
             scrollEnabled={false}
             renderItem={({ item }) => (
               <RequestRow request={item}>
-                <Pressable style={styles.cancelButton} disabled={requests.loading} onPress={() => requests.cancel(item.id)}>
+                <Pressable style={withPressed(styles.cancelButton)} disabled={requests.loading} onPress={() => requests.cancel(item.id)}>
                   <Text style={styles.cancelButtonText}>Annulla</Text>
                 </Pressable>
               </RequestRow>
@@ -72,21 +73,21 @@ function RequestRow({ request, children }: { request: FriendRequest; children: R
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 16 },
-  backLink: { color: '#1a7f37', marginBottom: 8 },
-  header: { fontSize: 22, fontWeight: '700', marginBottom: 12 },
-  error: { color: '#c0392b', marginBottom: 8 },
-  subtitle: { color: '#666', marginBottom: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginTop: 8, marginBottom: 8 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  container: { backgroundColor: colors.background, flex: 1, paddingHorizontal: spacing.spaceMd },
+  backLink: { color: colors.primary, marginBottom: spacing.spaceXs },
+  header: { ...typography.screenTitle, marginBottom: spacing.spaceSm },
+  error: { color: colors.danger, marginBottom: spacing.spaceXs },
+  subtitle: { color: colors.muted, marginBottom: spacing.spaceMd, ...typography.body },
+  sectionTitle: { ...typography.label, fontSize: 18, marginTop: spacing.spaceXs, marginBottom: spacing.spaceXs },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.spaceSm, borderBottomWidth: 1, borderBottomColor: colors.border },
   rowInfo: { flex: 1 },
-  rowName: { fontSize: 16, fontWeight: '600' },
-  rowCode: { color: '#666', fontSize: 13, marginTop: 2 },
-  rowActions: { flexDirection: 'row', gap: 8 },
-  acceptButton: { backgroundColor: '#1a7f37', borderRadius: 6, paddingVertical: 6, paddingHorizontal: 12 },
-  acceptButtonText: { color: '#fff', fontWeight: '600', fontSize: 13 },
-  rejectButton: { backgroundColor: '#c0392b', borderRadius: 6, paddingVertical: 6, paddingHorizontal: 12 },
-  rejectButtonText: { color: '#fff', fontWeight: '600', fontSize: 13 },
-  cancelButton: { backgroundColor: '#888', borderRadius: 6, paddingVertical: 6, paddingHorizontal: 12 },
-  cancelButtonText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+  rowName: typography.label,
+  rowCode: { color: colors.muted, ...typography.meta, marginTop: 2 },
+  rowActions: { flexDirection: 'row', gap: spacing.spaceXs },
+  acceptButton: { backgroundColor: colors.primary, borderRadius: 6, paddingVertical: 6, paddingHorizontal: spacing.spaceSm },
+  acceptButtonText: { color: colors.onPrimary, fontFamily: 'WorkSans_600SemiBold', fontSize: 13 },
+  rejectButton: { backgroundColor: colors.danger, borderRadius: 6, paddingVertical: 6, paddingHorizontal: spacing.spaceSm },
+  rejectButtonText: { color: colors.onPrimary, fontFamily: 'WorkSans_600SemiBold', fontSize: 13 },
+  cancelButton: { backgroundColor: colors.muted, borderRadius: 6, paddingVertical: 6, paddingHorizontal: spacing.spaceSm },
+  cancelButtonText: { color: colors.surface, fontFamily: 'WorkSans_600SemiBold', fontSize: 13 },
 });

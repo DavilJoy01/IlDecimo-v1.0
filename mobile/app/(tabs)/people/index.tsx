@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useUserSearch } from '@/hooks/useUserSearch';
 import { useFriends } from '@/hooks/useFriends';
 import { useFriendRequests } from '@/hooks/useFriendRequests';
+import { colors, typography, spacing, withPressed } from '@/theme';
 
 export default function PeopleScreen() {
   const insets = useSafeAreaInsets();
@@ -25,7 +26,7 @@ export default function PeopleScreen() {
           placeholder="Cerca per codice (es. FC-100002)"
           autoCapitalize="characters"
         />
-        <Pressable style={styles.searchButton} disabled={search.loading || !search.query.trim()} onPress={search.search}>
+        <Pressable style={withPressed(styles.searchButton)} disabled={search.loading || !search.query.trim()} onPress={search.search}>
           {search.loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.searchButtonText}>Cerca</Text>}
         </Pressable>
       </View>
@@ -72,23 +73,23 @@ export default function PeopleScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 16 },
-  header: { fontSize: 22, fontWeight: '700', marginBottom: 12 },
-  searchRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
-  searchInput: { flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10 },
-  searchButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingHorizontal: 16, justifyContent: 'center' },
-  searchButtonText: { color: '#fff', fontWeight: '600' },
-  error: { color: '#c0392b', marginBottom: 8 },
-  subtitle: { color: '#666', marginBottom: 8 },
-  resultCard: { borderWidth: 1, borderColor: '#eee', borderRadius: 8, padding: 12, marginBottom: 16 },
-  resultName: { fontSize: 16, fontWeight: '600' },
-  resultCode: { color: '#666', fontSize: 13 },
-  resultLink: { color: '#1a7f37', marginTop: 4, fontWeight: '600' },
-  requestsLink: { paddingVertical: 8, marginBottom: 8 },
-  requestsLinkText: { color: '#1a7f37', fontWeight: '600' },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
-  list: { paddingBottom: 24 },
-  friendRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  friendName: { fontSize: 16, fontWeight: '600' },
-  friendCode: { color: '#666', fontSize: 13, marginTop: 2 },
+  container: { backgroundColor: colors.background, flex: 1, paddingHorizontal: spacing.spaceMd },
+  header: { ...typography.screenTitle, marginBottom: spacing.spaceSm },
+  searchRow: { flexDirection: 'row', gap: spacing.spaceXs, marginBottom: spacing.spaceXs },
+  searchInput: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, paddingHorizontal: spacing.spaceSm, paddingVertical: 10, ...typography.body },
+  searchButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingHorizontal: spacing.spaceMd, justifyContent: 'center' },
+  searchButtonText: { color: colors.onPrimary, ...typography.label },
+  error: { color: colors.danger, marginBottom: spacing.spaceXs },
+  subtitle: { color: colors.muted, marginBottom: spacing.spaceXs, ...typography.body },
+  resultCard: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, marginBottom: spacing.spaceMd },
+  resultName: typography.label,
+  resultCode: { color: colors.muted, ...typography.meta },
+  resultLink: { color: colors.primary, marginTop: 4, fontFamily: 'WorkSans_600SemiBold', fontSize: 15 },
+  requestsLink: { paddingVertical: spacing.spaceXs, marginBottom: spacing.spaceXs },
+  requestsLinkText: { color: colors.primary, fontFamily: 'WorkSans_600SemiBold', fontSize: 15 },
+  sectionTitle: { ...typography.label, fontSize: 18 },
+  list: { paddingBottom: spacing.spaceLg },
+  friendRow: { paddingVertical: spacing.spaceSm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  friendName: typography.label,
+  friendCode: { color: colors.muted, ...typography.meta, marginTop: 2 },
 });
