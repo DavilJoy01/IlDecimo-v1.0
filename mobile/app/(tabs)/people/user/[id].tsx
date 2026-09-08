@@ -7,6 +7,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { useSessionStore } from '@/stores/sessionStore';
 import { calculateAge, FOOT_LABELS, ROLE_LABELS } from '@/utils/profileDisplay';
 import { findOrCreateConversation } from '@/api/privateMessages';
+import { colors, typography, spacing, withPressed } from '@/theme';
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -73,7 +74,7 @@ export default function UserProfileScreen() {
     return (
       <View style={styles.centered}>
         <Text style={styles.error}>{error ?? 'Utente non trovato.'}</Text>
-        <Pressable style={styles.backButton} onPress={() => router.replace('/(tabs)/people')}>
+        <Pressable style={withPressed(styles.backButton)} hitSlop={8} onPress={() => router.replace('/(tabs)/people')}>
           <Text style={styles.backButtonText}>← Torna indietro</Text>
         </Pressable>
       </View>
@@ -82,7 +83,7 @@ export default function UserProfileScreen() {
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 24 }]}>
-      <Pressable onPress={() => router.replace('/(tabs)/people')}>
+      <Pressable hitSlop={8} onPress={() => router.replace('/(tabs)/people')}>
         <Text style={styles.backLink}>← Torna indietro</Text>
       </Pressable>
 
@@ -111,7 +112,7 @@ export default function UserProfileScreen() {
 
       <View style={styles.actions}>
         {status.kind === 'none' && (
-          <Pressable style={styles.primaryButton} disabled={actionLoading} onPress={sendRequest}>
+          <Pressable style={withPressed(styles.primaryButton)} disabled={actionLoading} onPress={sendRequest}>
             {actionLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Invia richiesta</Text>}
           </Pressable>
         )}
@@ -120,17 +121,17 @@ export default function UserProfileScreen() {
             <View style={styles.disabledButton}>
               <Text style={styles.disabledButtonText}>Richiesta inviata</Text>
             </View>
-            <Pressable style={styles.secondaryButton} disabled={actionLoading} onPress={cancelRequest}>
+            <Pressable style={withPressed(styles.secondaryButton)} disabled={actionLoading} onPress={cancelRequest}>
               <Text style={styles.secondaryButtonText}>Annulla</Text>
             </Pressable>
           </>
         )}
         {status.kind === 'pending_incoming' && (
           <>
-            <Pressable style={styles.primaryButton} disabled={actionLoading} onPress={accept}>
+            <Pressable style={withPressed(styles.primaryButton)} disabled={actionLoading} onPress={accept}>
               <Text style={styles.primaryButtonText}>Accetta</Text>
             </Pressable>
-            <Pressable style={styles.secondaryButton} disabled={actionLoading} onPress={reject}>
+            <Pressable style={withPressed(styles.secondaryButton)} disabled={actionLoading} onPress={reject}>
               <Text style={styles.secondaryButtonText}>Rifiuta</Text>
             </Pressable>
           </>
@@ -140,20 +141,20 @@ export default function UserProfileScreen() {
             <View style={styles.disabledButton}>
               <Text style={styles.disabledButtonText}>Amici ✓</Text>
             </View>
-            <Pressable style={styles.secondaryButton} disabled={actionLoading} onPress={confirmRemoveFriend}>
+            <Pressable style={withPressed(styles.secondaryButton)} disabled={actionLoading} onPress={confirmRemoveFriend}>
               <Text style={styles.secondaryButtonText}>Rimuovi amicizia</Text>
             </Pressable>
           </>
         )}
         {status.kind === 'blocked_by_me' && (
-          <Pressable style={styles.secondaryButton} disabled={actionLoading} onPress={unblock}>
+          <Pressable style={withPressed(styles.secondaryButton)} disabled={actionLoading} onPress={unblock}>
             <Text style={styles.secondaryButtonText}>Sblocca</Text>
           </Pressable>
         )}
       </View>
 
       {status.kind !== 'blocked_by_me' && (
-        <Pressable style={styles.messageButton} disabled={messageLoading} onPress={handleMessage}>
+        <Pressable style={withPressed(styles.messageButton)} disabled={messageLoading} onPress={handleMessage}>
           {messageLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.messageButtonText}>💬 Messaggio</Text>}
         </Pressable>
       )}
@@ -174,7 +175,7 @@ export default function UserProfileScreen() {
                 multiline
                 maxLength={1000}
               />
-              <Pressable style={styles.primaryButton} disabled={actionLoading || !reportReason.trim()} onPress={submitReport}>
+              <Pressable style={withPressed(styles.primaryButton)} disabled={actionLoading || !reportReason.trim()} onPress={submitReport}>
                 <Text style={styles.primaryButtonText}>Invia segnalazione</Text>
               </Pressable>
             </View>
@@ -198,33 +199,33 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, alignItems: 'center', padding: 24 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
-  backLink: { color: '#1a7f37', alignSelf: 'flex-start', marginBottom: 16 },
-  backButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 20, marginTop: 8 },
-  backButtonText: { color: '#fff', fontWeight: '600' },
-  error: { color: '#c0392b', marginBottom: 8, textAlign: 'center' },
-  avatar: { width: 88, height: 88, borderRadius: 44, marginBottom: 12 },
-  avatarPlaceholder: { backgroundColor: '#1a7f37', alignItems: 'center', justifyContent: 'center' },
-  avatarInitial: { color: '#fff', fontSize: 36, fontWeight: '700' },
-  name: { fontSize: 22, fontWeight: '700' },
-  uniqueId: { color: '#666', marginBottom: 24 },
-  statsRow: { flexDirection: 'row', gap: 24, marginBottom: 16 },
+  container: { backgroundColor: colors.background, flexGrow: 1, alignItems: 'center', padding: spacing.spaceLg },
+  centered: { backgroundColor: colors.background, flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.spaceLg, gap: spacing.spaceSm },
+  backLink: { color: colors.primary, alignSelf: 'flex-start', marginBottom: spacing.spaceMd },
+  backButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 10, paddingHorizontal: 20, marginTop: spacing.spaceXs },
+  backButtonText: { color: colors.onPrimary, ...typography.label },
+  error: { color: colors.danger, marginBottom: spacing.spaceXs, textAlign: 'center' },
+  avatar: { width: 88, height: 88, borderRadius: 44, marginBottom: spacing.spaceSm },
+  avatarPlaceholder: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  avatarInitial: { color: colors.onPrimary, fontFamily: 'Sora_700Bold', fontSize: 36 },
+  name: { ...typography.screenTitle },
+  uniqueId: { color: colors.muted, marginBottom: spacing.spaceLg, ...typography.meta },
+  statsRow: { flexDirection: 'row', gap: spacing.spaceLg, marginBottom: spacing.spaceMd },
   stat: { alignItems: 'center' },
-  statValue: { fontSize: 18, fontWeight: '700' },
-  statLabel: { color: '#666', fontSize: 12 },
-  actions: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  messageButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginTop: 16, width: '100%' },
-  messageButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  primaryButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
-  primaryButtonText: { color: '#fff', fontWeight: '600' },
-  secondaryButton: { backgroundColor: '#c0392b', borderRadius: 8, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
-  secondaryButtonText: { color: '#fff', fontWeight: '600' },
-  disabledButton: { backgroundColor: '#eee', borderRadius: 8, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
-  disabledButtonText: { color: '#666', fontWeight: '600' },
-  moderation: { flexDirection: 'row', gap: 24, marginTop: 32, alignItems: 'center' },
-  reportLink: { color: '#666', fontWeight: '600' },
-  blockLink: { color: '#c0392b', fontWeight: '600' },
-  reportForm: { gap: 8, width: '100%' },
-  reportInput: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, minHeight: 80, textAlignVertical: 'top' },
+  statValue: { ...typography.label, fontSize: 18 },
+  statLabel: { color: colors.muted, ...typography.caption },
+  actions: { flexDirection: 'row', gap: spacing.spaceSm, marginTop: spacing.spaceMd },
+  messageButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 12, alignItems: 'center', marginTop: spacing.spaceMd, width: '100%' },
+  messageButtonText: { color: colors.onPrimary, ...typography.label, fontSize: 16 },
+  primaryButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
+  primaryButtonText: { color: colors.onPrimary, ...typography.label },
+  secondaryButton: { backgroundColor: colors.danger, borderRadius: spacing.radiusControl, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
+  secondaryButtonText: { color: colors.onPrimary, ...typography.label },
+  disabledButton: { backgroundColor: colors.border, borderRadius: spacing.radiusControl, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
+  disabledButtonText: { color: colors.muted, ...typography.label },
+  moderation: { flexDirection: 'row', gap: spacing.spaceLg, marginTop: spacing.spaceLg + spacing.spaceXs, alignItems: 'center' },
+  reportLink: { color: colors.muted, fontFamily: 'WorkSans_600SemiBold', fontSize: 15 },
+  blockLink: { color: colors.danger, fontFamily: 'WorkSans_600SemiBold', fontSize: 15 },
+  reportForm: { gap: spacing.spaceXs, width: '100%' },
+  reportInput: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, minHeight: 80, textAlignVertical: 'top', ...typography.body },
 });
