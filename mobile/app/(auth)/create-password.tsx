@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, TextInput, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRegistration } from '@/hooks/useRegistration';
+import { colors, typography, spacing } from '@/theme';
 
 export default function CreatePasswordScreen() {
   const [password, setPassword] = useState('');
@@ -19,17 +20,17 @@ export default function CreatePasswordScreen() {
       />
       {error && <Text style={styles.error}>{error}</Text>}
       <Pressable style={styles.button} onPress={() => choosePassword(password)} disabled={loading || password.length < 8}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Continua</Text>}
+        {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.buttonText}>Continua</Text>}
       </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, gap: 12 },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 12 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16 },
-  button: { backgroundColor: '#1a7f37', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  error: { color: '#c0392b' },
+  container: { backgroundColor: colors.background, flex: 1, justifyContent: 'center', padding: spacing.spaceLg, gap: spacing.spaceSm },
+  title: { ...typography.authTitle, marginBottom: spacing.spaceSm },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, ...typography.body },
+  button: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, padding: 14, alignItems: 'center', marginTop: spacing.spaceXs },
+  buttonText: { color: colors.onPrimary, ...typography.label },
+  error: { color: colors.danger },
 });

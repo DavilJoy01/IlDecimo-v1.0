@@ -3,6 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRegistration } from '@/hooks/useRegistration';
 import { useSessionStore } from '@/stores/sessionStore';
 import { ProfileForm, type ProfileFormValues } from '@/components/ProfileForm';
+import { colors, typography, spacing } from '@/theme';
 
 export default function CreateProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -31,6 +32,6 @@ export default function CreateProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  title: { fontSize: 28, fontWeight: '700', paddingHorizontal: 24 },
+  container: { backgroundColor: colors.background, flex: 1 },
+  title: { ...typography.authTitle, paddingHorizontal: spacing.spaceLg },
 });

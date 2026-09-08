@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, TextInput, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { Link } from 'expo-router';
 import { useLogin } from '@/hooks/useLogin';
+import { colors, typography, spacing } from '@/theme';
 
 export default function LoginScreen() {
   const [phone, setPhone] = useState('');
@@ -29,7 +30,7 @@ export default function LoginScreen() {
       />
       {error && <Text style={styles.error}>{error}</Text>}
       <Pressable style={styles.button} onPress={() => login(phone, password)} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Accedi</Text>}
+        {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.buttonText}>Accedi</Text>}
       </Pressable>
       {/* `as any`: forward-reference to a route Task 5 adds; same pattern as
           the root layout's forward-reference casts (see app/_layout.tsx). */}
@@ -41,11 +42,11 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, gap: 12 },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 12 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16 },
-  button: { backgroundColor: '#1a7f37', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  error: { color: '#c0392b' },
-  link: { textAlign: 'center', marginTop: 16, color: '#1a7f37' },
+  container: { backgroundColor: colors.background, flex: 1, justifyContent: 'center', padding: spacing.spaceLg, gap: spacing.spaceSm },
+  title: { ...typography.authTitle, marginBottom: spacing.spaceSm },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, ...typography.body },
+  button: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, padding: 14, alignItems: 'center', marginTop: spacing.spaceXs },
+  buttonText: { color: colors.onPrimary, ...typography.label },
+  error: { color: colors.danger },
+  link: { textAlign: 'center', marginTop: spacing.spaceMd, color: colors.primary },
 });
