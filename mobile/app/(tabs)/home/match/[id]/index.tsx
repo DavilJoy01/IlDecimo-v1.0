@@ -9,6 +9,7 @@ import { useMatchRoster } from '@/hooks/useMatchRoster';
 import { useSessionStore } from '@/stores/sessionStore';
 import { MatchForm, type MatchFormValues } from '@/components/MatchForm';
 import { ParticipantRow } from '@/components/ParticipantRow';
+import { colors, typography, spacing, withPressed } from '@/theme';
 
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -83,7 +84,7 @@ export default function MatchDetailScreen() {
     return (
       <View style={styles.centered}>
         <Text style={styles.error}>{error ?? 'Partita non trovata.'}</Text>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Pressable style={withPressed(styles.backButton)} onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Text style={styles.backButtonText}>← Torna alla Home</Text>
         </Pressable>
       </View>
@@ -124,7 +125,7 @@ export default function MatchDetailScreen() {
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 24 }]}>
-      <Pressable onPress={() => router.back()}>
+      <Pressable onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <Text style={styles.backLink}>← Torna alla Home</Text>
       </Pressable>
       <Text style={styles.title}>{match.field_name}</Text>
@@ -143,7 +144,7 @@ export default function MatchDetailScreen() {
 
       {canAccessChat && (
         <Pressable
-          style={styles.chatButton}
+          style={withPressed(styles.chatButton)}
           onPress={() => router.push({ pathname: '/(tabs)/home/match/[id]/chat', params: { id } })}
         >
           <Text style={styles.chatButtonText}>💬 Chat</Text>
@@ -152,10 +153,10 @@ export default function MatchDetailScreen() {
 
       {isCreator && (
         <View style={styles.actions}>
-          <Pressable style={styles.editButton} onPress={() => setEditing(true)}>
+          <Pressable style={withPressed(styles.editButton)} onPress={() => setEditing(true)}>
             <Text style={styles.editButtonText}>Modifica</Text>
           </Pressable>
-          <Pressable style={styles.deleteButton} onPress={confirmDelete} disabled={deleting}>
+          <Pressable style={withPressed(styles.deleteButton)} onPress={confirmDelete} disabled={deleting}>
             {deleting ? <ActivityIndicator color="#fff" /> : <Text style={styles.deleteButtonText}>Cancella partita</Text>}
           </Pressable>
         </View>
@@ -163,7 +164,7 @@ export default function MatchDetailScreen() {
 
       {isCreator && canRequest && (
         <Pressable
-          style={styles.inviteButton}
+          style={withPressed(styles.inviteButton)}
           onPress={() => router.push({ pathname: '/(tabs)/home/match/[id]/invite', params: { id } })}
         >
           <Text style={styles.inviteButtonText}>Invita amici</Text>
@@ -177,14 +178,14 @@ export default function MatchDetailScreen() {
             <ParticipantRow key={profile.participant_id} profile={profile}>
               <View style={styles.requestActions}>
                 <Pressable
-                  style={styles.approveButton}
+                  style={withPressed(styles.approveButton)}
                   disabled={roster.actionLoading}
                   onPress={() => roster.approve(profile.participant_id)}
                 >
                   <Text style={styles.approveButtonText}>Approva</Text>
                 </Pressable>
                 <Pressable
-                  style={styles.rejectButton}
+                  style={withPressed(styles.rejectButton)}
                   disabled={roster.actionLoading}
                   onPress={() => roster.reject(profile.participant_id)}
                 >
@@ -209,7 +210,7 @@ export default function MatchDetailScreen() {
         <View style={styles.section}>
           {myParticipation.error && <Text style={styles.error}>{myParticipation.error}</Text>}
           {!myParticipation.loading && !myParticipation.participation && canRequest && (
-            <Pressable style={styles.requestButton} disabled={myParticipation.actionLoading} onPress={() => myParticipation.requestJoin()}>
+            <Pressable style={withPressed(styles.requestButton)} disabled={myParticipation.actionLoading} onPress={() => myParticipation.requestJoin()}>
               {myParticipation.actionLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.requestButtonText}>Richiedi di partecipare</Text>}
             </Pressable>
           )}
@@ -219,7 +220,7 @@ export default function MatchDetailScreen() {
           {(myParticipation.participation?.status === 'approved' || myParticipation.participation?.status === 'active') && (
             <View>
               <Text style={styles.statusTextSuccess}>Sei dentro ✅</Text>
-              <Pressable style={styles.leaveButton} disabled={myParticipation.actionLoading} onPress={confirmLeave}>
+              <Pressable style={withPressed(styles.leaveButton)} disabled={myParticipation.actionLoading} onPress={confirmLeave}>
                 {myParticipation.actionLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.leaveButtonText}>Abbandona partita</Text>}
               </Pressable>
             </View>
@@ -231,7 +232,7 @@ export default function MatchDetailScreen() {
             <View>
               <Text style={styles.statusText}>Hai lasciato questa partita</Text>
               {myParticipation.participation.leave_count < 2 && canRequest && (
-                <Pressable style={styles.requestButton} disabled={myParticipation.actionLoading} onPress={() => myParticipation.requestAgain()}>
+                <Pressable style={withPressed(styles.requestButton)} disabled={myParticipation.actionLoading} onPress={() => myParticipation.requestAgain()}>
                   {myParticipation.actionLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.requestButtonText}>Richiedi di nuovo</Text>}
                 </Pressable>
               )}
@@ -247,35 +248,35 @@ export default function MatchDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 24, paddingBottom: 24, gap: 8 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
-  backLink: { color: '#1a7f37', marginBottom: 8 },
-  backButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 20, marginTop: 8 },
-  backButtonText: { color: '#fff', fontWeight: '600' },
-  title: { fontSize: 24, fontWeight: '700' },
-  meta: { color: '#444', fontSize: 16 },
-  description: { color: '#333', marginTop: 8 },
-  error: { color: '#c0392b', textAlign: 'center' },
-  chatButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginTop: 8 },
-  chatButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  actions: { marginTop: 24, gap: 12 },
-  editButton: { backgroundColor: '#1a7f37', borderRadius: 8, padding: 14, alignItems: 'center' },
-  editButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  deleteButton: { backgroundColor: '#c0392b', borderRadius: 8, padding: 14, alignItems: 'center' },
-  deleteButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  inviteButton: { backgroundColor: '#1a7f37', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 12 },
-  inviteButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  section: { marginTop: 24, gap: 4 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
-  requestActions: { flexDirection: 'row', gap: 8 },
-  approveButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12 },
-  approveButtonText: { color: '#fff', fontWeight: '600' },
-  rejectButton: { backgroundColor: '#c0392b', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12 },
-  rejectButtonText: { color: '#fff', fontWeight: '600' },
-  requestButton: { backgroundColor: '#1a7f37', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
-  requestButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  leaveButton: { backgroundColor: '#c0392b', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 12 },
-  leaveButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  statusText: { color: '#444', fontSize: 15 },
-  statusTextSuccess: { color: '#1a7f37', fontSize: 16, fontWeight: '600' },
+  container: { backgroundColor: colors.background, paddingHorizontal: spacing.spaceLg, paddingBottom: spacing.spaceLg, gap: spacing.spaceXs },
+  centered: { backgroundColor: colors.background, flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.spaceLg, gap: spacing.spaceSm },
+  backLink: { color: colors.primary, marginBottom: spacing.spaceXs },
+  backButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 10, paddingHorizontal: 20, marginTop: spacing.spaceXs },
+  backButtonText: { color: colors.onPrimary, ...typography.label },
+  title: { ...typography.label, fontSize: 24 },
+  meta: { color: colors.ink, ...typography.body },
+  description: { color: colors.ink, marginTop: spacing.spaceXs, ...typography.body },
+  error: { color: colors.danger, textAlign: 'center' },
+  chatButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 12, alignItems: 'center', marginTop: spacing.spaceXs },
+  chatButtonText: { color: colors.onPrimary, ...typography.label, fontSize: 16 },
+  actions: { marginTop: spacing.spaceLg, gap: spacing.spaceSm },
+  editButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, padding: 14, alignItems: 'center' },
+  editButtonText: { color: colors.onPrimary, ...typography.label, fontSize: 16 },
+  deleteButton: { backgroundColor: colors.danger, borderRadius: spacing.radiusControl, padding: 14, alignItems: 'center' },
+  deleteButtonText: { color: colors.onPrimary, ...typography.label, fontSize: 16 },
+  inviteButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, padding: 14, alignItems: 'center', marginTop: spacing.spaceSm },
+  inviteButtonText: { color: colors.onPrimary, ...typography.label, fontSize: 16 },
+  section: { marginTop: spacing.spaceLg, gap: 4 },
+  sectionTitle: { ...typography.label, fontSize: 16, marginBottom: 4 },
+  requestActions: { flexDirection: 'row', gap: spacing.spaceXs },
+  approveButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceSm },
+  approveButtonText: { color: colors.onPrimary, ...typography.label },
+  rejectButton: { backgroundColor: colors.danger, borderRadius: spacing.radiusControl, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceSm },
+  rejectButtonText: { color: colors.onPrimary, ...typography.label },
+  requestButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, padding: 14, alignItems: 'center', marginTop: spacing.spaceXs },
+  requestButtonText: { color: colors.onPrimary, ...typography.label, fontSize: 16 },
+  leaveButton: { backgroundColor: colors.danger, borderRadius: spacing.radiusControl, padding: 14, alignItems: 'center', marginTop: spacing.spaceSm },
+  leaveButtonText: { color: colors.onPrimary, ...typography.label, fontSize: 16 },
+  statusText: { color: colors.ink, ...typography.body },
+  statusTextSuccess: { color: colors.primary, ...typography.label, fontSize: 16 },
 });
