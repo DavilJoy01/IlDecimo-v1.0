@@ -6,6 +6,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useMyMatches } from '@/hooks/useMyMatches';
 import type { Match } from '@/api/matches';
 import type { ParticipantStatus } from '@/api/participants';
+import { colors, typography, spacing, withPressed } from '@/theme';
 
 interface Row {
   match: Match;
@@ -53,7 +54,7 @@ export default function MyMatchesScreen() {
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
       <View style={styles.headerRow}>
         <Text style={styles.header}>Le mie partite</Text>
-        <Pressable style={styles.createButton} onPress={() => router.push('/(tabs)/home/create-match')}>
+        <Pressable style={withPressed(styles.createButton)} onPress={() => router.push('/(tabs)/home/create-match')}>
           <Text style={styles.createButtonText}>+ Crea</Text>
         </Pressable>
       </View>
@@ -81,18 +82,18 @@ export default function MyMatchesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 16 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  header: { fontSize: 22, fontWeight: '700' },
-  createButton: { backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 14 },
-  createButtonText: { color: '#fff', fontWeight: '600' },
-  error: { color: '#c0392b', marginBottom: 8 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginTop: 16, marginBottom: 8 },
-  row: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  rowTitle: { fontSize: 16, fontWeight: '600' },
-  rowMeta: { color: '#666', fontSize: 13, marginTop: 2 },
-  rowStatus: { color: '#1a7f37', fontSize: 13, fontWeight: '600', marginTop: 2 },
-  list: { paddingBottom: 24 },
-  subtitle: { color: '#666', textAlign: 'center', marginTop: 24 },
+  container: { backgroundColor: colors.background, flex: 1, paddingHorizontal: spacing.spaceMd },
+  centered: { backgroundColor: colors.background, flex: 1, alignItems: 'center', justifyContent: 'center' },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.spaceSm },
+  header: typography.screenTitle,
+  createButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceMd },
+  createButtonText: { color: colors.onPrimary, ...typography.label },
+  error: { color: colors.danger, marginBottom: spacing.spaceXs },
+  sectionTitle: { ...typography.label, fontSize: 16, marginTop: spacing.spaceMd, marginBottom: spacing.spaceXs },
+  row: { paddingVertical: spacing.spaceSm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  rowTitle: typography.label,
+  rowMeta: { color: colors.muted, ...typography.meta, marginTop: 2 },
+  rowStatus: { color: colors.primary, ...typography.meta, fontFamily: 'WorkSans_600SemiBold', marginTop: 2 },
+  list: { paddingBottom: spacing.spaceLg },
+  subtitle: { color: colors.muted, textAlign: 'center', marginTop: spacing.spaceLg, ...typography.body },
 });
