@@ -6,6 +6,7 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { usePrivateMessages } from '@/hooks/usePrivateMessages';
 import { useSessionStore } from '@/stores/sessionStore';
 import type { PrivateMessage } from '@/api/privateMessages';
+import { colors, typography, spacing, withPressed } from '@/theme';
 
 export default function PrivateChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -49,14 +50,14 @@ export default function PrivateChatScreen() {
       keyboardVerticalOffset={insets.top}
     >
       <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
-        <Pressable onPress={() => router.replace('/(tabs)/messages')}>
+        <Pressable onPress={() => router.replace('/(tabs)/messages')} hitSlop={8}>
           <Text style={styles.backLink}>← Torna ai messaggi</Text>
         </Pressable>
         <Text style={styles.header}>{chat.otherUser ? `${chat.otherUser.first_name} ${chat.otherUser.last_name}` : 'Chat'}</Text>
         {chat.error && (
           <View>
             <Text style={styles.error}>{chat.error}</Text>
-            <Pressable style={styles.retryButton} onPress={() => chat.refresh()}>
+            <Pressable style={withPressed(styles.retryButton)} onPress={() => chat.refresh()}>
               <Text style={styles.retryButtonText}>Riprova</Text>
             </Pressable>
           </View>
@@ -81,7 +82,7 @@ export default function PrivateChatScreen() {
             multiline
             maxLength={2000}
           />
-          <Pressable style={styles.sendButton} disabled={chat.sending || !inputText.trim()} onPress={handleSend}>
+          <Pressable style={withPressed(styles.sendButton)} disabled={chat.sending || !inputText.trim()} onPress={handleSend}>
             {chat.sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendButtonText}>Invia</Text>}
           </Pressable>
         </View>
@@ -95,32 +96,33 @@ function MessageBubble({ message, isOwn }: { message: PrivateMessage; isOwn: boo
     <View style={[styles.bubbleRow, isOwn ? styles.bubbleRowOwn : styles.bubbleRowOther]}>
       <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
         <Text style={isOwn ? styles.bubbleTextOwn : styles.bubbleTextOther}>{message.body}</Text>
-        <Text style={styles.timestamp}>{new Date(message.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</Text>
+        <Text style={isOwn ? styles.timestampOwn : styles.timestampOther}>{new Date(message.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 16 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  backLink: { color: '#1a7f37', marginBottom: 8 },
-  header: { fontSize: 22, fontWeight: '700', marginBottom: 8 },
-  error: { color: '#c0392b', marginBottom: 8 },
-  retryButton: { alignSelf: 'flex-start', backgroundColor: '#1a7f37', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 16, marginBottom: 8 },
-  retryButtonText: { color: '#fff', fontWeight: '600' },
-  messageList: { paddingVertical: 8, gap: 8 },
+  container: { backgroundColor: colors.background, flex: 1, paddingHorizontal: spacing.spaceMd },
+  centered: { backgroundColor: colors.background, flex: 1, alignItems: 'center', justifyContent: 'center' },
+  backLink: { color: colors.primary, marginBottom: spacing.spaceXs },
+  header: { ...typography.screenTitle, marginBottom: spacing.spaceXs },
+  error: { color: colors.danger, marginBottom: spacing.spaceXs },
+  retryButton: { alignSelf: 'flex-start', backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceMd, marginBottom: spacing.spaceXs },
+  retryButtonText: { color: colors.onPrimary, ...typography.label },
+  messageList: { paddingVertical: spacing.spaceXs, gap: spacing.spaceXs },
   bubbleRow: { flexDirection: 'row' },
   bubbleRowOwn: { justifyContent: 'flex-end' },
   bubbleRowOther: { justifyContent: 'flex-start' },
-  bubble: { maxWidth: '80%', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
-  bubbleOwn: { backgroundColor: '#1a7f37' },
-  bubbleOther: { backgroundColor: '#eee' },
-  bubbleTextOwn: { color: '#fff', fontSize: 15 },
-  bubbleTextOther: { color: '#222', fontSize: 15 },
-  timestamp: { fontSize: 10, color: '#ccc', marginTop: 4, alignSelf: 'flex-end' },
-  inputRow: { flexDirection: 'row', gap: 8, paddingVertical: 8, alignItems: 'flex-end' },
-  input: { flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, maxHeight: 100 },
-  sendButton: { backgroundColor: '#1a7f37', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, justifyContent: 'center' },
-  sendButtonText: { color: '#fff', fontWeight: '600' },
+  bubble: { maxWidth: '80%', borderRadius: spacing.radiusCard, paddingHorizontal: spacing.spaceSm, paddingVertical: spacing.spaceXs },
+  bubbleOwn: { backgroundColor: colors.primary },
+  bubbleOther: { backgroundColor: colors.border },
+  bubbleTextOwn: { color: colors.onPrimary, ...typography.body },
+  bubbleTextOther: { color: colors.ink, ...typography.body },
+  timestampOwn: { fontSize: 10, color: colors.primaryTint, marginTop: 4, alignSelf: 'flex-end' },
+  timestampOther: { fontSize: 10, color: colors.muted, marginTop: 4, alignSelf: 'flex-end' },
+  inputRow: { flexDirection: 'row', gap: spacing.spaceXs, paddingVertical: spacing.spaceXs, alignItems: 'flex-end' },
+  input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusPill, paddingHorizontal: spacing.spaceMd, paddingVertical: 10, maxHeight: 100, ...typography.body },
+  sendButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusPill, paddingHorizontal: spacing.spaceMd, paddingVertical: 10, justifyContent: 'center' },
+  sendButtonText: { color: colors.onPrimary, ...typography.label },
 });

@@ -4,6 +4,7 @@ import { View, Text, FlatList, ActivityIndicator, StyleSheet, Pressable } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useConversations } from '@/hooks/useConversations';
+import { colors, typography, spacing } from '@/theme';
 
 export default function MessagesScreen() {
   const insets = useSafeAreaInsets();
@@ -57,15 +58,15 @@ export default function MessagesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 16 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { fontSize: 22, fontWeight: '700', marginBottom: 12 },
-  error: { color: '#c0392b', marginBottom: 8 },
-  subtitle: { color: '#666', textAlign: 'center', marginTop: 24 },
-  list: { paddingBottom: 24 },
-  row: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  name: { fontSize: 16, fontWeight: '600' },
-  preview: { color: '#666', fontSize: 14, marginTop: 2 },
-  unreadText: { fontWeight: '700', color: '#000' },
-  date: { color: '#888', fontSize: 12, marginTop: 2 },
+  container: { backgroundColor: colors.background, flex: 1, paddingHorizontal: spacing.spaceMd },
+  centered: { backgroundColor: colors.background, flex: 1, alignItems: 'center', justifyContent: 'center' },
+  header: { ...typography.screenTitle, marginBottom: spacing.spaceSm },
+  error: { color: colors.danger, marginBottom: spacing.spaceXs },
+  subtitle: { color: colors.muted, textAlign: 'center', marginTop: spacing.spaceLg, ...typography.body },
+  list: { paddingBottom: spacing.spaceLg },
+  row: { paddingVertical: spacing.spaceSm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  name: typography.label,
+  preview: { color: colors.muted, ...typography.body, fontSize: 14, marginTop: 2 },
+  unreadText: { fontFamily: 'WorkSans_600SemiBold', color: colors.ink },
+  date: { color: colors.muted, ...typography.caption, marginTop: 2 },
 });
