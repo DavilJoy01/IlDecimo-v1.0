@@ -37,6 +37,12 @@ export default function RootLayout() {
   }, [setSession]);
 
   useEffect(() => {
+    if (fontsLoaded && status !== 'loading') {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, status]);
+
+  useEffect(() => {
     // The root navigator hasn't mounted yet — router.replace() below would
     // silently no-op if called before this, leaving the app stuck on the
     // unmatched `/` path (no app/index.tsx exists; every real screen lives
