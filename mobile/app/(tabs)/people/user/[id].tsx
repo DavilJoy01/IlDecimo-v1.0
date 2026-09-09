@@ -1,9 +1,10 @@
 // mobile/app/(tabs)/people/user/[id].tsx
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, TextInput, ActivityIndicator, StyleSheet, Alert, ScrollView, Image } from 'react-native';
+import { View, Text, Pressable, TextInput, ActivityIndicator, StyleSheet, Alert, ScrollView, Image, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useUserMatchHistory } from '@/hooks/useUserMatchHistory';
 import { useSessionStore } from '@/stores/sessionStore';
 import { calculateAge, FOOT_LABELS, ROLE_LABELS } from '@/utils/profileDisplay';
 import { findOrCreateConversation } from '@/api/privateMessages';
@@ -16,6 +17,8 @@ export default function UserProfileScreen() {
   const ownUserId = useSessionStore((s) => s.session?.user.id);
   const { profile, status, loading, error, actionError, actionLoading, sendRequest, cancelRequest, accept, reject, removeFriend, block, unblock, report } =
     useUserProfile(id);
+  const { matches: historyMatches, loading: historyLoading, loadingMore: historyLoadingMore, error: historyError, hasMore: historyHasMore, loadMore: loadMoreHistory, retry: retryHistory } =
+    useUserMatchHistory(id);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [messageLoading, setMessageLoading] = useState(false);
@@ -81,8 +84,18 @@ export default function UserProfileScreen() {
     );
   }
 
+  function handleScroll({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) {
+    const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
+    const distanceFromBottom = contentSize.height - contentOffset.y - layoutMeasurement.height;
+    if (distanceFromBottom < 200) loadMoreHistory();
+  }
+
   return (
-    <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 24 }]}>
+    <ScrollView
+      contentContainerStyle={[styles.container, { paddingTop: insets.top + 24 }]}
+      onScroll={handleScroll}
+      scrollEventThrottle={200}
+    >
       <Pressable hitSlop={8} onPress={() => router.replace('/(tabs)/people')}>
         <Text style={styles.backLink}>← Torna indietro</Text>
       </Pressable>
@@ -185,6 +198,57 @@ export default function UserProfileScreen() {
           </Pressable>
         </View>
       )}
+
+      <View style={styles.historySection}>
+        <Text style={styles.historyTitle}>Storico partite</Text>
+        {historyLoading ? (
+          <ActivityIndicator size="small" />
+        ) : historyError && historyMatches.length === 0 ? (
+          <View style={styles.historyErrorRow}>
+            <Text style={styles.error}>{historyError}</Text>
+            <Pressable style={withPressed(styles.retryButton)} onPress={retryHistory}>
+              <Text style={styles.retryButtonText}>Riprova</Text>
+            </Pressable>
+          </View>
+        ) : historyMatches.length === 0 ? (
+          <Text style={styles.historyEmpty}>Nessuna partita nello storico.</Text>
+        ) : (
+          <>
+            {historyMatches.map((entry) => (
+              <View key={entry.match_id} style={styles.historyRow}>
+                <View style={styles.historyRowHeader}>
+                  <Text style={styles.historyDate}>
+                    {new Date(`${entry.match_date}T${entry.start_time}`).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    {' · '}
+                    {entry.start_time.slice(0, 5)}
+                  </Text>
+                  <View style={styles.historyTypeBadge}>
+                    <Text style={styles.historyTypeBadgeText}>{entry.match_type}</Text>
+                  </View>
+                </View>
+                <Text style={styles.historyField}>{entry.field_name} — {entry.address}</Text>
+                <Text style={styles.historyRole}>
+                  {entry.role === 'creator'
+                    ? 'Partita creata'
+                    : entry.outcome === 'left'
+                      ? 'Partecipante (uscito prima della fine)'
+                      : 'Partecipante'}
+                </Text>
+              </View>
+            ))}
+            {historyLoadingMore && <ActivityIndicator size="small" style={styles.historyLoadingMore} />}
+            {historyError && historyMatches.length > 0 && (
+              <View style={styles.historyErrorRow}>
+                <Text style={styles.error}>{historyError}</Text>
+                <Pressable style={withPressed(styles.retryButton)} onPress={loadMoreHistory}>
+                  <Text style={styles.retryButtonText}>Riprova</Text>
+                </Pressable>
+              </View>
+            )}
+            {!historyHasMore && <Text style={styles.historyEnd}>Fine dello storico.</Text>}
+          </>
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -228,4 +292,19 @@ const styles = StyleSheet.create({
   blockLink: { color: colors.danger, fontFamily: 'WorkSans_600SemiBold', fontSize: 15 },
   reportForm: { gap: spacing.spaceXs, width: '100%' },
   reportInput: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, minHeight: 80, textAlignVertical: 'top', ...typography.body },
+  historySection: { width: '100%', marginTop: spacing.spaceLg, gap: spacing.spaceSm },
+  historyTitle: { ...typography.label, fontSize: 18, marginBottom: spacing.spaceXs },
+  historyEmpty: { color: colors.muted, ...typography.body },
+  historyRow: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusCard, padding: spacing.spaceSm, gap: 4 },
+  historyRowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  historyDate: { color: colors.ink, ...typography.body },
+  historyTypeBadge: { backgroundColor: colors.primaryTint, borderRadius: spacing.radiusPill, paddingHorizontal: spacing.spaceSm, paddingVertical: 2 },
+  historyTypeBadgeText: { color: colors.primary, ...typography.caption },
+  historyField: { color: colors.muted, ...typography.meta },
+  historyRole: { color: colors.ink, ...typography.caption },
+  historyLoadingMore: { marginTop: spacing.spaceSm },
+  historyErrorRow: { alignItems: 'center', gap: spacing.spaceXs },
+  retryButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 8, paddingHorizontal: spacing.spaceMd },
+  retryButtonText: { color: colors.onPrimary, ...typography.label, fontSize: 14 },
+  historyEnd: { color: colors.muted, textAlign: 'center', ...typography.caption, marginTop: spacing.spaceXs },
 });
