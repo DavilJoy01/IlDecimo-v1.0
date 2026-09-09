@@ -1,0 +1,20 @@
+-- supabase/migrations/20260909100000_revoke_user_public_profiles_write_grants.sql
+--
+-- public.user_public_profiles is a plain view (security_invoker = false,
+-- no RLS of its own) over public.users. 20260830101700_final_review_
+-- hardening.sql already revoked ALL privileges from anon/public, but left
+-- `authenticated` holding Supabase's default ALL-privileges grant --
+-- meaning any authenticated user could INSERT/UPDATE/DELETE through this
+-- view, and because the view is "simply updatable" and owned by postgres,
+-- those writes hit public.users directly, bypassing every RLS policy on
+-- that table. protect_users_row still blocks phone/unique_user_id/match
+-- counts, but every other column (first_name, last_name, birth_date,
+-- height_cm, preferred_foot, player_role, profile_image_url) was writable
+-- on ANY other user's row, and the row was outright DELETE-able (cascading
+-- to that user's matches). Reachable directly over PostgREST as
+-- PATCH/DELETE /rest/v1/user_public_profiles?id=eq.<any-uuid>.
+--
+-- Fix: restrict `authenticated` to SELECT only, matching the read-only
+-- intent already documented for this view everywhere it's used
+-- (search_user_by_code, get_user_profile, get_user_match_history).
+revoke insert, update, delete on public.user_public_profiles from authenticated;
