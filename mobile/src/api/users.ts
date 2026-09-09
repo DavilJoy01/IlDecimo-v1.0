@@ -9,6 +9,17 @@ type NewUserProfile = Pick<
   'id' | 'phone' | 'first_name' | 'last_name' | 'birth_date' | 'height_cm' | 'preferred_foot' | 'player_role'
 >;
 
+export interface MatchHistoryEntry {
+  match_id: string;
+  role: 'creator' | 'participant';
+  outcome: 'completed' | 'left';
+  match_type: 5 | 7 | 8;
+  field_name: string;
+  address: string;
+  match_date: string;
+  start_time: string;
+}
+
 export async function createOwnProfile(profile: NewUserProfile): Promise<UserProfile> {
   const { data, error } = await supabase.from('users').insert([profile]).select().single();
   if (error) throw new Error(error.message);
@@ -71,4 +82,26 @@ export async function uploadProfileImage(userId: string, localUri: string): Prom
   if (uploadError) throw new Error(uploadError.message);
   const { data } = supabase.storage.from('profile-images').getPublicUrl(path);
   return data.publicUrl;
+}
+
+export async function fetchUserProfile(targetId: string): Promise<Record<string, unknown> | null> {
+  const { data, error } = await supabase.rpc('get_user_profile', { target_id: targetId });
+  if (error) throw new Error(error.message);
+  return (data?.[0] as Record<string, unknown>) ?? null;
+}
+
+export async function fetchUserMatchHistory(
+  targetId: string,
+  cursor: { date: string; time: string; id: string } | null,
+  pageSize = 20
+): Promise<MatchHistoryEntry[]> {
+  const { data, error } = await supabase.rpc('get_user_match_history', {
+    target_id: targetId,
+    before_date: cursor?.date ?? null,
+    before_time: cursor?.time ?? null,
+    before_id: cursor?.id ?? null,
+    page_size: pageSize,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as MatchHistoryEntry[];
 }

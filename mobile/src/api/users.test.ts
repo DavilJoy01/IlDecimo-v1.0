@@ -1,10 +1,11 @@
 import { supabase } from './supabase';
-import { createOwnProfile, fetchOwnProfile, updateOwnProfile, uploadProfileImage } from './users';
+import { createOwnProfile, fetchOwnProfile, updateOwnProfile, uploadProfileImage, fetchUserProfile, fetchUserMatchHistory } from './users';
 import * as FileSystem from 'expo-file-system/legacy';
 
 jest.mock('./supabase', () => ({
   supabase: {
     from: jest.fn(),
+    rpc: jest.fn(),
   },
 }));
 
@@ -164,5 +165,69 @@ describe('users api', () => {
 
       await expect(uploadProfileImage('u1', 'file:///tmp/photo.jpg')).rejects.toThrow('storage quota exceeded');
     });
+  });
+});
+
+describe('fetchUserProfile', () => {
+  it('calls the get_user_profile RPC and returns the first row', async () => {
+    const row = { id: 'u2', unique_user_id: 'FC-100002', first_name: 'Luca' };
+    (supabase.rpc as jest.Mock).mockResolvedValue({ data: [row], error: null });
+
+    const result = await fetchUserProfile('u2');
+
+    expect(supabase.rpc).toHaveBeenCalledWith('get_user_profile', { target_id: 'u2' });
+    expect(result).toEqual(row);
+  });
+
+  it('returns null when the RPC returns an empty array (blocked or nonexistent)', async () => {
+    (supabase.rpc as jest.Mock).mockResolvedValue({ data: [], error: null });
+
+    const result = await fetchUserProfile('u2');
+
+    expect(result).toBeNull();
+  });
+
+  it('throws on an RPC error', async () => {
+    (supabase.rpc as jest.Mock).mockResolvedValue({ data: null, error: { message: 'network error' } });
+
+    await expect(fetchUserProfile('u2')).rejects.toThrow('network error');
+  });
+});
+
+describe('fetchUserMatchHistory', () => {
+  it('calls get_user_match_history with null cursor fields on the first page', async () => {
+    const rows = [{ match_id: 'm1', role: 'creator', outcome: 'completed', match_type: 5, field_name: 'Campo A', address: 'Via A', match_date: '2026-01-10', start_time: '10:00' }];
+    (supabase.rpc as jest.Mock).mockResolvedValue({ data: rows, error: null });
+
+    const result = await fetchUserMatchHistory('u2', null);
+
+    expect(supabase.rpc).toHaveBeenCalledWith('get_user_match_history', {
+      target_id: 'u2',
+      before_date: null,
+      before_time: null,
+      before_id: null,
+      page_size: 20,
+    });
+    expect(result).toEqual(rows);
+  });
+
+  it('passes the cursor fields and a custom page size on a later page', async () => {
+    (supabase.rpc as jest.Mock).mockResolvedValue({ data: [], error: null });
+
+    await fetchUserMatchHistory('u2', { date: '2026-01-05', time: '10:00', id: 'm3' }, 10);
+
+    expect(supabase.rpc).toHaveBeenCalledWith('get_user_match_history', {
+      target_id: 'u2',
+      before_date: '2026-01-05',
+      before_time: '10:00',
+      before_id: 'm3',
+      page_size: 10,
+    });
+  });
+
+  it('throws on an RPC error', async () => {
+    (supabase.rpc as jest.Mock).mockResolvedValue({ data: null, error: { message: 'network error' } });
+
+    await expect(fetchUserMatchHistory('u2', null)).rejects.toThrow('network error');
   });
 });
