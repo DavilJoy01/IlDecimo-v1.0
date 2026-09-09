@@ -72,6 +72,12 @@ as $$
     where mp.user_id = target_id
       and mp.status in ('completed', 'left')
       and m.status = 'completed'
+      -- Nothing in the schema prevents a match's creator from also holding
+      -- a match_participants row for their own match (only a client-side UI
+      -- convention hides the join button from creators) -- exclude that case
+      -- explicitly so a creator who self-joined never appears twice in their
+      -- own history (once as creator, once as participant).
+      and m.creator_id <> target_id
   )
   select *
   from history h
