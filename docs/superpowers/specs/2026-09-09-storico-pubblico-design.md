@@ -12,27 +12,27 @@ Fuori ambito: link dalla riga dello storico alla schermata di dettaglio partita 
 
 Nessuna nuova tabella. Due nuove funzioni RPC `security definer`, seguendo il pattern già stabilito in questo progetto per i casi che RLS dichiarativa non può esprimere bene (`search_user_by_code`, `send_match_message`).
 
-### 2.1 Helper condiviso
+### 2.1 Helper condiviso — già esistente, non va ricreato
+
+Il controllo di blocco bidirezionale che questo piano userebbe esiste già: `public.users_have_mutual_block(p_user_a uuid, p_user_b uuid)`, definita in `supabase/migrations/20260830101700_final_review_hardening.sql` e già usata da `search_user_by_code`:
 
 ```sql
-create or replace function public.is_blocked_either_direction(a uuid, b uuid)
+create or replace function public.users_have_mutual_block(p_user_a uuid, p_user_b uuid)
 returns boolean
 language sql
-stable
 security definer
 set search_path = ''
+stable
 as $$
   select exists (
-    select 1 from public.user_blocks
-    where (blocker_id = a and blocked_id = b) or (blocker_id = b and blocked_id = a)
+    select 1 from public.user_blocks b
+    where (b.blocker_id = p_user_a and b.blocked_id = p_user_b)
+       or (b.blocker_id = p_user_b and b.blocked_id = p_user_a)
   );
 $$;
-
-revoke all on function public.is_blocked_either_direction(uuid, uuid) from public;
-grant execute on function public.is_blocked_either_direction(uuid, uuid) to authenticated;
 ```
 
-`user_blocks` ha RLS che permette a un utente di leggere solo le proprie righe come `blocker_id` — questa funzione, essendo `security definer`, bypassa quella restrizione internamente per controllare entrambe le direzioni, ma non espone mai *chi* ha bloccato chi al chiamante: ritorna solo un booleano.
+**Nessuna nuova migrazione per questo helper.** Le due funzioni sotto lo chiamano direttamente. Questa scoperta è emersa solo scrivendo il piano (lo spec, scritto prima, proponeva erroneamente di ricrearla) — stessa classe di lezione già registrata nella memoria di progetto per `modifica-profilo` (Task 1) e `persone` (`search_user_by_code`'s return-shape): controllare sempre le funzioni esistenti prima di proporne una nuova con lo stesso scopo.
 
 ### 2.2 `get_user_profile`
 
@@ -47,7 +47,7 @@ as $$
   select p.*
   from public.user_public_profiles p
   where p.id = target_id
-    and not public.is_blocked_either_direction(auth.uid(), target_id);
+    and not public.users_have_mutual_block(auth.uid(), target_id);
 $$;
 
 revoke all on function public.get_user_profile(uuid) from public;
@@ -114,7 +114,7 @@ as $$
   )
   select *
   from history h
-  where not public.is_blocked_either_direction(auth.uid(), target_id)
+  where not public.users_have_mutual_block(auth.uid(), target_id)
     and (
       before_date is null
       or (h.match_date, h.start_time, h.match_id) < (before_date, before_time, before_id)
