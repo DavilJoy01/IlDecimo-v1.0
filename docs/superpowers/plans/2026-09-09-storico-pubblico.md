@@ -1005,7 +1005,7 @@ EOF
 - [ ] **Step 1: Run the full automated suite one more time**
 
 Run: `cd mobile && npm run typecheck && npm test` and `cd supabase && npx supabase test db`
-Expected: typecheck clean; full Jest suite green (prior total + this plan's new tests: 6 from Task 2 + 5 from Task 4 = 11 new tests, Task 3 modifies but doesn't add to `useUserProfile.test.ts`'s existing 6); full pgTAP suite green, including the 16 new assertions in `023_get_user_profile_and_history.test.sql`.
+Expected: typecheck clean; full Jest suite green (prior total + this plan's new tests: 6 from Task 2 + 5 from Task 4 = 11 new tests, Task 3 modifies but doesn't add to `useUserProfile.test.ts`'s existing 5); full pgTAP suite green, including the 16 new assertions in `023_get_user_profile_and_history.test.sql`.
 
 - [ ] **Step 2: Live walkthrough in the iOS Simulator**
 
