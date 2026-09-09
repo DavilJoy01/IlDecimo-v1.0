@@ -1,7 +1,7 @@
 // mobile/src/hooks/useUserProfile.test.ts
 import { renderHook, waitFor, act } from '@testing-library/react-native';
 import { useUserProfile } from './useUserProfile';
-import { supabase } from '@/api/supabase';
+import { fetchUserProfile } from '@/api/users';
 import {
   fetchFriendshipStatus,
   sendFriendRequest,
@@ -14,7 +14,7 @@ import {
 } from '@/api/friendships';
 import { useSessionStore } from '@/stores/sessionStore';
 
-jest.mock('@/api/supabase', () => ({ supabase: { from: jest.fn() } }));
+jest.mock('@/api/users', () => ({ fetchUserProfile: jest.fn() }));
 jest.mock('@/api/friendships', () => ({
   fetchFriendshipStatus: jest.fn(),
   sendFriendRequest: jest.fn(),
@@ -33,13 +33,7 @@ const targetProfile = {
 };
 
 function mockProfileFetch() {
-  (supabase.from as jest.Mock).mockReturnValue({
-    select: jest.fn().mockReturnValue({
-      eq: jest.fn().mockReturnValue({
-        single: jest.fn().mockResolvedValue({ data: targetProfile, error: null }),
-      }),
-    }),
-  });
+  (fetchUserProfile as jest.Mock).mockResolvedValue(targetProfile);
 }
 
 describe('useUserProfile', () => {

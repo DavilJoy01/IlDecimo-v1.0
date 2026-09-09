@@ -1,6 +1,6 @@
 // mobile/src/hooks/useUserProfile.ts
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '@/api/supabase';
+import { fetchUserProfile } from '@/api/users';
 import {
   fetchFriendshipStatus,
   sendFriendRequest,
@@ -51,13 +51,8 @@ export function useUserProfile(targetUserId: string) {
     setLoading(true);
     setError(null);
     try {
-      const { data: profileRow, error: profileError } = await supabase
-        .from('user_public_profiles')
-        .select('*')
-        .eq('id', targetUserId)
-        .single();
-      if (profileError) throw new Error(profileError.message);
-      setProfile(profileRow as TargetProfile);
+      const profileRow = await fetchUserProfile(targetUserId);
+      setProfile((profileRow as unknown as TargetProfile) ?? null);
       await refreshStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossibile caricare il profilo.');
