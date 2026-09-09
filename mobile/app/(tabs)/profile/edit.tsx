@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useEditProfile } from '@/hooks/useEditProfile';
 import { ProfileForm, type ProfileFormValues } from '@/components/ProfileForm';
-import { colors, typography, spacing, withPressed } from '@/theme';
+import { colors, typography, spacing } from '@/theme';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -21,7 +21,7 @@ export default function EditProfileScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
-      <Pressable onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+      <Pressable onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <Text style={styles.backLink}>← Torna al profilo</Text>
       </Pressable>
       <Text style={styles.header}>Modifica profilo</Text>

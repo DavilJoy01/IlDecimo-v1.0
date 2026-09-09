@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, TextInput, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { Link } from 'expo-router';
 import { useLogin } from '@/hooks/useLogin';
-import { colors, typography, spacing } from '@/theme';
+import { colors, typography, spacing, withPressed } from '@/theme';
 
 export default function LoginScreen() {
   const [phone, setPhone] = useState('');
@@ -29,7 +29,7 @@ export default function LoginScreen() {
         onChangeText={setPassword}
       />
       {error && <Text style={styles.error}>{error}</Text>}
-      <Pressable style={styles.button} onPress={() => login(phone, password)} disabled={loading}>
+      <Pressable style={withPressed(styles.button)} onPress={() => login(phone, password)} disabled={loading}>
         {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.buttonText}>Accedi</Text>}
       </Pressable>
       {/* `as any`: forward-reference to a route Task 5 adds; same pattern as

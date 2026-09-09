@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, TextInput, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRegistration } from '@/hooks/useRegistration';
-import { colors, typography, spacing } from '@/theme';
+import { colors, typography, spacing, withPressed } from '@/theme';
 
 export default function CreatePasswordScreen() {
   const [password, setPassword] = useState('');
@@ -19,7 +19,7 @@ export default function CreatePasswordScreen() {
         onChangeText={setPassword}
       />
       {error && <Text style={styles.error}>{error}</Text>}
-      <Pressable style={styles.button} onPress={() => choosePassword(password)} disabled={loading || password.length < 8}>
+      <Pressable style={withPressed(styles.button)} onPress={() => choosePassword(password)} disabled={loading || password.length < 8}>
         {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.buttonText}>Continua</Text>}
       </Pressable>
     </View>

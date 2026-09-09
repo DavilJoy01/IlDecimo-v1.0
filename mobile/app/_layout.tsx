@@ -7,6 +7,7 @@ import { WorkSans_400Regular, WorkSans_500Medium, WorkSans_600SemiBold } from '@
 import { supabase } from '@/api/supabase';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useProfileBootstrap } from '@/hooks/useProfileBootstrap';
+import { colors } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -74,7 +75,7 @@ export default function RootLayout() {
   if (status === 'loading' || !fontsLoaded) {
     return (
       <View
-        style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+        style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}
         onLayout={onLayoutRootView}
       >
         <ActivityIndicator />
@@ -83,7 +84,7 @@ export default function RootLayout() {
   }
 
   return (
-    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+    <View style={{ flex: 1, backgroundColor: colors.background }} onLayout={onLayoutRootView}>
       <Slot />
     </View>
   );

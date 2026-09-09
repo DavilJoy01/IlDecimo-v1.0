@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, TextInput, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRegistration } from '@/hooks/useRegistration';
-import { colors, typography, spacing } from '@/theme';
+import { colors, typography, spacing, withPressed } from '@/theme';
 
 export default function VerifyOtpScreen() {
   const [token, setToken] = useState('');
@@ -19,7 +19,7 @@ export default function VerifyOtpScreen() {
         onChangeText={setToken}
       />
       {error && <Text style={styles.error}>{error}</Text>}
-      <Pressable style={styles.button} onPress={() => confirmOtp(token)} disabled={loading}>
+      <Pressable style={withPressed(styles.button)} onPress={() => confirmOtp(token)} disabled={loading}>
         {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.buttonText}>Verifica</Text>}
       </Pressable>
     </View>

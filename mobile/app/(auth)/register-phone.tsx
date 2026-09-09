@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, TextInput, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRegistration } from '@/hooks/useRegistration';
-import { colors, typography, spacing } from '@/theme';
+import { colors, typography, spacing, withPressed } from '@/theme';
 
 export default function RegisterPhoneScreen() {
   const [phone, setPhone] = useState('');
@@ -20,7 +20,7 @@ export default function RegisterPhoneScreen() {
         onChangeText={setPhone}
       />
       {error && <Text style={styles.error}>{error}</Text>}
-      <Pressable style={styles.button} onPress={() => sendOtp(phone)} disabled={loading}>
+      <Pressable style={withPressed(styles.button)} onPress={() => sendOtp(phone)} disabled={loading}>
         {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.buttonText}>Invia codice</Text>}
       </Pressable>
     </View>
