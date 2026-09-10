@@ -269,6 +269,8 @@ max_frequency = "5s"
 # app can be used with real phone numbers -- see the plan's "what this does
 # not cover" note.
 "+390000000001" = "123456"
+"+390000000101" = "123456"
+"+390000000102" = "123456"
 
 # Configure logged in session timeouts.
 # [auth.sessions]
