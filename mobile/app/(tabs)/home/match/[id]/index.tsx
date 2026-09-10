@@ -233,7 +233,7 @@ export default function MatchDetailScreen() {
                         <Text style={styles.teamChipTextActive}>A</Text>
                       </Pressable>
                       <Pressable
-                        style={withPressed(styles.teamChip)}
+                        style={withPressed([styles.teamChip, roster.teamBParticipants.length >= match.match_type && styles.teamChipDisabled])}
                         disabled={roster.actionLoading || roster.teamBParticipants.length >= match.match_type}
                         onPress={() => roster.assignParticipantTeam(profile.participant_id, 'B')}
                       >
@@ -254,7 +254,7 @@ export default function MatchDetailScreen() {
                   {isCreator && (
                     <View style={styles.teamChips}>
                       <Pressable
-                        style={withPressed(styles.teamChip)}
+                        style={withPressed([styles.teamChip, roster.teamAParticipants.length >= match.match_type && styles.teamChipDisabled])}
                         disabled={roster.actionLoading || roster.teamAParticipants.length >= match.match_type}
                         onPress={() => roster.assignParticipantTeam(profile.participant_id, 'A')}
                       >
@@ -284,14 +284,14 @@ export default function MatchDetailScreen() {
                   {isCreator && (
                     <View style={styles.teamChips}>
                       <Pressable
-                        style={withPressed(styles.teamChip)}
+                        style={withPressed([styles.teamChip, roster.teamAParticipants.length >= match.match_type && styles.teamChipDisabled])}
                         disabled={roster.actionLoading || roster.teamAParticipants.length >= match.match_type}
                         onPress={() => roster.assignParticipantTeam(profile.participant_id, 'A')}
                       >
                         <Text style={styles.teamChipText}>A</Text>
                       </Pressable>
                       <Pressable
-                        style={withPressed(styles.teamChip)}
+                        style={withPressed([styles.teamChip, roster.teamBParticipants.length >= match.match_type && styles.teamChipDisabled])}
                         disabled={roster.actionLoading || roster.teamBParticipants.length >= match.match_type}
                         onPress={() => roster.assignParticipantTeam(profile.participant_id, 'B')}
                       >
@@ -375,6 +375,7 @@ const styles = StyleSheet.create({
   teamGroupEmpty: { color: colors.muted, ...typography.body },
   teamChips: { flexDirection: 'row', gap: spacing.spaceXs },
   teamChip: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, paddingVertical: 4, paddingHorizontal: spacing.spaceSm },
+  teamChipDisabled: { opacity: 0.4 },
   teamChipText: { color: colors.ink, ...typography.label, fontSize: 13 },
   teamChipActive: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 4, paddingHorizontal: spacing.spaceSm },
   teamChipTextActive: { color: colors.onPrimary, ...typography.label, fontSize: 13 },

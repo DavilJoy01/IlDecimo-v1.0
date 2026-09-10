@@ -1,6 +1,6 @@
 -- supabase/tests/025_match_participant_teams.test.sql
 begin;
-select plan(16);
+select plan(17);
 
 -- CREATOR: creates both matches used below.
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','creator@example.com');
@@ -186,6 +186,18 @@ select is(
   'creator can remove an existing team assignment'
 );
 
+-- 10. An approved participant cannot assign their own team -- RLS lets them
+-- reach their own row (that's how they're allowed to leave the match), so
+-- this exercises the trigger's actual creator-only check, unlike assertion 2
+-- (an outsider), whose update never reaches the trigger at all via RLS.
+select tests.authenticate_as('20000000-0000-0000-0000-000000000006');
+select throws_ok(
+  $$update public.match_participants set team = 'A' where id = '30000000-0000-0000-0000-000000000006'$$,
+  'P0001',
+  'only the match creator can assign a team',
+  'an approved participant cannot assign their own team even though RLS lets them reach the row'
+);
+
 -- Match M2: match_type=5, 6 approved participants (Q1..Q6) + 1 requested + 1
 -- rejected, used for shuffle_match_teams tests.
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
@@ -222,7 +234,7 @@ update public.match_participants set status = 'rejected' where id = '50000000-00
 update public.match_participants set team = 'A' where id = '50000000-0000-0000-0000-000000000001';
 update public.match_participants set team = 'A' where id = '50000000-0000-0000-0000-000000000002';
 
--- 10. shuffle_match_teams fails if the caller is not the creator.
+-- 11. shuffle_match_teams fails if the caller is not the creator.
 select tests.authenticate_as('99999999-9999-9999-9999-999999999999');
 select throws_ok(
   $$select public.shuffle_match_teams('aaaaaaaa-0000-0000-0000-000000000002')$$,
@@ -231,7 +243,7 @@ select throws_ok(
   'shuffle_match_teams fails when called by a non-creator'
 );
 
--- 11. shuffle_match_teams as the real creator succeeds and respects the cap.
+-- 12. shuffle_match_teams as the real creator succeeds and respects the cap.
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 select lives_ok(
   $$select public.shuffle_match_teams('aaaaaaaa-0000-0000-0000-000000000002')$$,
@@ -247,14 +259,14 @@ select ok(
   'after shuffling, team B never exceeds match_type (5)'
 );
 
--- 12. All 6 approved participants end up on a team (6 <= 5*2, none left over).
+-- 13. All 6 approved participants end up on a team (6 <= 5*2, none left over).
 select is(
   (select count(*)::int from public.match_participants where match_id = 'aaaaaaaa-0000-0000-0000-000000000002' and status = 'approved' and team is not null),
   6,
   'all 6 approved participants are assigned to a team after shuffling (6 fits within 2x5)'
 );
 
--- 13. The requested and rejected participants were never touched by the shuffle.
+-- 14. The requested and rejected participants were never touched by the shuffle.
 select is(
   (select team from public.match_participants where id = '50000000-0000-0000-0000-000000000007'),
   null,
