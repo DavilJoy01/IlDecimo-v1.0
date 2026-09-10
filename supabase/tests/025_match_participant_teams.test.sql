@@ -93,6 +93,12 @@ select is(
 -- participation row they are not party to" assertion.
 select tests.authenticate_as('99999999-9999-9999-9999-999999999999');
 update public.match_participants set team = 'B' where id = '30000000-0000-0000-0000-000000000002';
+-- Re-authenticate as the creator before verifying: the outsider has zero RLS
+-- visibility into this row (participants_select_relevant only allows the
+-- creator or the participant themselves), so checking with is() while still
+-- authenticated as the outsider would always read NULL regardless of the
+-- row's actual team value, making the assertion a false positive.
+select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 select is(
   (select team from public.match_participants where id = '30000000-0000-0000-0000-000000000002'),
   null,
