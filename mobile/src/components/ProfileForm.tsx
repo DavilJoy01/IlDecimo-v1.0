@@ -3,25 +3,8 @@ import { View, TextInput, Text, Pressable, StyleSheet, ActivityIndicator, Scroll
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { FOOT_LABELS, ROLE_LABELS } from '@/utils/profileDisplay';
+import { formatDateInput, parseDateInput } from '@/utils/dateTimeInput';
 import { colors, typography, spacing, withPressed } from '@/theme';
-
-function formatDateInput(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function parseDateInput(value: string): Date {
-  // Parse the YYYY-MM-DD parts directly into a local-time Date instead of
-  // `new Date(value)`, which treats a date-only string as UTC midnight --
-  // that reads back one day earlier than formatDateInput's local getters
-  // would produce for any timezone west of UTC.
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return new Date(2000, 0, 1);
-  const [, year, month, day] = match;
-  return new Date(Number(year), Number(month) - 1, Number(day));
-}
 
 const FEET = ['left', 'right', 'both'] as const;
 const ROLES = ['player', 'goalkeeper', 'both'] as const;
