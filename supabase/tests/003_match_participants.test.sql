@@ -106,10 +106,9 @@ select throws_ok(
   'a third re-entry attempt is rejected after 2 leaves'
 );
 
-select throws_ok(
+select lives_ok(
   $$ update public.match_participants set status = 'left' where id = '55555555-5555-5555-5555-555555555555' $$,
-  'invalid participation status transition from left to left',
-  'an unhandled transition (already left, attempting left again) is rejected by the catch-all'
+  'a same-status update (left -> left) with no team change is now a harmless no-op, not a rejected transition (superseded by the team-assignment branch added in 20260910000000_add_match_participant_teams.sql)'
 );
 
 select tests.authenticate_as('33333333-3333-3333-3333-333333333333');
