@@ -64,6 +64,17 @@ export default function MatchDetailScreen() {
     ]);
   }
 
+  function confirmShuffle() {
+    Alert.alert(
+      'Dividi casualmente',
+      'Questo rimescolerà casualmente tutte le squadre, sovrascrivendo eventuali assegnazioni già fatte. Continuare?',
+      [
+        { text: 'Annulla', style: 'cancel' },
+        { text: 'Dividi', onPress: () => roster.shuffle() },
+      ]
+    );
+  }
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -200,9 +211,98 @@ export default function MatchDetailScreen() {
       {roster.approvedParticipants.length > 0 && (isCreator || myParticipation.participation?.status === 'approved' || myParticipation.participation?.status === 'active') && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Partecipanti</Text>
-          {roster.approvedParticipants.map((profile) => (
-            <ParticipantRow key={profile.participant_id} profile={profile} />
-          ))}
+
+          {isCreator && (
+            <Pressable style={withPressed(styles.shuffleButton)} disabled={roster.actionLoading} onPress={confirmShuffle}>
+              <Text style={styles.shuffleButtonText}>🔀 Dividi casualmente</Text>
+            </Pressable>
+          )}
+
+          {roster.teamAParticipants.length > 0 && (
+            <View style={styles.teamGroup}>
+              <Text style={styles.teamGroupTitle}>Squadra A</Text>
+              {roster.teamAParticipants.map((profile) => (
+                <ParticipantRow key={profile.participant_id} profile={profile}>
+                  {isCreator && (
+                    <View style={styles.teamChips}>
+                      <Pressable
+                        style={withPressed(styles.teamChipActive)}
+                        disabled={roster.actionLoading}
+                        onPress={() => roster.assignParticipantTeam(profile.participant_id, null)}
+                      >
+                        <Text style={styles.teamChipTextActive}>A</Text>
+                      </Pressable>
+                      <Pressable
+                        style={withPressed(styles.teamChip)}
+                        disabled={roster.actionLoading || roster.teamBParticipants.length >= match.match_type}
+                        onPress={() => roster.assignParticipantTeam(profile.participant_id, 'B')}
+                      >
+                        <Text style={styles.teamChipText}>B</Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </ParticipantRow>
+              ))}
+            </View>
+          )}
+
+          {roster.teamBParticipants.length > 0 && (
+            <View style={styles.teamGroup}>
+              <Text style={styles.teamGroupTitle}>Squadra B</Text>
+              {roster.teamBParticipants.map((profile) => (
+                <ParticipantRow key={profile.participant_id} profile={profile}>
+                  {isCreator && (
+                    <View style={styles.teamChips}>
+                      <Pressable
+                        style={withPressed(styles.teamChip)}
+                        disabled={roster.actionLoading || roster.teamAParticipants.length >= match.match_type}
+                        onPress={() => roster.assignParticipantTeam(profile.participant_id, 'A')}
+                      >
+                        <Text style={styles.teamChipText}>A</Text>
+                      </Pressable>
+                      <Pressable
+                        style={withPressed(styles.teamChipActive)}
+                        disabled={roster.actionLoading}
+                        onPress={() => roster.assignParticipantTeam(profile.participant_id, null)}
+                      >
+                        <Text style={styles.teamChipTextActive}>B</Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </ParticipantRow>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.teamGroup}>
+            <Text style={styles.teamGroupTitle}>Non assegnati</Text>
+            {roster.unassignedParticipants.length === 0 ? (
+              <Text style={styles.teamGroupEmpty}>Nessuno</Text>
+            ) : (
+              roster.unassignedParticipants.map((profile) => (
+                <ParticipantRow key={profile.participant_id} profile={profile}>
+                  {isCreator && (
+                    <View style={styles.teamChips}>
+                      <Pressable
+                        style={withPressed(styles.teamChip)}
+                        disabled={roster.actionLoading || roster.teamAParticipants.length >= match.match_type}
+                        onPress={() => roster.assignParticipantTeam(profile.participant_id, 'A')}
+                      >
+                        <Text style={styles.teamChipText}>A</Text>
+                      </Pressable>
+                      <Pressable
+                        style={withPressed(styles.teamChip)}
+                        disabled={roster.actionLoading || roster.teamBParticipants.length >= match.match_type}
+                        onPress={() => roster.assignParticipantTeam(profile.participant_id, 'B')}
+                      >
+                        <Text style={styles.teamChipText}>B</Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </ParticipantRow>
+              ))
+            )}
+          </View>
         </View>
       )}
 
@@ -268,6 +368,16 @@ const styles = StyleSheet.create({
   inviteButtonText: { color: colors.onPrimary, ...typography.label, fontSize: 16 },
   section: { marginTop: spacing.spaceLg, gap: 4 },
   sectionTitle: { ...typography.label, fontSize: 16, marginBottom: 4 },
+  shuffleButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceSm, alignSelf: 'flex-start', marginBottom: spacing.spaceXs },
+  shuffleButtonText: { color: colors.onPrimary, ...typography.label },
+  teamGroup: { marginTop: spacing.spaceSm, gap: 4 },
+  teamGroupTitle: { ...typography.label, fontSize: 14, color: colors.muted },
+  teamGroupEmpty: { color: colors.muted, ...typography.body },
+  teamChips: { flexDirection: 'row', gap: spacing.spaceXs },
+  teamChip: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, paddingVertical: 4, paddingHorizontal: spacing.spaceSm },
+  teamChipText: { color: colors.ink, ...typography.label, fontSize: 13 },
+  teamChipActive: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 4, paddingHorizontal: spacing.spaceSm },
+  teamChipTextActive: { color: colors.onPrimary, ...typography.label, fontSize: 13 },
   requestActions: { flexDirection: 'row', gap: spacing.spaceXs },
   approveButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceSm },
   approveButtonText: { color: colors.onPrimary, ...typography.label },
