@@ -9,9 +9,11 @@ import {
   fetchMyParticipation,
   fetchMatchParticipantProfiles,
   fetchMyParticipatingMatches,
+  assignTeam,
+  shuffleTeams,
 } from './participants';
 
-jest.mock('./supabase', () => ({ supabase: { from: jest.fn() } }));
+jest.mock('./supabase', () => ({ supabase: { from: jest.fn(), rpc: jest.fn() } }));
 
 describe('participants api', () => {
   afterEach(() => jest.clearAllMocks());
@@ -171,8 +173,8 @@ describe('participants api', () => {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockResolvedValue({
                 data: [
-                  { id: 'p1', user_id: 'u1', status: 'requested' },
-                  { id: 'p2', user_id: 'u2', status: 'approved' },
+                  { id: 'p1', user_id: 'u1', status: 'requested', team: null },
+                  { id: 'p2', user_id: 'u2', status: 'approved', team: 'A' },
                 ],
                 error: null,
               }),
@@ -198,8 +200,8 @@ describe('participants api', () => {
       const result = await fetchMatchParticipantProfiles('m1');
 
       expect(result).toEqual([
-        { participant_id: 'p1', user_id: 'u1', status: 'requested', first_name: 'Mario', last_name: 'Rossi', profile_image_url: null, unique_user_id: 'FC-1', player_role: 'player', preferred_foot: 'right' },
-        { participant_id: 'p2', user_id: 'u2', status: 'approved', first_name: 'Luca', last_name: 'Bianchi', profile_image_url: null, unique_user_id: 'FC-2', player_role: 'goalkeeper', preferred_foot: 'left' },
+        { participant_id: 'p1', user_id: 'u1', status: 'requested', team: null, first_name: 'Mario', last_name: 'Rossi', profile_image_url: null, unique_user_id: 'FC-1', player_role: 'player', preferred_foot: 'right' },
+        { participant_id: 'p2', user_id: 'u2', status: 'approved', team: 'A', first_name: 'Luca', last_name: 'Bianchi', profile_image_url: null, unique_user_id: 'FC-2', player_role: 'goalkeeper', preferred_foot: 'left' },
       ]);
     });
 
@@ -226,12 +228,68 @@ describe('participants api', () => {
     it('throws the Supabase error message when the profiles query fails', async () => {
       (supabase.from as jest.Mock).mockImplementation((table: string) => {
         if (table === 'match_participants') {
-          return { select: jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({ data: [{ id: 'p1', user_id: 'u1', status: 'requested' }], error: null }) }) };
+          return { select: jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({ data: [{ id: 'p1', user_id: 'u1', status: 'requested', team: null }], error: null }) }) };
         }
         return { select: jest.fn().mockReturnValue({ in: jest.fn().mockResolvedValue({ data: null, error: { message: 'profiles failed' } }) }) };
       });
 
       await expect(fetchMatchParticipantProfiles('m1')).rejects.toThrow('profiles failed');
+    });
+  });
+
+  describe('assignTeam', () => {
+    it('updates the participation row with the given team', async () => {
+      const eq = jest.fn().mockResolvedValue({ error: null });
+      const update = jest.fn().mockReturnValue({ eq });
+      (supabase.from as jest.Mock).mockReturnValue({ update });
+
+      await assignTeam('p1', 'A');
+
+      expect(supabase.from).toHaveBeenCalledWith('match_participants');
+      expect(update).toHaveBeenCalledWith({ team: 'A' });
+      expect(eq).toHaveBeenCalledWith('id', 'p1');
+    });
+
+    it('updates with team: null to remove an assignment', async () => {
+      const eq = jest.fn().mockResolvedValue({ error: null });
+      const update = jest.fn().mockReturnValue({ eq });
+      (supabase.from as jest.Mock).mockReturnValue({ update });
+
+      await assignTeam('p1', null);
+
+      expect(update).toHaveBeenCalledWith({ team: null });
+    });
+
+    it('translates the "team X is already full" trigger message into Italian', async () => {
+      const eq = jest.fn().mockResolvedValue({ error: { message: 'team A is already full' } });
+      const update = jest.fn().mockReturnValue({ eq });
+      (supabase.from as jest.Mock).mockReturnValue({ update });
+
+      await expect(assignTeam('p1', 'A')).rejects.toThrow('La squadra è già al completo.');
+    });
+
+    it('throws the raw message for an unrelated error', async () => {
+      const eq = jest.fn().mockResolvedValue({ error: { message: 'network error' } });
+      const update = jest.fn().mockReturnValue({ eq });
+      (supabase.from as jest.Mock).mockReturnValue({ update });
+
+      await expect(assignTeam('p1', 'A')).rejects.toThrow('network error');
+    });
+  });
+
+  describe('shuffleTeams', () => {
+    it('calls the shuffle_match_teams RPC with the match id', async () => {
+      (supabase.rpc as jest.Mock).mockResolvedValue({ error: null });
+
+      await shuffleTeams('m1');
+
+      expect(supabase.rpc).toHaveBeenCalledWith('shuffle_match_teams', { p_match_id: 'm1' });
+    });
+
+    it('throws the Supabase error message on failure', async () => {
+      (supabase.rpc as jest.Mock).mockResolvedValue({ error: { message: 'only the match creator can shuffle teams' } });
+
+      await expect(shuffleTeams('m1')).rejects.toThrow('only the match creator can shuffle teams');
     });
   });
 
