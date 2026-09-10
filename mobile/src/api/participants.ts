@@ -13,6 +13,7 @@ export interface ParticipantProfile {
   participant_id: string;
   user_id: string;
   status: ParticipantStatus;
+  team: 'A' | 'B' | null;
   first_name: string;
   last_name: string;
   profile_image_url: string | null;
@@ -72,7 +73,7 @@ export async function fetchMyParticipation(matchId: string, userId: string): Pro
 export async function fetchMatchParticipantProfiles(matchId: string): Promise<ParticipantProfile[]> {
   const { data: participants, error: participantsError } = await supabase
     .from('match_participants')
-    .select('id, user_id, status')
+    .select('id, user_id, status, team')
     .eq('match_id', matchId);
   if (participantsError) throw new Error(participantsError.message);
   if (!participants || participants.length === 0) return [];
@@ -93,6 +94,7 @@ export async function fetchMatchParticipantProfiles(matchId: string): Promise<Pa
       participant_id: p.id,
       user_id: p.user_id,
       status: p.status as ParticipantStatus,
+      team: p.team as 'A' | 'B' | null,
       first_name: profile.first_name,
       last_name: profile.last_name,
       profile_image_url: profile.profile_image_url,
@@ -115,4 +117,23 @@ export async function fetchMyParticipatingMatches(userId: string): Promise<MyMat
     .in('status', ['requested', 'approved', 'active']);
   if (error) throw new Error(error.message);
   return (data ?? []).map((row) => ({ match: row.matches as unknown as Match, status: row.status as ParticipantStatus }));
+}
+
+const TEAM_FULL_PATTERN = /^team [AB] is already full$/;
+
+function translateTeamAssignmentError(message: string): string {
+  if (TEAM_FULL_PATTERN.test(message)) {
+    return 'La squadra è già al completo.';
+  }
+  return message;
+}
+
+export async function assignTeam(participantId: string, team: 'A' | 'B' | null): Promise<void> {
+  const { error } = await supabase.from('match_participants').update({ team }).eq('id', participantId);
+  if (error) throw new Error(translateTeamAssignmentError(error.message));
+}
+
+export async function shuffleTeams(matchId: string): Promise<void> {
+  const { error } = await supabase.rpc('shuffle_match_teams', { p_match_id: matchId });
+  if (error) throw new Error(error.message);
 }
