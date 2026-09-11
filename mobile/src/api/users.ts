@@ -84,6 +84,15 @@ export async function uploadProfileImage(userId: string, localUri: string): Prom
   return data.publicUrl;
 }
 
+export async function deleteAllProfileImages(userId: string): Promise<void> {
+  const { data, error } = await supabase.storage.from('profile-images').list(userId);
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) return;
+  const paths = data.map((file) => `${userId}/${file.name}`);
+  const { error: removeError } = await supabase.storage.from('profile-images').remove(paths);
+  if (removeError) throw new Error(removeError.message);
+}
+
 export async function fetchUserProfile(targetId: string): Promise<Record<string, unknown> | null> {
   const { data, error } = await supabase.rpc('get_user_profile', { target_id: targetId });
   if (error) throw new Error(error.message);

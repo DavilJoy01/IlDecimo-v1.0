@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { createOwnProfile, fetchOwnProfile, updateOwnProfile, uploadProfileImage, fetchUserProfile, fetchUserMatchHistory } from './users';
+import { createOwnProfile, fetchOwnProfile, updateOwnProfile, uploadProfileImage, deleteAllProfileImages, fetchUserProfile, fetchUserMatchHistory } from './users';
 import * as FileSystem from 'expo-file-system/legacy';
 
 jest.mock('./supabase', () => ({
@@ -164,6 +164,48 @@ describe('users api', () => {
       (supabase.storage as unknown as { from: jest.Mock }) = { from: jest.fn().mockReturnValue({ upload, getPublicUrl: jest.fn() }) } as never;
 
       await expect(uploadProfileImage('u1', 'file:///tmp/photo.jpg')).rejects.toThrow('storage quota exceeded');
+    });
+  });
+
+  describe('deleteAllProfileImages', () => {
+    it('lists every file under the user prefix and removes them all', async () => {
+      const list = jest.fn().mockResolvedValue({
+        data: [{ name: '1700000000000.jpg' }, { name: '1699999999999.jpg' }],
+        error: null,
+      });
+      const remove = jest.fn().mockResolvedValue({ data: [], error: null });
+      (supabase.storage as unknown as { from: jest.Mock }) = { from: jest.fn().mockReturnValue({ list, remove }) } as never;
+
+      await deleteAllProfileImages('u1');
+
+      expect(supabase.storage.from).toHaveBeenCalledWith('profile-images');
+      expect(list).toHaveBeenCalledWith('u1');
+      expect(remove).toHaveBeenCalledWith(['u1/1700000000000.jpg', 'u1/1699999999999.jpg']);
+    });
+
+    it('does nothing when the user has no uploaded photos', async () => {
+      const list = jest.fn().mockResolvedValue({ data: [], error: null });
+      const remove = jest.fn();
+      (supabase.storage as unknown as { from: jest.Mock }) = { from: jest.fn().mockReturnValue({ list, remove }) } as never;
+
+      await deleteAllProfileImages('u1');
+
+      expect(remove).not.toHaveBeenCalled();
+    });
+
+    it('throws the raw Supabase error message when listing fails', async () => {
+      const list = jest.fn().mockResolvedValue({ data: null, error: { message: 'bucket not found' } });
+      (supabase.storage as unknown as { from: jest.Mock }) = { from: jest.fn().mockReturnValue({ list, remove: jest.fn() }) } as never;
+
+      await expect(deleteAllProfileImages('u1')).rejects.toThrow('bucket not found');
+    });
+
+    it('throws the raw Supabase error message when removal fails', async () => {
+      const list = jest.fn().mockResolvedValue({ data: [{ name: '1700000000000.jpg' }], error: null });
+      const remove = jest.fn().mockResolvedValue({ data: null, error: { message: 'permission denied' } });
+      (supabase.storage as unknown as { from: jest.Mock }) = { from: jest.fn().mockReturnValue({ list, remove }) } as never;
+
+      await expect(deleteAllProfileImages('u1')).rejects.toThrow('permission denied');
     });
   });
 });

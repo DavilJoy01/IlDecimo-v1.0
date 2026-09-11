@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { signInWithPassword, requestPhoneOtp, verifyPhoneOtp, setPassword } from './auth';
+import { signInWithPassword, requestPhoneOtp, verifyPhoneOtp, setPassword, deleteOwnAccount } from './auth';
 
 jest.mock('./supabase', () => ({
   supabase: {
@@ -9,6 +9,7 @@ jest.mock('./supabase', () => ({
       verifyOtp: jest.fn(),
       updateUser: jest.fn(),
     },
+    rpc: jest.fn(),
   },
 }));
 
@@ -44,5 +45,16 @@ describe('auth api', () => {
     (supabase.auth.updateUser as jest.Mock).mockResolvedValue({ data: {}, error: null });
     await setPassword('newpass123');
     expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'newpass123' });
+  });
+
+  it('deleteOwnAccount calls the delete_own_account RPC with no arguments', async () => {
+    (supabase.rpc as jest.Mock).mockResolvedValue({ data: null, error: null });
+    await deleteOwnAccount();
+    expect(supabase.rpc).toHaveBeenCalledWith('delete_own_account');
+  });
+
+  it('deleteOwnAccount throws the Supabase error message on failure', async () => {
+    (supabase.rpc as jest.Mock).mockResolvedValue({ data: null, error: { message: 'must be authenticated to delete an account' } });
+    await expect(deleteOwnAccount()).rejects.toThrow('must be authenticated to delete an account');
   });
 });
