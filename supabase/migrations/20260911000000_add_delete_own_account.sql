@@ -1,0 +1,99 @@
+-- supabase/migrations/20260911000000_add_delete_own_account.sql
+--
+-- Deviation from the task brief: protect_users_row() (last redefined in
+-- 20260830101700_final_review_hardening.sql) unconditionally raises
+-- 'phone cannot be changed directly...' whenever auth.uid() is not null,
+-- regardless of the updating function's own privilege level -- auth.uid()
+-- reads a session-level JWT claim that a `security definer` function does
+-- not clear. Since delete_own_account() is always called by an
+-- authenticated user updating their own row, the brief's plain `update
+-- public.users set phone = ...` as given would always hit this guard and
+-- abort the whole deletion. Verified by running the brief's SQL verbatim
+-- first: it failed with exactly this error under pgTAP. Fix: add a
+-- transaction-local escape hatch that only delete_own_account() sets,
+-- immediately before its own phone update, so every other caller
+-- (including the direct-UPDATE path covered by
+-- 017_final_review_hardening.test.sql) is unaffected.
+create or replace function public.protect_users_row()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.unique_user_id is distinct from old.unique_user_id then
+    raise exception 'unique_user_id is immutable';
+  end if;
+  if auth.uid() is not null
+     and new.phone is distinct from old.phone
+     and coalesce(current_setting('app.bypass_phone_protection', true), '') <> 'on' then
+    raise exception 'phone cannot be changed directly; contact support to update your phone number';
+  end if;
+  if auth.uid() is not null and (
+    new.matches_played_count is distinct from old.matches_played_count
+    or new.matches_completed_count is distinct from old.matches_completed_count
+    or new.matches_abandoned_count is distinct from old.matches_abandoned_count
+  ) then
+    raise exception 'match statistics are server-managed and cannot be changed directly';
+  end if;
+  if new.created_at is distinct from old.created_at then
+    raise exception 'created_at cannot be changed';
+  end if;
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+create or replace function public.delete_own_account()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null then
+    raise exception 'must be authenticated to delete an account';
+  end if;
+
+  -- 1. Matches created by the caller: existing on-delete-cascade cleans up
+  -- match_participants, match_messages, match_message_mentions, and
+  -- match_invitations for those matches.
+  delete from public.matches where creator_id = v_uid;
+
+  -- 2. The caller's own participations in matches created by others:
+  -- frees the spot for someone else.
+  delete from public.match_participants where user_id = v_uid;
+
+  -- 3. Anonymize the public profile -- NEVER delete it, since match_messages,
+  -- private_messages, notifications, friendships, user_blocks, and reports
+  -- all reference it with on-delete-cascade, and messages the caller sent
+  -- must survive (shown as sent by "Utente eliminato").
+  --
+  -- protect_users_row() blocks any phone change while auth.uid() is not
+  -- null; set the transaction-local escape hatch it checks for
+  -- immediately before this statement (see file header for why).
+  perform set_config('app.bypass_phone_protection', 'on', true);
+
+  update public.users
+  set first_name = 'Utente',
+      last_name = 'eliminato',
+      phone = 'deleted-' || v_uid::text,
+      birth_date = '2000-01-01',
+      profile_image_url = null
+  where id = v_uid;
+
+  -- 4. Disable auth.users in place -- never delete it (that would cascade
+  -- to the public.users row just anonymized above).
+  update auth.users
+  set phone = null,
+      phone_confirmed_at = null,
+      encrypted_password = extensions.crypt(gen_random_uuid()::text, extensions.gen_salt('bf')),
+      banned_until = '2999-12-31'::timestamptz
+  where id = v_uid;
+end;
+$$;
+
+grant execute on function public.delete_own_account() to authenticated;
+revoke execute on function public.delete_own_account() from public, anon;
