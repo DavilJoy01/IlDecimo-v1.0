@@ -48,14 +48,35 @@ select is(
   'the participant''s completed match counter is incremented'
 );
 
-insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players, status)
-values (
-  '66666666-6666-6666-6666-666666666666','11111111-1111-1111-1111-111111111111',5,'Campo Imminente','Via Roma 2',38.1157,13.3615,
-  current_date,
-  to_char((now() + interval '30 minutes') at time zone 'Europe/Rome', 'HH24:MI')::time,
-  to_char((now() + interval '90 minutes') at time zone 'Europe/Rome', 'HH24:MI')::time,
-  10,'open'
-);
+-- match_date must be derived from the SAME instant/timezone as start_time
+-- (not current_date, which reflects the session's own timezone and can
+-- disagree with the Europe/Rome date used for the time columns below) --
+-- otherwise, whenever "now" falls within ~90 minutes of local midnight in
+-- Europe/Rome, the end-time offset rolls onto the next calendar day while
+-- match_date stays "today", making end_time's clock reading earlier than
+-- start_time's and violating the matches table's `end_time > start_time`
+-- check constraint. Wrapped in a do block so the date/time values can be
+-- computed once and reused consistently, with end_time clamped instead of
+-- allowed to wrap if the two offsets ever straddle midnight.
+do $$
+declare
+  v_start_ts timestamptz := now() + interval '30 minutes';
+  v_end_ts timestamptz := now() + interval '90 minutes';
+  v_match_date date := (v_start_ts at time zone 'Europe/Rome')::date;
+  v_start_time time := to_char(v_start_ts at time zone 'Europe/Rome', 'HH24:MI')::time;
+  v_end_time time := to_char(v_end_ts at time zone 'Europe/Rome', 'HH24:MI')::time;
+begin
+  if v_end_time <= v_start_time then
+    v_end_time := case when v_start_time = '23:59:00'::time then '23:59:59'::time else v_start_time + interval '1 minute' end;
+  end if;
+
+  insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players, status)
+  values (
+    '66666666-6666-6666-6666-666666666666','11111111-1111-1111-1111-111111111111',5,'Campo Imminente','Via Roma 2',38.1157,13.3615,
+    v_match_date, v_start_time, v_end_time,
+    10,'open'
+  );
+end $$;
 
 select tests.authenticate_as('22222222-2222-2222-2222-222222222222');
 insert into public.match_participants (id, match_id, user_id, status)
