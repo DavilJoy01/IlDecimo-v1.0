@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useSessionStore } from '@/stores/sessionStore';
 import { supabase } from '@/api/supabase';
@@ -7,12 +8,13 @@ import { colors, typography, spacing, withPressed } from '@/theme';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const profile = useSessionStore((s) => s.profile);
 
   if (!profile) return null; // unreachable in practice: this screen is only mounted once status === 'signed-in'
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
       {profile.profile_image_url ? (
         <Image source={{ uri: profile.profile_image_url }} style={styles.avatar} />
       ) : (
@@ -55,7 +57,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: colors.background, flex: 1, alignItems: 'center', padding: spacing.spaceLg, paddingTop: 48 },
+  container: { backgroundColor: colors.background, flex: 1, alignItems: 'center', padding: spacing.spaceLg },
   avatar: { width: 88, height: 88, borderRadius: 44, marginBottom: spacing.spaceSm },
   avatarPlaceholder: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { color: colors.onPrimary, fontFamily: 'Sora_700Bold', fontSize: 36 },
