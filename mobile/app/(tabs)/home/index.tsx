@@ -111,11 +111,14 @@ export default function HomeScreen() {
       <FlatList
         data={filteredMatches}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <Pressable onPress={() => router.push({ pathname: '/(tabs)/home/match/[id]', params: { id: item.id } })}>
-            <MatchCard match={item} />
-          </Pressable>
-        )}
+        renderItem={({ item }) => {
+          const openMatch = () => router.push({ pathname: '/(tabs)/home/match/[id]', params: { id: item.id } });
+          return (
+            <Pressable onPress={openMatch}>
+              <MatchCard match={item} onPressJoin={openMatch} />
+            </Pressable>
+          );
+        }}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}
         ListEmptyComponent={
