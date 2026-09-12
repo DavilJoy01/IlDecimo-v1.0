@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, Pressable, TextInput, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import { View, Text, Pressable, TextInput, ActivityIndicator, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useEditProfile } from '@/hooks/useEditProfile';
@@ -40,51 +40,53 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
-      <Pressable onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Text style={styles.backLink}>← Torna al profilo</Text>
-      </Pressable>
-      <Text style={styles.header}>Modifica profilo</Text>
-      <ProfileForm
-        initialValues={{
-          firstName: profile.first_name,
-          lastName: profile.last_name,
-          birthDate: profile.birth_date,
-          heightCm: String(profile.height_cm),
-          preferredFoot: profile.preferred_foot,
-          playerRole: profile.player_role,
-        }}
-        currentImageUrl={profile.profile_image_url}
-        showImagePicker
-        onImageSelected={setSelectedImageUri}
-        onSubmit={handleSubmit}
-        submitLabel="Salva modifiche"
-        loading={loading}
-        error={error}
-      />
-      <View style={styles.dangerZone}>
-        <Pressable onPress={confirmDelete} disabled={deleting}>
-          <Text style={styles.dangerLink}>Elimina account</Text>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
+        <Pressable onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Text style={styles.backLink}>← Torna al profilo</Text>
         </Pressable>
-        {showPasswordPrompt && (
-          <View style={styles.passwordPrompt}>
-            <Text style={styles.passwordLabel}>Inserisci la password attuale per confermare</Text>
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="Password"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              autoFocus
-            />
-            {deleteError && <Text style={styles.deleteError}>{deleteError}</Text>}
-            <Pressable style={withPressed(styles.confirmDeleteButton)} disabled={deleting} onPress={handleConfirmDelete}>
-              {deleting ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.confirmDeleteText}>Conferma eliminazione</Text>}
-            </Pressable>
-          </View>
-        )}
+        <Text style={styles.header}>Modifica profilo</Text>
+        <ProfileForm
+          initialValues={{
+            firstName: profile.first_name,
+            lastName: profile.last_name,
+            birthDate: profile.birth_date,
+            heightCm: String(profile.height_cm),
+            preferredFoot: profile.preferred_foot,
+            playerRole: profile.player_role,
+          }}
+          currentImageUrl={profile.profile_image_url}
+          showImagePicker
+          onImageSelected={setSelectedImageUri}
+          onSubmit={handleSubmit}
+          submitLabel="Salva modifiche"
+          loading={loading}
+          error={error}
+        />
+        <View style={styles.dangerZone}>
+          <Pressable onPress={confirmDelete} disabled={deleting}>
+            <Text style={styles.dangerLink}>Elimina account</Text>
+          </Pressable>
+          {showPasswordPrompt && (
+            <View style={styles.passwordPrompt}>
+              <Text style={styles.passwordLabel}>Inserisci la password attuale per confermare</Text>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Password"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                autoFocus
+              />
+              {deleteError && <Text style={styles.deleteError}>{deleteError}</Text>}
+              <Pressable style={withPressed(styles.confirmDeleteButton)} disabled={deleting} onPress={handleConfirmDelete}>
+                {deleting ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.confirmDeleteText}>Conferma eliminazione</Text>}
+              </Pressable>
+            </View>
+          )}
+        </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
