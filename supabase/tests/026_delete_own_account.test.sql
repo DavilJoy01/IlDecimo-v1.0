@@ -1,12 +1,30 @@
 -- supabase/tests/026_delete_own_account.test.sql
 begin;
-select plan(9);
+select plan(11);
 
 -- CALLER: the user who will delete their own account.
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','caller@example.com');
 update auth.users set phone = '+390000000001' where id = '11111111-1111-1111-1111-111111111111';
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
 values ('11111111-1111-1111-1111-111111111111','+390000000001','Mario','Rossi','1990-01-01',180,'right','player');
+
+-- auth.identities is NOT auto-populated by any trigger on auth.users --
+-- verified against the running local db (no non-internal trigger on
+-- auth.users, and auth.identities has RLS enabled with zero policies) --
+-- so a row must be inserted explicitly here for assertion 10 below (the
+-- phone-scrub in auth.identities) to mean anything.
+insert into auth.identities (provider_id, user_id, identity_data, provider)
+values (
+  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-1111-1111-111111111111',
+  jsonb_build_object('sub', '11111111-1111-1111-1111-111111111111', 'phone', '+390000000001', 'phone_verified', true),
+  'phone'
+);
+
+-- A push token registered for the caller's device, so assertion 11 below
+-- (user_push_tokens cleared) is meaningful rather than vacuously true.
+insert into public.user_push_tokens (user_id, push_token)
+values ('11111111-1111-1111-1111-111111111111', 'ExponentPushToken[caller-device-token]');
 
 -- OTHER: a second user, both to receive a message from the caller and to
 -- own a match the caller will join and later be removed from.
@@ -139,6 +157,25 @@ select lives_ok(
 select ok(
   (select banned_until from auth.users where id = '11111111-1111-1111-1111-111111111111') > now() + interval '100 years',
   'the deleted account''s auth.users row is banned far into the future'
+);
+
+-- 10. The real phone number is also gone from auth.identities.identity_data
+-- (GoTrue's second copy of it, keyed by 'phone' in the identity's jsonb
+-- payload) -- the '?' operator below is jsonb "has key".
+select is(
+  (select identity_data ? 'phone' from auth.identities where user_id = '11111111-1111-1111-1111-111111111111'),
+  false,
+  'the deleted account''s auth.identities no longer carries a phone key'
+);
+
+-- 11. user_push_tokens has no surviving row for the deleted account, so a
+-- notification generated later by someone else's action (an accepted
+-- friend request, a new private message, a match invitation) can no
+-- longer reach the account's device.
+select is(
+  (select count(*)::int from public.user_push_tokens where user_id = '11111111-1111-1111-1111-111111111111'),
+  0,
+  'the deleted account''s push tokens are cleared'
 );
 
 select * from finish();
