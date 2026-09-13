@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import * as Location from 'expo-location';
-import { geocodeAddress } from './geocoding';
+import { geocodeAddress, reverseGeocodeLabel } from './geocoding';
 
 jest.mock('expo-location');
 
@@ -75,5 +75,46 @@ describe('geocodeAddress', () => {
     (Location.geocodeAsync as jest.Mock).mockRejectedValue(new Error('NoGeocodeException'));
 
     await expect(geocodeAddress('Milano')).rejects.toThrow('NoGeocodeException');
+  });
+});
+
+describe('reverseGeocodeLabel', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  it('builds a "città, regione, paese" label from the first result', async () => {
+    (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([
+      { city: 'Milano', region: 'Lombardia', country: 'Italia' },
+    ]);
+
+    const label = await reverseGeocodeLabel({ latitude: 45.4642, longitude: 9.19 });
+
+    expect(Location.reverseGeocodeAsync).toHaveBeenCalledWith({ latitude: 45.4642, longitude: 9.19 });
+    expect(label).toBe('Milano, Lombardia, Italia');
+  });
+
+  it('omits null fields from the label instead of leaving empty gaps', async () => {
+    (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([
+      { city: 'Milano', region: null, country: 'Italia' },
+    ]);
+
+    const label = await reverseGeocodeLabel({ latitude: 45.4642, longitude: 9.19 });
+
+    expect(label).toBe('Milano, Italia');
+  });
+
+  it('returns null when reverse geocoding finds no results', async () => {
+    (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([]);
+
+    const label = await reverseGeocodeLabel({ latitude: 0, longitude: 0 });
+
+    expect(label).toBeNull();
+  });
+
+  it('returns null when every field on the result is null', async () => {
+    (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([{ city: null, region: null, country: null }]);
+
+    const label = await reverseGeocodeLabel({ latitude: 0, longitude: 0 });
+
+    expect(label).toBeNull();
   });
 });

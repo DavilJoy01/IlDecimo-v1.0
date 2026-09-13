@@ -20,3 +20,16 @@ export async function geocodeAddress(query: string): Promise<GeocodedLocation> {
   const [first] = results;
   return { latitude: first.latitude, longitude: first.longitude };
 }
+
+// Always called right after a successful geocodeAddress() in this app's own
+// flows, so the Android runtime permission it also requires is already
+// granted by that point -- no separate permission request needed here.
+export async function reverseGeocodeLabel(location: GeocodedLocation): Promise<string | null> {
+  const results = await Location.reverseGeocodeAsync(location);
+  if (results.length === 0) {
+    return null;
+  }
+  const [first] = results;
+  const parts = [first.city, first.region, first.country].filter((part): part is string => !!part);
+  return parts.length > 0 ? parts.join(', ') : null;
+}
