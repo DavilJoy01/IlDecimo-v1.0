@@ -42,27 +42,30 @@ export function useNearbyMatches(radiusKm = 20) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function searchLocation(query: string) {
-    setLoading(true);
-    setError(null);
-    try {
-      const { latitude, longitude } = await geocodeAddress(query);
-      const location: SavedSearchLocation = { label: query, latitude, longitude };
-      await saveLastSearchLocation(location);
-      await fetchAt(location);
-    } catch (err) {
-      // Un submit fallito non deve cancellare l'ultima lista di partite già
-      // mostrata -- matches/locationLabel restano quelli precedenti,
-      // l'errore si mostra in aggiunta, non al loro posto.
-      setError(err instanceof Error ? err.message : 'Impossibile cercare le partite.');
-      setLoading(false);
-    }
-  }
+  const searchLocation = useCallback(
+    async (query: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { latitude, longitude } = await geocodeAddress(query);
+        const location: SavedSearchLocation = { label: query, latitude, longitude };
+        await saveLastSearchLocation(location);
+        await fetchAt(location);
+      } catch (err) {
+        // Un submit fallito non deve cancellare l'ultima lista di partite già
+        // mostrata -- matches/locationLabel restano quelli precedenti,
+        // l'errore si mostra in aggiunta, non al loro posto.
+        setError(err instanceof Error ? err.message : 'Impossibile cercare le partite.');
+        setLoading(false);
+      }
+    },
+    [fetchAt]
+  );
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     const saved = await getLastSearchLocation();
     if (saved) await fetchAt(saved);
-  }
+  }, [fetchAt]);
 
   return { matches, loading, error, locationLabel, searchLocation, refresh };
 }
