@@ -1,14 +1,27 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { MatchForm } from '@/components/MatchForm';
+import { MatchForm, type MatchFormValues } from '@/components/MatchForm';
 import { useCreateMatch } from '@/hooks/useCreateMatch';
 import { colors, typography, spacing } from '@/theme';
 
 export default function CreateMatchScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { create, loading, error } = useCreateMatch();
+  const { resolveLocation, create, loading, error } = useCreateMatch();
+
+  async function handleSubmit(values: MatchFormValues) {
+    const resolved = await resolveLocation(values.address);
+    if (!resolved) return;
+    Alert.alert(
+      'Conferma posizione',
+      `Abbiamo trovato: "${resolved.label}". È questa la posizione giusta per la partita?`,
+      [
+        { text: 'Modifica indirizzo', style: 'cancel' },
+        { text: 'Sì, crea partita', onPress: () => create(values, resolved) },
+      ]
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 24 }]}>
@@ -16,7 +29,7 @@ export default function CreateMatchScreen() {
         <Text style={styles.backLink}>← Annulla</Text>
       </Pressable>
       <Text style={styles.title}>Crea partita</Text>
-      <MatchForm onSubmit={create} submitLabel="Crea partita" loading={loading} error={error} />
+      <MatchForm onSubmit={handleSubmit} submitLabel="Crea partita" loading={loading} error={error} />
     </View>
   );
 }
