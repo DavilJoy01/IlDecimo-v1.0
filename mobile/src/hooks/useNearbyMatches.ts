@@ -1,37 +1,68 @@
 // mobile/src/hooks/useNearbyMatches.ts
 import { useCallback, useEffect, useState } from 'react';
-import * as Location from 'expo-location';
+import { geocodeAddress } from '@/api/geocoding';
 import { fetchNearbyMatches, type NearbyMatch } from '@/api/matches';
+import { getLastSearchLocation, saveLastSearchLocation, type SavedSearchLocation } from '@/api/lastSearchLocation';
 
 export function useNearbyMatches(radiusKm = 20) {
   const [matches, setMatches] = useState<NearbyMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [locationLabel, setLocationLabel] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    setPermissionDenied(false);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setPermissionDenied(true);
-        return;
+  const fetchAt = useCallback(
+    async (location: SavedSearchLocation) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const results = await fetchNearbyMatches(location.latitude, location.longitude, radiusKm);
+        setMatches(results);
+        setLocationLabel(location.label);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Impossibile caricare le partite.');
+      } finally {
+        setLoading(false);
       }
-      const position = await Location.getCurrentPositionAsync({});
-      const results = await fetchNearbyMatches(position.coords.latitude, position.coords.longitude, radiusKm);
-      setMatches(results);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossibile caricare le partite.');
-    } finally {
-      setLoading(false);
-    }
-  }, [radiusKm]);
+    },
+    [radiusKm]
+  );
 
   useEffect(() => {
-    load();
-  }, [load]);
+    (async () => {
+      const saved = await getLastSearchLocation();
+      if (saved) {
+        await fetchAt(saved);
+      } else {
+        setLoading(false);
+      }
+    })();
+    // Solo al mount: il raggio è una costante fissa senza controllo UI in
+    // questo progetto, quindi fetchAt non cambia identità in pratica dopo
+    // il primo render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  return { matches, loading, error, permissionDenied, refresh: load };
+  async function searchLocation(query: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const { latitude, longitude } = await geocodeAddress(query);
+      const location: SavedSearchLocation = { label: query, latitude, longitude };
+      await saveLastSearchLocation(location);
+      await fetchAt(location);
+    } catch (err) {
+      // Un submit fallito non deve cancellare l'ultima lista di partite già
+      // mostrata -- matches/locationLabel restano quelli precedenti,
+      // l'errore si mostra in aggiunta, non al loro posto.
+      setError(err instanceof Error ? err.message : 'Impossibile cercare le partite.');
+      setLoading(false);
+    }
+  }
+
+  async function refresh() {
+    const saved = await getLastSearchLocation();
+    if (saved) await fetchAt(saved);
+  }
+
+  return { matches, loading, error, locationLabel, searchLocation, refresh };
 }

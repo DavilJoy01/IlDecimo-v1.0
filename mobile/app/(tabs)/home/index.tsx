@@ -1,6 +1,6 @@
 // mobile/app/(tabs)/home/index.tsx
-import { useCallback, useMemo, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, Pressable, RefreshControl } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, Pressable, TextInput, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useNearbyMatches } from '@/hooks/useNearbyMatches';
@@ -14,10 +14,15 @@ const MATCH_TYPES = [5, 7, 8] as const;
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { matches, loading, error, permissionDenied, refresh } = useNearbyMatches();
+  const { matches, loading, error, locationLabel, searchLocation, refresh } = useNearbyMatches();
   const { unreadCount, refresh: refreshNotifications } = useNotifications();
   const firstName = useSessionStore((state) => state.profile?.first_name);
   const [activeTypes, setActiveTypes] = useState<Set<number>>(new Set());
+  const [searchText, setSearchText] = useState('');
+
+  useEffect(() => {
+    if (locationLabel) setSearchText(locationLabel);
+  }, [locationLabel]);
 
   function toggleType(type: number) {
     setActiveTypes((prev) => {
@@ -45,33 +50,10 @@ export default function HomeScreen() {
     }, [refresh, refreshNotifications])
   );
 
-  if (permissionDenied) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.title}>Attiva la posizione</Text>
-        <Text style={styles.subtitle}>Per trovare le partite vicino a te abbiamo bisogno della tua posizione.</Text>
-        <Pressable style={withPressed(styles.button)} onPress={refresh}>
-          <Text style={styles.buttonText}>Riprova</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  if (loading && matches.length === 0) {
+  if (loading && !locationLabel) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.error}>{error}</Text>
-        <Pressable style={withPressed(styles.button)} onPress={refresh}>
-          <Text style={styles.buttonText}>Riprova</Text>
-        </Pressable>
       </View>
     );
   }
@@ -94,41 +76,65 @@ export default function HomeScreen() {
           )}
         </Pressable>
       </View>
-      <View style={styles.filterRow}>
-        {MATCH_TYPES.map((type) => {
-          const active = activeTypes.has(type);
-          return (
-            <Pressable
-              key={type}
-              style={withPressed([styles.filterPill, active && styles.filterPillActive])}
-              onPress={() => toggleType(type)}
-            >
-              <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>Calcio a {type}</Text>
-            </Pressable>
-          );
-        })}
+      <View style={styles.searchRow}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Cerca una città o un indirizzo"
+          value={searchText}
+          onChangeText={setSearchText}
+          onSubmitEditing={() => searchLocation(searchText)}
+          returnKeyType="search"
+        />
+        <Pressable
+          style={withPressed(styles.searchButton)}
+          disabled={!searchText || loading}
+          onPress={() => searchLocation(searchText)}
+        >
+          <Text style={styles.searchButtonText}>Cerca</Text>
+        </Pressable>
       </View>
-      <FlatList
-        data={filteredMatches}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => {
-          const openMatch = () => router.push({ pathname: '/(tabs)/home/match/[id]', params: { id: item.id } });
-          return (
-            <Pressable onPress={openMatch}>
-              <MatchCard match={item} onPressJoin={openMatch} />
-            </Pressable>
-          );
-        }}
-        contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}
-        ListEmptyComponent={
-          <Text style={styles.subtitle}>
-            {activeTypes.size > 0 && matches.length > 0
-              ? 'Nessuna partita di questo tipo trovata.'
-              : 'Nessuna partita trovata nella tua zona.'}
-          </Text>
-        }
-      />
+      {error && <Text style={styles.error}>{error}</Text>}
+      {!locationLabel ? (
+        <Text style={styles.subtitle}>Cerca una città per trovare le partite vicino a te.</Text>
+      ) : (
+        <>
+          <View style={styles.filterRow}>
+            {MATCH_TYPES.map((type) => {
+              const active = activeTypes.has(type);
+              return (
+                <Pressable
+                  key={type}
+                  style={withPressed([styles.filterPill, active && styles.filterPillActive])}
+                  onPress={() => toggleType(type)}
+                >
+                  <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>Calcio a {type}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <FlatList
+            data={filteredMatches}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => {
+              const openMatch = () => router.push({ pathname: '/(tabs)/home/match/[id]', params: { id: item.id } });
+              return (
+                <Pressable onPress={openMatch}>
+                  <MatchCard match={item} onPressJoin={openMatch} />
+                </Pressable>
+              );
+            }}
+            contentContainerStyle={styles.list}
+            refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}
+            ListEmptyComponent={
+              <Text style={styles.subtitle}>
+                {activeTypes.size > 0 && matches.length > 0
+                  ? 'Nessuna partita di questo tipo trovata.'
+                  : 'Nessuna partita trovata nella tua zona.'}
+              </Text>
+            }
+          />
+        </>
+      )}
     </View>
   );
 }
@@ -144,6 +150,27 @@ const styles = StyleSheet.create({
     marginBottom: spacing.spaceSm,
   },
   header: typography.screenTitle,
+  searchRow: {
+    flexDirection: 'row',
+    gap: spacing.spaceXs,
+    paddingHorizontal: spacing.spaceMd,
+    marginBottom: spacing.spaceSm,
+  },
+  searchInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: spacing.radiusControl,
+    padding: spacing.spaceSm,
+    ...typography.body,
+  },
+  searchButton: {
+    backgroundColor: colors.primary,
+    borderRadius: spacing.radiusControl,
+    paddingHorizontal: spacing.spaceMd,
+    justifyContent: 'center',
+  },
+  searchButtonText: { color: colors.onPrimary, ...typography.label },
   filterRow: {
     flexDirection: 'row',
     gap: spacing.spaceXs,
@@ -171,9 +198,6 @@ const styles = StyleSheet.create({
   badgeText: { color: colors.onPrimary, ...typography.caption },
   list: { paddingHorizontal: spacing.spaceMd, paddingBottom: spacing.spaceLg },
   centered: { backgroundColor: colors.background, flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.spaceLg, gap: spacing.spaceSm },
-  title: { ...typography.label, fontSize: 20, textAlign: 'center' },
-  subtitle: { color: colors.muted, textAlign: 'center', ...typography.body },
-  error: { color: colors.danger, textAlign: 'center' },
-  button: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 10, paddingHorizontal: 20, marginTop: spacing.spaceXs },
-  buttonText: { color: colors.onPrimary, ...typography.label },
+  subtitle: { color: colors.muted, textAlign: 'center', ...typography.body, paddingHorizontal: spacing.spaceMd, marginTop: spacing.spaceSm },
+  error: { color: colors.danger, textAlign: 'center', paddingHorizontal: spacing.spaceMd, marginBottom: spacing.spaceSm },
 });
