@@ -44,4 +44,32 @@ describe('lastSearchLocation', () => {
 
     expect(result).toBeNull();
   });
+
+  it('returns null when the stored JSON is well-formed but missing a required field', async () => {
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(
+      JSON.stringify({ label: 'Milano', latitude: 45.4642 })
+    );
+
+    const result = await getLastSearchLocation();
+
+    expect(result).toBeNull();
+  });
+
+  it('returns null when the stored JSON has a field of the wrong type', async () => {
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(
+      JSON.stringify({ label: 'Milano', latitude: '45.4642', longitude: 9.19 })
+    );
+
+    const result = await getLastSearchLocation();
+
+    expect(result).toBeNull();
+  });
+
+  it('returns null when the stored JSON is not an object', async () => {
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(JSON.stringify('Milano'));
+
+    const result = await getLastSearchLocation();
+
+    expect(result).toBeNull();
+  });
 });

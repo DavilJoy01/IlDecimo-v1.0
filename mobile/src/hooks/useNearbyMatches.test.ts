@@ -123,4 +123,58 @@ describe('useNearbyMatches', () => {
 
     expect(fetchNearbyMatches).not.toHaveBeenCalled();
   });
+
+  it('shows the saved location label right away even when the auto-search at mount fails', async () => {
+    (getLastSearchLocation as jest.Mock).mockResolvedValue({
+      label: 'Milano',
+      latitude: 45.4642,
+      longitude: 9.19,
+    });
+    (fetchNearbyMatches as jest.Mock).mockRejectedValue(new Error('Rete assente.'));
+
+    const { result } = await renderHook(() => useNearbyMatches());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.locationLabel).toBe('Milano');
+    expect(result.current.error).toBe('Rete assente.');
+  });
+
+  it('trims the query before geocoding, saving, and displaying it', async () => {
+    (getLastSearchLocation as jest.Mock).mockResolvedValue(null);
+    (geocodeAddress as jest.Mock).mockResolvedValue({ latitude: 41.9028, longitude: 12.4964 });
+    (fetchNearbyMatches as jest.Mock).mockResolvedValue([{ id: 'm2' }]);
+
+    const { result } = await renderHook(() => useNearbyMatches());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.searchLocation('  Roma  ');
+    });
+
+    expect(geocodeAddress).toHaveBeenCalledWith('Roma');
+    expect(saveLastSearchLocation).toHaveBeenCalledWith({
+      label: 'Roma',
+      latitude: 41.9028,
+      longitude: 12.4964,
+    });
+    expect(result.current.locationLabel).toBe('Roma');
+  });
+
+  it('still shows the geocoded results when saving the search location fails', async () => {
+    (getLastSearchLocation as jest.Mock).mockResolvedValue(null);
+    (geocodeAddress as jest.Mock).mockResolvedValue({ latitude: 41.9028, longitude: 12.4964 });
+    (fetchNearbyMatches as jest.Mock).mockResolvedValue([{ id: 'm2' }]);
+    (saveLastSearchLocation as jest.Mock).mockRejectedValue(new Error('Keychain non disponibile.'));
+
+    const { result } = await renderHook(() => useNearbyMatches());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.searchLocation('Roma');
+    });
+
+    expect(result.current.matches).toHaveLength(1);
+    expect(result.current.locationLabel).toBe('Roma');
+    expect(result.current.error).toBeNull();
+  });
 });

@@ -8,11 +8,23 @@ export interface SavedSearchLocation {
   longitude: number;
 }
 
+function isValidSavedSearchLocation(value: unknown): value is SavedSearchLocation {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.label === 'string' &&
+    typeof candidate.latitude === 'number' &&
+    typeof candidate.longitude === 'number'
+  );
+}
+
 export async function getLastSearchLocation(): Promise<SavedSearchLocation | null> {
   const raw = await SecureStore.getItemAsync(STORAGE_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as SavedSearchLocation;
+    const parsed: unknown = JSON.parse(raw);
+    if (!isValidSavedSearchLocation(parsed)) return null;
+    return parsed;
   } catch {
     // Valore corrotto/da una versione precedente incompatibile: trattalo
     // come "nessuna località salvata" invece di far fallire la Home.

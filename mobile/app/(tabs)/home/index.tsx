@@ -82,7 +82,9 @@ export default function HomeScreen() {
           placeholder="Cerca una città o un indirizzo"
           value={searchText}
           onChangeText={setSearchText}
-          onSubmitEditing={() => searchLocation(searchText)}
+          onSubmitEditing={() => {
+            if (searchText && !loading) searchLocation(searchText);
+          }}
           returnKeyType="search"
         />
         <Pressable

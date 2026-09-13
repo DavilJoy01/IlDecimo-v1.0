@@ -31,6 +31,11 @@ export function useNearbyMatches(radiusKm = 20) {
     (async () => {
       const saved = await getLastSearchLocation();
       if (saved) {
+        // Valorizza subito la label anche prima che il fetch risolva: se il
+        // fetch automatico fallisce (rete assente, ecc.), l'utente vede
+        // comunque la città già cercata invece della schermata "mai
+        // cercato" insieme all'errore, e può ripremere "Cerca".
+        setLocationLabel(saved.label);
         await fetchAt(saved);
       } else {
         setLoading(false);
@@ -44,13 +49,21 @@ export function useNearbyMatches(radiusKm = 20) {
 
   const searchLocation = useCallback(
     async (query: string) => {
+      const trimmedQuery = query.trim();
       setLoading(true);
       setError(null);
       try {
-        const { latitude, longitude } = await geocodeAddress(query);
-        const location: SavedSearchLocation = { label: query, latitude, longitude };
-        await saveLastSearchLocation(location);
+        const { latitude, longitude } = await geocodeAddress(trimmedQuery);
+        const location: SavedSearchLocation = { label: trimmedQuery, latitude, longitude };
         await fetchAt(location);
+        try {
+          await saveLastSearchLocation(location);
+        } catch {
+          // Salvataggio best-effort: serve solo a ripristinare la ricerca
+          // alla prossima apertura, non è un requisito della ricerca
+          // corrente -- un fallimento di storage non deve mascherare un
+          // geocoding riuscito.
+        }
       } catch (err) {
         // Un submit fallito non deve cancellare l'ultima lista di partite già
         // mostrata -- matches/locationLabel restano quelli precedenti,
