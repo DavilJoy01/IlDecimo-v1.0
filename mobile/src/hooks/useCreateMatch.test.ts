@@ -1,12 +1,12 @@
 import { renderHook, act } from '@testing-library/react-native';
 import { router } from 'expo-router';
-import * as Location from 'expo-location';
+import { geocodeAddress } from '@/api/geocoding';
 import { useCreateMatch } from './useCreateMatch';
 import { createMatch } from '@/api/matches';
 import { useSessionStore } from '@/stores/sessionStore';
 
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }));
-jest.mock('expo-location');
+jest.mock('@/api/geocoding', () => ({ geocodeAddress: jest.fn() }));
 jest.mock('@/api/matches', () => ({ createMatch: jest.fn() }));
 
 const formValues = {
@@ -30,11 +30,8 @@ describe('useCreateMatch', () => {
     });
   });
 
-  it('requests location permission, creates the match with the current position, and navigates to its detail page', async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
-    (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue({
-      coords: { latitude: 38.1157, longitude: 13.3615 },
-    });
+  it('geocodes the typed address, creates the match with those coordinates, and navigates to its detail page', async () => {
+    (geocodeAddress as jest.Mock).mockResolvedValue({ latitude: 45.4642, longitude: 9.19 });
     (createMatch as jest.Mock).mockResolvedValue({ id: 'm1' });
 
     // @testing-library/react-native@14's renderHook returns a Promise -- await it.
@@ -44,11 +41,12 @@ describe('useCreateMatch', () => {
       await result.current.create(formValues);
     });
 
+    expect(geocodeAddress).toHaveBeenCalledWith('Via Test 1');
     expect(createMatch).toHaveBeenCalledWith(
       expect.objectContaining({
         creator_id: 'u1',
-        latitude: 38.1157,
-        longitude: 13.3615,
+        latitude: 45.4642,
+        longitude: 9.19,
         field_name: 'Campo Test',
         max_players: 10,
       })
@@ -57,8 +55,10 @@ describe('useCreateMatch', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('sets permissionDenied and does not create a match when location permission is refused', async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'denied' });
+  it('sets an error and does not create a match when geocoding the address fails', async () => {
+    (geocodeAddress as jest.Mock).mockRejectedValue(
+      new Error('Località non trovata, prova a essere più specifico.')
+    );
 
     const { result } = await renderHook(() => useCreateMatch());
 
@@ -66,16 +66,13 @@ describe('useCreateMatch', () => {
       await result.current.create(formValues);
     });
 
-    expect(result.current.permissionDenied).toBe(true);
+    expect(result.current.error).toBe('Località non trovata, prova a essere più specifico.');
     expect(createMatch).not.toHaveBeenCalled();
     expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('sets an error and does not navigate when creating the match fails', async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
-    (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue({
-      coords: { latitude: 38.1157, longitude: 13.3615 },
-    });
+    (geocodeAddress as jest.Mock).mockResolvedValue({ latitude: 45.4642, longitude: 9.19 });
     (createMatch as jest.Mock).mockRejectedValue(new Error('insert failed'));
 
     const { result } = await renderHook(() => useCreateMatch());
@@ -88,7 +85,7 @@ describe('useCreateMatch', () => {
     expect(router.replace).not.toHaveBeenCalled();
   });
 
-  it('sets an error and does not attempt location/creation when there is no session', async () => {
+  it('sets an error and does not attempt geocoding/creation when there is no session', async () => {
     useSessionStore.setState({ session: null, profile: null, status: 'signed-out' });
 
     const { result } = await renderHook(() => useCreateMatch());
@@ -98,7 +95,7 @@ describe('useCreateMatch', () => {
     });
 
     expect(result.current.error).toBeTruthy();
-    expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+    expect(geocodeAddress).not.toHaveBeenCalled();
     expect(createMatch).not.toHaveBeenCalled();
   });
 });

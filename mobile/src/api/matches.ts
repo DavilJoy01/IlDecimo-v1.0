@@ -41,8 +41,8 @@ export type NewMatch = Pick<
   | 'description'
 >;
 
-// Location is captured once at creation from the creator's device GPS and is
-// never editable afterward in this MVP -- omitting lat/lng here makes that a
+// Location is geocoded once at creation from the typed address and is never
+// editable afterward in this MVP -- omitting lat/lng here makes that a
 // compile-time guarantee for every updateMatch call site, not just a UI rule.
 export type MatchEditableFields = Omit<NewMatch, 'creator_id' | 'latitude' | 'longitude'>;
 
