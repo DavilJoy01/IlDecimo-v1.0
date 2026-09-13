@@ -20,6 +20,7 @@ Un solo punto che trasforma testo in coordinate, usato sia dalla ricerca Home si
 
 ```ts
 // mobile/src/api/geocoding.ts
+import { Platform } from 'react-native';
 import * as Location from 'expo-location';
 
 export interface GeocodedLocation {
@@ -28,6 +29,12 @@ export interface GeocodedLocation {
 }
 
 export async function geocodeAddress(query: string): Promise<GeocodedLocation> {
+  if (Platform.OS === 'android') {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      throw new Error('Località non trovata, prova a essere più specifico.');
+    }
+  }
   const results = await Location.geocodeAsync(query);
   if (results.length === 0) {
     throw new Error('Località non trovata, prova a essere più specifico.');
@@ -37,7 +44,9 @@ export async function geocodeAddress(query: string): Promise<GeocodedLocation> {
 }
 ```
 
-Nessuna nuova dipendenza: `expo-location` è già installato (oggi usato solo per `getCurrentPositionAsync`/i permessi, che questo piano rimuove del tutto). `geocodeAsync` non richiede alcun permesso di localizzazione a runtime — non legge la posizione del dispositivo, converte solo un testo in coordinate tramite il geocoder di sistema (Apple/Google) — quindi nessuna delle chiamate a `requestForegroundPermissionsAsync` sopravvive in nessuno dei due flussi.
+**Correzione post-implementazione (emersa dalla review finale del branch)**: questa sezione affermava originariamente che `geocodeAsync` "non richiede alcun permesso di localizzazione a runtime" su nessuna piattaforma — **falso su Android**. La documentazione di `expo-location` (il docblock sopra `geocodeAsync`) e il codice nativo (`LocationModule.kt`) confermano che su Android `geocodeAsync` lancia `LocationUnauthorizedException` finché `requestForegroundPermissionsAsync` non è stato chiamato e concesso a runtime — la sola dichiarazione nel manifest non basta su API 23+. Su iOS invece nessun permesso è richiesto, la premessa originale era corretta solo lì.
+
+Questo **non riapre** la decisione di design "nessun GPS/posizione in tempo reale": il vincolo riguarda non leggere mai la posizione live del dispositivo (`getCurrentPositionAsync`), non l'assenza assoluta di ogni chiamata a un'API di permesso su ogni piattaforma. Richiedere il permesso di localizzazione **solo per sbloccare il geocoder di sistema** (mai per leggere una posizione) resta coerente con lo spirito della decisione — è un dettaglio tecnico di piattaforma, non un ripensamento del design. Il Global Constraint del piano va letto di conseguenza: "nessuna chiamata a `requestForegroundPermissionsAsync`/`getCurrentPositionAsync` deve sopravvivere" si applica a `getCurrentPositionAsync` su ogni piattaforma e a `requestForegroundPermissionsAsync` **solo su iOS**, dove è davvero inutile; su Android la chiamata a `requestForegroundPermissionsAsync` è necessaria e corretta.
 
 **Nota per l'implementazione**: `mobile/AGENTS.md` impone di verificare la documentazione versionata esatta di Expo (v57.0.0) prima di scrivere codice — la firma/il comportamento esatto di `Location.geocodeAsync` in questa versione (forma dell'array di risultati, campi disponibili su ogni risultato) va confermata contro quella documentazione durante l'implementazione, non assunta da versioni precedenti.
 

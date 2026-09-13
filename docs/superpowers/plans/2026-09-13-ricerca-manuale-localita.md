@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Nessun GPS/posizione in tempo reale in nessun punto dell'app dopo questo piano — nessuna chiamata a `requestForegroundPermissionsAsync`/`getCurrentPositionAsync` deve sopravvivere.
+- Nessun GPS/posizione in tempo reale in nessun punto dell'app dopo questo piano — nessuna chiamata a `getCurrentPositionAsync` deve sopravvivere su nessuna piattaforma, e nessuna chiamata a `requestForegroundPermissionsAsync` deve sopravvivere **su iOS** (dove è inutile per il geocoding). **Corretto post-implementazione**: su Android, `geocodeAsync` richiede un permesso di localizzazione concesso a runtime — `requestForegroundPermissionsAsync` è quindi necessaria e corretta lì, unicamente per sbloccare il geocoder di sistema, mai per leggere una posizione live. Vedi lo spec §2 per i dettagli tecnici di questa correzione.
 - Geocoding nativo del dispositivo (`Location.geocodeAsync`), mai un servizio esterno a pagamento: nessuna nuova dipendenza, nessuna nuova chiave API.
 - Nessun risultato dal geocoding → lancia `new Error('Località non trovata, prova a essere più specifico.')`, esattamente questo testo, in un solo punto (`geocodeAddress`).
 - Più risultati dal geocoding → si usa il primo, mai una UI di scelta.
