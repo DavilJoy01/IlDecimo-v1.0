@@ -2,14 +2,28 @@ import { useCallback, useEffect } from 'react';
 import { Slot, useRootNavigationState, useRouter, useSegments } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Notifications from 'expo-notifications';
 import { useFonts, Sora_600SemiBold, Sora_700Bold } from '@expo-google-fonts/sora';
 import { WorkSans_400Regular, WorkSans_500Medium, WorkSans_600SemiBold } from '@expo-google-fonts/work-sans';
 import { supabase } from '@/api/supabase';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useProfileBootstrap } from '@/hooks/useProfileBootstrap';
+import { useRegisterPushToken } from '@/hooks/useRegisterPushToken';
+import { useNotificationTapObserver } from '@/hooks/useNotificationTapObserver';
 import { colors } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
+
+// Show an alert (with sound) for a push that arrives while the app is
+// already open, instead of the default of silently updating the badge only.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 export default function RootLayout() {
   const { session, status, setSession } = useSessionStore();
@@ -28,6 +42,8 @@ export default function RootLayout() {
   const rootNavigationState = useRootNavigationState();
 
   useProfileBootstrap();
+  useRegisterPushToken();
+  useNotificationTapObserver();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
