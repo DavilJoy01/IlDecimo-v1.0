@@ -7,6 +7,7 @@ import { useNearbyMatches } from '@/hooks/useNearbyMatches';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useSessionStore } from '@/stores/sessionStore';
 import { MatchCard } from '@/components/MatchCard';
+import { MatchMapView } from '@/components/MatchMapView';
 import { colors, typography, spacing, withPressed } from '@/theme';
 
 const MATCH_TYPES = [5, 7, 8] as const;
@@ -19,6 +20,7 @@ export default function HomeScreen() {
   const firstName = useSessionStore((state) => state.profile?.first_name);
   const [activeTypes, setActiveTypes] = useState<Set<number>>(new Set());
   const [searchText, setSearchText] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   useEffect(() => {
     if (locationLabel) setSearchText(locationLabel);
@@ -63,18 +65,29 @@ export default function HomeScreen() {
       {firstName && <Text style={styles.greeting}>Ciao {firstName}</Text>}
       <View style={styles.headerRow}>
         <Text style={styles.header}>Partite vicino a te</Text>
-        <Pressable
-          style={styles.bellButton}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          onPress={() => router.push('/(tabs)/home/notifications')}
-        >
-          <Text style={styles.bellIcon}>🔔</Text>
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-            </View>
+        <View style={styles.headerActions}>
+          {locationLabel && (
+            <Pressable
+              style={styles.viewToggleButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              onPress={() => setViewMode((mode) => (mode === 'list' ? 'map' : 'list'))}
+            >
+              <Text style={styles.viewToggleIcon}>{viewMode === 'list' ? '🗺️' : '📋'}</Text>
+            </Pressable>
           )}
-        </Pressable>
+          <Pressable
+            style={styles.bellButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            onPress={() => router.push('/(tabs)/home/notifications')}
+          >
+            <Text style={styles.bellIcon}>🔔</Text>
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </Pressable>
+        </View>
       </View>
       <View style={styles.searchRow}>
         <TextInput
@@ -98,6 +111,12 @@ export default function HomeScreen() {
       {error && <Text style={styles.error}>{error}</Text>}
       {!locationLabel ? (
         <Text style={styles.subtitle}>Cerca una città per trovare le partite vicino a te.</Text>
+      ) : viewMode === 'map' ? (
+        <MatchMapView
+          pins={filteredMatches.map((match) => ({ id: match.id, latitude: match.latitude, longitude: match.longitude }))}
+          onPressPin={(id) => router.push({ pathname: '/(tabs)/home/match/[id]', params: { id } })}
+          style={styles.map}
+        />
       ) : (
         <>
           <View style={styles.filterRow}>
@@ -184,6 +203,10 @@ const styles = StyleSheet.create({
   filterPillText: { color: colors.ink, ...typography.label, fontSize: 13 },
   filterPillTextActive: { color: colors.onPrimary },
   bellButton: { position: 'relative', padding: 4 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.spaceSm },
+  viewToggleButton: { padding: 4 },
+  viewToggleIcon: { fontSize: 20 },
+  map: { flex: 1 },
   bellIcon: { fontSize: 22 },
   badge: {
     position: 'absolute',
