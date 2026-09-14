@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { colors, typography, spacing } from '@/theme';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useSessionStore } from '@/stores/sessionStore';
-import { markInvitationViewed } from '@/api/matchInvitations';
+import { navigateForNotification } from '@/utils/notificationNavigation';
 import type { AppNotification } from '@/api/notifications';
 
 export default function NotificationsScreen() {
@@ -16,45 +16,7 @@ export default function NotificationsScreen() {
 
   function handlePress(notification: AppNotification) {
     if (!notification.read_at) markRead(notification.id);
-
-    if (notification.type === 'friend_request_received') {
-      router.push('/(tabs)/people/friend-requests');
-      return;
-    }
-    if (notification.type === 'friend_request_approved' || notification.type === 'friend_request_rejected') {
-      const userId = notification.payload.user_id;
-      if (typeof userId === 'string') {
-        router.push({ pathname: '/(tabs)/people/user/[id]', params: { id: userId } });
-      }
-      return;
-    }
-    if (notification.type === 'private_message') {
-      const conversationId = notification.payload.conversation_id;
-      if (typeof conversationId === 'string') {
-        router.push({ pathname: '/(tabs)/messages/[id]', params: { id: conversationId } });
-      }
-      return;
-    }
-    if (notification.type === 'match_invitation') {
-      const matchId = notification.payload.match_id;
-      if (typeof matchId === 'string') {
-        // Best-effort, matches this codebase's established "don't block
-        // navigation on a secondary write" convention (see
-        // markConversationRead's usage in messaggi's chat screen) -- a
-        // failure here must never prevent the user reaching the match.
-        if (userId) markInvitationViewed(matchId, userId).catch(() => {});
-        router.push({ pathname: '/(tabs)/home/match/[id]', params: { id: matchId } });
-      }
-      return;
-    }
-
-    if (!notification.payload.match_id) return;
-    const id = notification.payload.match_id;
-    if (notification.type === 'match_message' || notification.type === 'match_message_mention') {
-      router.push({ pathname: '/(tabs)/home/match/[id]/chat', params: { id } });
-    } else {
-      router.push({ pathname: '/(tabs)/home/match/[id]', params: { id } });
-    }
+    navigateForNotification(notification, router, userId);
   }
 
   if (loading && notifications.length === 0) {
