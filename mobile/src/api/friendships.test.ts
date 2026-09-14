@@ -5,6 +5,7 @@ import {
   fetchFriends,
   fetchFriendRequests,
   fetchFriendshipStatus,
+  fetchBlockedUsers,
   sendFriendRequest,
   respondToFriendRequest,
   cancelFriendRequest,
@@ -105,6 +106,55 @@ describe('friendships api', () => {
       (supabase.from as jest.Mock).mockImplementation(fromMock);
 
       const result = await fetchFriends('u1');
+
+      expect(result).toEqual([]);
+      expect(fromMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('fetchBlockedUsers', () => {
+    it('fetches the users blocked by the caller and merges their public profiles', async () => {
+      (supabase.from as jest.Mock).mockImplementation((table: string) => {
+        if (table === 'user_blocks') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({
+                data: [{ blocked_id: 'u2' }, { blocked_id: 'u3' }],
+                error: null,
+              }),
+            }),
+          };
+        }
+        if (table === 'user_public_profiles') {
+          return {
+            select: jest.fn().mockReturnValue({
+              in: jest.fn().mockResolvedValue({
+                data: [
+                  { id: 'u2', unique_user_id: 'FC-100002', first_name: 'Luca', last_name: 'Bianchi', profile_image_url: null },
+                  { id: 'u3', unique_user_id: 'FC-100003', first_name: 'Gino', last_name: 'Verdi', profile_image_url: null },
+                ],
+                error: null,
+              }),
+            }),
+          };
+        }
+        throw new Error(`unexpected table: ${table}`);
+      });
+
+      const result = await fetchBlockedUsers('u1');
+
+      expect(result).toEqual([
+        { user_id: 'u2', unique_user_id: 'FC-100002', first_name: 'Luca', last_name: 'Bianchi', profile_image_url: null },
+        { user_id: 'u3', unique_user_id: 'FC-100003', first_name: 'Gino', last_name: 'Verdi', profile_image_url: null },
+      ]);
+    });
+
+    it('returns an empty array without querying profiles when nothing is blocked', async () => {
+      const eq = jest.fn().mockResolvedValue({ data: [], error: null });
+      const fromMock = jest.fn().mockReturnValue({ select: jest.fn().mockReturnValue({ eq }) });
+      (supabase.from as jest.Mock).mockImplementation(fromMock);
+
+      const result = await fetchBlockedUsers('u1');
 
       expect(result).toEqual([]);
       expect(fromMock).toHaveBeenCalledTimes(1);

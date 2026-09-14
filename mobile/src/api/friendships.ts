@@ -92,6 +92,33 @@ export async function fetchFriends(userId: string): Promise<FriendProfile[]> {
   }));
 }
 
+// Same two-query + client-side-merge shape as fetchFriends, for the same
+// reason: user_public_profiles is a VIEW with no PostgREST-discoverable FK
+// from user_blocks.blocked_id.
+export async function fetchBlockedUsers(userId: string): Promise<FriendProfile[]> {
+  const { data: rows, error: blocksError } = await supabase
+    .from('user_blocks')
+    .select('blocked_id')
+    .eq('blocker_id', userId);
+  if (blocksError) throw new Error(blocksError.message);
+  if (!rows || rows.length === 0) return [];
+
+  const blockedIds = rows.map((r) => r.blocked_id);
+  const { data: profiles, error: profilesError } = await supabase
+    .from('user_public_profiles')
+    .select('id, unique_user_id, first_name, last_name, profile_image_url')
+    .in('id', blockedIds);
+  if (profilesError) throw new Error(profilesError.message);
+
+  return (profiles ?? []).map((p) => ({
+    user_id: p.id,
+    unique_user_id: p.unique_user_id,
+    first_name: p.first_name,
+    last_name: p.last_name,
+    profile_image_url: p.profile_image_url,
+  }));
+}
+
 export async function fetchFriendRequests(userId: string): Promise<{ incoming: FriendRequest[]; outgoing: FriendRequest[] }> {
   const { data: rows, error: friendshipsError } = await supabase
     .from('friendships')

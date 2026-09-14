@@ -40,6 +40,10 @@ export default function ProfileScreen() {
         <Text style={styles.editButtonText}>Modifica profilo</Text>
       </Pressable>
 
+      <Pressable style={withPressed(styles.settingsButton)} onPress={() => router.push('/(tabs)/profile/settings')}>
+        <Text style={styles.settingsButtonText}>Impostazioni</Text>
+      </Pressable>
+
       <Pressable style={withPressed(styles.logoutButton)} onPress={() => supabase.auth.signOut()}>
         <Text style={styles.logoutText}>Esci</Text>
       </Pressable>
@@ -69,6 +73,8 @@ const styles = StyleSheet.create({
   statLabel: { color: colors.muted, ...typography.caption },
   editButton: { marginTop: spacing.spaceLg, backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 10, paddingHorizontal: spacing.spaceLg },
   editButtonText: { color: colors.onPrimary, ...typography.label },
+  settingsButton: { marginTop: spacing.spaceSm, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, paddingVertical: 10, paddingHorizontal: spacing.spaceLg },
+  settingsButtonText: { color: colors.ink, ...typography.label },
   logoutButton: { marginTop: spacing.spaceLg + spacing.spaceXs, borderWidth: 1, borderColor: colors.danger, borderRadius: spacing.radiusControl, paddingVertical: 10, paddingHorizontal: spacing.spaceLg },
   logoutText: { color: colors.danger, ...typography.label },
 });
