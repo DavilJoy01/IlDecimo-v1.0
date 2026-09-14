@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, Pressable, Image, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useSessionStore } from '@/stores/sessionStore';
@@ -10,11 +11,44 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const profile = useSessionStore((s) => s.profile);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   if (!profile) return null; // unreachable in practice: this screen is only mounted once status === 'signed-in'
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
+      <View style={styles.headerRow}>
+        <Pressable style={styles.menuButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={() => setMenuOpen(true)}>
+          <Text style={styles.menuIcon}>⋮</Text>
+        </Pressable>
+      </View>
+
+      <Modal transparent visible={menuOpen} animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+        <Pressable style={styles.overlay} onPress={() => setMenuOpen(false)}>
+          <View style={[styles.menu, { top: insets.top + 48 }]}>
+            <Pressable
+              style={withPressed(styles.menuItem)}
+              onPress={() => {
+                setMenuOpen(false);
+                router.push('/(tabs)/profile/settings');
+              }}
+            >
+              <Text style={styles.menuItemText}>Impostazioni</Text>
+            </Pressable>
+            <View style={styles.menuDivider} />
+            <Pressable
+              style={withPressed(styles.menuItem)}
+              onPress={() => {
+                setMenuOpen(false);
+                supabase.auth.signOut();
+              }}
+            >
+              <Text style={styles.menuItemTextDanger}>Esci</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+
       {profile.profile_image_url ? (
         <Image source={{ uri: profile.profile_image_url }} style={styles.avatar} />
       ) : (
@@ -39,14 +73,6 @@ export default function ProfileScreen() {
       <Pressable style={withPressed(styles.editButton)} onPress={() => router.push('/(tabs)/profile/edit')}>
         <Text style={styles.editButtonText}>Modifica profilo</Text>
       </Pressable>
-
-      <Pressable style={withPressed(styles.settingsButton)} onPress={() => router.push('/(tabs)/profile/settings')}>
-        <Text style={styles.settingsButtonText}>Impostazioni</Text>
-      </Pressable>
-
-      <Pressable style={withPressed(styles.logoutButton)} onPress={() => supabase.auth.signOut()}>
-        <Text style={styles.logoutText}>Esci</Text>
-      </Pressable>
     </View>
   );
 }
@@ -62,6 +88,24 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   container: { backgroundColor: colors.background, flex: 1, alignItems: 'center', padding: spacing.spaceLg },
+  headerRow: { flexDirection: 'row', justifyContent: 'flex-end', width: '100%', marginBottom: spacing.spaceXs },
+  menuButton: { padding: 4 },
+  menuIcon: { fontSize: 22, color: colors.ink },
+  overlay: { flex: 1 },
+  menu: {
+    position: 'absolute',
+    right: spacing.spaceLg,
+    backgroundColor: colors.background,
+    borderRadius: spacing.radiusControl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    minWidth: 180,
+    paddingVertical: spacing.spaceXs,
+  },
+  menuItem: { paddingVertical: spacing.spaceSm, paddingHorizontal: spacing.spaceMd },
+  menuItemText: { color: colors.ink, ...typography.label },
+  menuItemTextDanger: { color: colors.danger, ...typography.label },
+  menuDivider: { height: 1, backgroundColor: colors.border },
   avatar: { width: 88, height: 88, borderRadius: 44, marginBottom: spacing.spaceSm },
   avatarPlaceholder: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { color: colors.onPrimary, fontFamily: 'Sora_700Bold', fontSize: 36 },
@@ -73,8 +117,4 @@ const styles = StyleSheet.create({
   statLabel: { color: colors.muted, ...typography.caption },
   editButton: { marginTop: spacing.spaceLg, backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 10, paddingHorizontal: spacing.spaceLg },
   editButtonText: { color: colors.onPrimary, ...typography.label },
-  settingsButton: { marginTop: spacing.spaceSm, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, paddingVertical: 10, paddingHorizontal: spacing.spaceLg },
-  settingsButtonText: { color: colors.ink, ...typography.label },
-  logoutButton: { marginTop: spacing.spaceLg + spacing.spaceXs, borderWidth: 1, borderColor: colors.danger, borderRadius: spacing.radiusControl, paddingVertical: 10, paddingHorizontal: spacing.spaceLg },
-  logoutText: { color: colors.danger, ...typography.label },
 });
