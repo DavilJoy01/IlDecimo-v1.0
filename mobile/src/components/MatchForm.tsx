@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, ScrollView, Platform } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { formatDateInput, parseDateInput, formatTimeInput, parseTimeInput } from '@/utils/dateTimeInput';
@@ -38,6 +38,24 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
   const [maxPlayers, setMaxPlayers] = useState(initialValues?.maxPlayers ?? String(DEFAULT_MAX_PLAYERS[5]));
   const [description, setDescription] = useState(initialValues?.description ?? '');
   const [activePicker, setActivePicker] = useState<ActivePicker>(null);
+  // `parseTimeInput`'s fallback defaults to `new Date()` when the field is
+  // still empty. Passing that straight into the picker's `value` prop would
+  // recompute "now" on every render, and a native iOS spinner snaps back to
+  // whatever `value` it's given -- fighting the user's own scroll gesture
+  // mid-drag. Freezing "now" once, when the picker opens, keeps `value`
+  // stable across re-renders while it's visible.
+  const startTimeDefaultRef = useRef(new Date());
+  const endTimeDefaultRef = useRef(new Date());
+
+  function openStartPicker() {
+    startTimeDefaultRef.current = new Date();
+    setActivePicker('start');
+  }
+
+  function openEndPicker() {
+    endTimeDefaultRef.current = new Date();
+    setActivePicker('end');
+  }
 
   function handleMatchTypeChange(type: 5 | 7 | 8) {
     setMatchType(type);
@@ -106,12 +124,12 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
           <Text style={styles.pickerDoneText}>Fatto</Text>
         </Pressable>
       )}
-      <Pressable style={styles.input} onPress={() => setActivePicker('start')}>
+      <Pressable style={styles.input} onPress={openStartPicker}>
         <Text style={startTime ? styles.fieldValue : styles.fieldPlaceholder}>{startTime || 'Ora inizio'}</Text>
       </Pressable>
       {activePicker === 'start' && (
         <DateTimePicker
-          value={parseTimeInput(startTime)}
+          value={parseTimeInput(startTime, startTimeDefaultRef.current)}
           mode="time"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           locale="it-IT"
@@ -129,12 +147,12 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
           <Text style={styles.pickerDoneText}>Fatto</Text>
         </Pressable>
       )}
-      <Pressable style={styles.input} onPress={() => setActivePicker('end')}>
+      <Pressable style={styles.input} onPress={openEndPicker}>
         <Text style={endTime ? styles.fieldValue : styles.fieldPlaceholder}>{endTime || 'Ora fine'}</Text>
       </Pressable>
       {activePicker === 'end' && (
         <DateTimePicker
-          value={parseTimeInput(endTime)}
+          value={parseTimeInput(endTime, endTimeDefaultRef.current)}
           mode="time"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           locale="it-IT"
