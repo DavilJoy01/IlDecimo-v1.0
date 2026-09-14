@@ -1,6 +1,6 @@
 -- supabase/tests/013_nearby_open_matches.test.sql
 begin;
-select plan(6);
+select plan(8);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','creator@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -38,6 +38,18 @@ select is(
   (select field_name from public.nearby_open_matches(38.1157, 13.3615, 20) limit 1),
   'Campo Vicino',
   'the nearby match is correctly identified'
+);
+
+select is(
+  (select latitude from public.nearby_open_matches(38.1157, 13.3615, 20) limit 1),
+  38.1157::double precision,
+  'the nearby match returns its stored latitude'
+);
+
+select is(
+  (select longitude from public.nearby_open_matches(38.1157, 13.3615, 20) limit 1),
+  13.3615::double precision,
+  'the nearby match returns its stored longitude'
 );
 
 select is(

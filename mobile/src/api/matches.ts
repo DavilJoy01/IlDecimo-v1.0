@@ -12,6 +12,8 @@ export interface NearbyMatch {
   max_players: number;
   distance_km: number;
   approved_players_count: number;
+  latitude: number;
+  longitude: number;
 }
 
 export async function fetchNearbyMatches(lat: number, lng: number, radiusKm = 20): Promise<NearbyMatch[]> {
