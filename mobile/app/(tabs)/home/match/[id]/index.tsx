@@ -9,6 +9,8 @@ import { useMatchRoster } from '@/hooks/useMatchRoster';
 import { useSessionStore } from '@/stores/sessionStore';
 import { MatchForm, type MatchFormValues } from '@/components/MatchForm';
 import { ParticipantRow } from '@/components/ParticipantRow';
+import { MatchMapView } from '@/components/MatchMapView';
+import { openDirections } from '@/utils/mapLinks';
 import { colors, typography, spacing, withPressed } from '@/theme';
 
 export default function MatchDetailScreen() {
@@ -142,6 +144,16 @@ export default function MatchDetailScreen() {
       <Text style={styles.title}>{match.field_name}</Text>
       <Text style={styles.meta}>⚽ Calcio a {match.match_type}</Text>
       <Text style={styles.meta}>📍 {match.address}</Text>
+      <MatchMapView
+        pins={[{ id: match.id, latitude: match.latitude, longitude: match.longitude }]}
+        style={styles.detailMap}
+      />
+      <Pressable
+        style={withPressed(styles.directionsButton)}
+        onPress={() => openDirections(match.latitude, match.longitude)}
+      >
+        <Text style={styles.directionsButtonText}>Indicazioni</Text>
+      </Pressable>
       <Text style={styles.meta}>
         {match.match_date} · {match.start_time.slice(0, 5)} → {match.end_time.slice(0, 5)}
       </Text>
@@ -355,6 +367,9 @@ const styles = StyleSheet.create({
   backButtonText: { color: colors.onPrimary, ...typography.label },
   title: { ...typography.label, fontSize: 24 },
   meta: { color: colors.ink, ...typography.body },
+  detailMap: { height: 180, borderRadius: spacing.radiusCard, overflow: 'hidden', marginTop: spacing.spaceXs },
+  directionsButton: { backgroundColor: colors.primaryTint, borderRadius: spacing.radiusControl, paddingVertical: 10, alignItems: 'center', marginTop: spacing.spaceXs },
+  directionsButtonText: { color: colors.primary, ...typography.label, fontSize: 15 },
   description: { color: colors.ink, marginTop: spacing.spaceXs, ...typography.body },
   error: { color: colors.danger, textAlign: 'center' },
   chatButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 12, alignItems: 'center', marginTop: spacing.spaceXs },
