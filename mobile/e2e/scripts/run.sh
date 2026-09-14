@@ -37,11 +37,15 @@ fi
 FLOWS_DIR="$(dirname "$0")/../flows"
 FAILED=0
 
+# Seeded once, up front, and passed to every flow invocation via -e: cheap
+# and idempotent even for flows that don't reference ${TARGET_CODE}.
+TARGET_CODE=$("$(dirname "$0")/seed-target-user.sh")
+
 for flow in "$FLOWS_DIR"/*.yaml; do
   name=$(basename "$flow")
   echo "--- Resetting Keychain on $DEVICE before $name ---"
   xcrun simctl keychain "$DEVICE" reset
-  if ! maestro --device "$DEVICE" test "$flow"; then
+  if ! maestro --device "$DEVICE" test -e TARGET_CODE="$TARGET_CODE" "$flow"; then
     FAILED=1
   fi
 done

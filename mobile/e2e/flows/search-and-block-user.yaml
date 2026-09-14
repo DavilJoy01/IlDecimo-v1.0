@@ -1,0 +1,73 @@
+appId: com.anonymous.mobile
+---
+# Requires both fixed E2E accounts seeded first:
+#   TARGET_CODE="$(e2e/scripts/seed-target-user.sh)"
+#   maestro --device <udid> test -e TARGET_CODE="$TARGET_CODE" e2e/flows/search-and-block-user.yaml
+# (e2e/scripts/seed-test-user.sh must also have run at least once, same as
+# every other flow that logs in with the fixed E2E account. seed-target-user.sh
+# also clears any pre-existing block between the two fixed accounts on every
+# run, so this flow is safe to re-run without manual cleanup.)
+#
+# Covers two of the MVP spec's listed critical E2E flows in one pass:
+# "ricerca per ID" and "blocco utente" -- searching for the target user by
+# their unique_user_id code, then blocking them from their profile screen.
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "login-phone-input"
+- inputText: "+390000000900"
+- tapOn:
+    id: "login-password-input"
+- inputText: "MaestroTest123!"
+- tapOn:
+    id: "login-submit-button"
+# Two independent system dialogs can appear after login, in either order --
+# iOS's own "Save Password?" prompt, and the notification-permission prompt
+# useRegisterPushToken fires (see the notifiche-push plan). When both
+# appear, dismissing one reveals the other underneath it, so try each
+# dismiss twice to cover every ordering (see login-happy-path.yaml, where
+# this was first found).
+- tapOn:
+    text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
+    optional: true
+- tapOn:
+    text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
+    optional: true
+# A tab tap thrown right as the second dialog's dismiss animation is still
+# settling can silently land on nothing (observed: "Tap on .*Persone.*"
+# reports COMPLETED, but the app stays on Home) -- wait for it to finish
+# before trusting the screen is actually interactive again.
+- waitForAnimationToEnd
+- tapOn:
+    text: ".*Persone.*"
+- tapOn:
+    text: "Cerca per codice.*"
+- inputText: "${TARGET_CODE}"
+- tapOn: "Cerca"
+# The result row's name/code/"Vedi profilo →" are all Text children of one
+# Pressable, which iOS merges into a single composite accessibility label --
+# the same class of gotcha login-happy-path already documents for the tab
+# bar. Regex-wrap anything inside that card instead of matching it exactly.
+- assertVisible: ".*Bersaglio E2E.*"
+- tapOn:
+    text: ".*Vedi profilo.*"
+- assertVisible: "Bersaglio E2E"
+- assertVisible: ".*${TARGET_CODE}.*"
+- tapOn: "Blocca"
+# Alert.alert's confirmation dialog -- its own destructive "Blocca" button
+# coexists on screen with the page's "Blocca" link underneath it (the
+# native alert doesn't remove the link from the accessibility tree, just
+# visually covers it), so plain text matching is ambiguous between the
+# two. index disambiguates: the alert button is the FIRST "Blocca" match
+# (index 0) -- confirmed empirically, not assumed from hierarchy order.
+- assertVisible: "Blocca utente"
+- tapOn:
+    text: "Blocca"
+    index: 0
+- assertVisible: "Sblocca"

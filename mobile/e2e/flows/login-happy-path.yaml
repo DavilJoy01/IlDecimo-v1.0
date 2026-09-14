@@ -18,12 +18,24 @@ appId: com.anonymous.mobile
 - inputText: "MaestroTest123!"
 - tapOn:
     id: "login-submit-button"
-# iOS shows its own "Save Password?" system dialog after a real secure-field
-# submit -- dismiss it if present (optional: true means this step never
-# fails the flow when the dialog doesn't appear, e.g. on a device/run where
-# iOS decides not to offer it).
+# Two independent system dialogs can appear after login, in either order --
+# iOS's own "Save Password?" prompt (after a real secure-field submit), and
+# the notification-permission prompt useRegisterPushToken fires (see the
+# notifiche-push plan). Neither is guaranteed to appear (a device/run where
+# iOS skips one, or a re-run where permission was already decided), and
+# when both appear, dismissing one reveals the other underneath it -- so
+# try each dismiss twice, covering every ordering, all as optional taps.
 - tapOn:
     text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
+    optional: true
+- tapOn:
+    text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
     optional: true
 # React Navigation's bottom tab bar gives each tab a composite accessibility
 # label ("Home, tab, 1 of 5"), not just its visible text -- Maestro's text

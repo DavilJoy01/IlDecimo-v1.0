@@ -74,12 +74,20 @@ export PATH="$JAVA_HOME/bin:$PATH:$HOME/.maestro/bin"
 - `flows/login-happy-path.yaml` — the fixed E2E account logs in and reaches
   the tab bar. Requires `npm run e2e:seed` to have run against local
   Supabase first.
+- `flows/search-and-block-user.yaml` — logs in, searches for a second fixed
+  account by its `unique_user_id` code (`npm run e2e:seed-target`), views
+  its profile, and blocks it. Covers two of the MVP spec's listed critical
+  E2E flows in one pass: "ricerca per ID" and "blocco utente".
+  `e2e/scripts/seed-target-user.sh` also clears any pre-existing block
+  between the two fixed accounts on every run, so the flow is safe to
+  re-run without manual cleanup, and prints the target's code to stdout
+  for `run.sh` (or you) to pass in via `-e TARGET_CODE=...`.
 
-Both were run via `npm run e2e` and confirmed passing, twice in a row back
-to back, against `iPhone17-fresh` (`D727DB43-C7DD-4B2B-B847-F97A1521C0D9`)
-before this suite was committed. Getting there surfaced three real gotchas,
-each now handled by the flows/scripts themselves rather than left as traps
-for the next flow author:
+All three were run via `npm run e2e` and confirmed passing, twice in a row
+back to back, against `iPhone17-fresh` (`D727DB43-C7DD-4B2B-B847-F97A1521C0D9`).
+Getting there surfaced several real gotchas, each now handled by the
+flows/scripts themselves rather than left as traps for the next flow
+author:
 
 - The password field's `tapOn` + `inputText` silently no-op'd when matched
   by placeholder text (the field stayed empty even though both steps
@@ -87,14 +95,37 @@ for the next flow author:
   submit button explicit `testID`s (`login-phone-input`,
   `login-password-input`, `login-submit-button`) and selecting by `id:` in
   the flow instead of by visible text.
-- A successful login triggers iOS's own "Vuoi salvare la password?" system
-  dialog, which covers the app underneath it — `login-happy-path` dismisses
-  it with an `optional: true` tap on "Non ora" before asserting anything
-  about the screen behind it.
+- **Two independent system dialogs can appear right after login, in either
+  order, and dismissing one can reveal the other underneath it**: iOS's own
+  "Vuoi salvare la password?" prompt, and the notification-permission
+  prompt `useRegisterPushToken` fires (added by the `notifiche-push` plan,
+  after these flows were first written — running the full suite again
+  after that plan is what surfaced this). Every flow that logs in tries
+  both dismiss taps (`"Non ora"`, `"Non consentire"`) **twice each**, all
+  `optional: true`, to cover every ordering without failing when a dialog
+  doesn't appear at all.
 - React Navigation's bottom tab bar gives each tab a composite
   accessibility label (`"Home, tab, 1 of 5"`, not just `"Home"`), and
   Maestro's text assertions match the whole label — every tab-bar assertion
-  in `login-happy-path` uses a `.*Home.*`-style regex, not a bare string.
+  uses a `.*Home.*`-style regex, not a bare string.
+- **The same composite-label issue applies to any `Pressable` wrapping
+  multiple `Text` children**, not just the tab bar — the search result
+  card's name/code/"Vedi profilo →" merge into one accessibility label the
+  same way, so `search-and-block-user.yaml` regex-wraps assertions against
+  it instead of matching any one piece of text exactly.
+- **A native `Alert.alert` button can share its exact visible text with an
+  already-on-screen element behind it** (the profile screen's own "Blocca"
+  link stays in the accessibility tree, merely covered, while the alert's
+  destructive "Blocca" button is open) — plain text matching is ambiguous
+  between the two. Maestro's `index:` selector field disambiguates
+  (`{ text: "Blocca", index: 0 }` picked the alert's own button here,
+  confirmed empirically, not assumed from hierarchy order — don't assume
+  the same index number generalizes to a different ambiguous pair without
+  re-checking).
+- **A tab tap thrown right as a dialog's dismiss animation is still
+  settling can silently land on nothing** — Maestro reports `tapOn`
+  `COMPLETED`, but the app stays on the previous screen. A
+  `waitForAnimationToEnd` step before the tap fixed it.
 
 ## Adding a new flow
 
