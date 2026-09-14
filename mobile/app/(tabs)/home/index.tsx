@@ -112,11 +112,19 @@ export default function HomeScreen() {
       {!locationLabel ? (
         <Text style={styles.subtitle}>Cerca una città per trovare le partite vicino a te.</Text>
       ) : viewMode === 'map' ? (
-        <MatchMapView
-          pins={filteredMatches.map((match) => ({ id: match.id, latitude: match.latitude, longitude: match.longitude }))}
-          onPressPin={(id) => router.push({ pathname: '/(tabs)/home/match/[id]', params: { id } })}
-          style={styles.map}
-        />
+        filteredMatches.length === 0 ? (
+          <Text style={styles.subtitle}>
+            {activeTypes.size > 0 && matches.length > 0
+              ? 'Nessuna partita di questo tipo trovata.'
+              : 'Nessuna partita trovata nella tua zona.'}
+          </Text>
+        ) : (
+          <MatchMapView
+            pins={filteredMatches.map((match) => ({ id: match.id, latitude: match.latitude, longitude: match.longitude }))}
+            onPressPin={(id) => router.push({ pathname: '/(tabs)/home/match/[id]', params: { id } })}
+            style={styles.map}
+          />
+        )
       ) : (
         <>
           <View style={styles.filterRow}>

@@ -1,4 +1,5 @@
-require('dotenv').config({ path: '.env.local' });
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env.local') });
 
 module.exports = ({ config }) => ({
   ...config,

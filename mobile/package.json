@@ -10,6 +10,7 @@
     "@react-native-community/datetimepicker": "9.1.0",
     "@supabase/supabase-js": "^2.112.4",
     "base64-arraybuffer": "^1.0.2",
+    "dotenv": "^17.4.2",
     "expo": "~57.0.18",
     "expo-constants": "~57.0.16",
     "expo-device": "~57.0.1",
@@ -45,7 +46,6 @@
     "@testing-library/react-native": "^14.0.1",
     "@types/jest": "29.5.14",
     "@types/react": "~19.2.2",
-    "dotenv": "^17.4.2",
     "jest-expo": "~57.0.5",
     "typescript": "~6.0.3"
   },

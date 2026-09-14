@@ -1,4 +1,4 @@
-import { Platform, type ViewStyle } from 'react-native';
+import { Platform, type StyleProp, type ViewStyle } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { regionForPins, type MapPin } from '@/utils/mapRegion';
 
@@ -7,7 +7,7 @@ export type { MapPin };
 interface MatchMapViewProps {
   pins: MapPin[];
   onPressPin?: (id: string) => void;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function MatchMapView({ pins, onPressPin, style }: MatchMapViewProps) {

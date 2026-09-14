@@ -136,6 +136,15 @@ export default function MatchDetailScreen() {
   const canAccessChat =
     isCreator || ['approved', 'active', 'completed'].includes(myParticipation.participation?.status ?? '');
 
+  async function handleOpenDirections() {
+    if (!match) return;
+    try {
+      await openDirections(match.latitude, match.longitude);
+    } catch (err) {
+      Alert.alert('Errore', err instanceof Error ? err.message : 'Impossibile aprire le indicazioni.');
+    }
+  }
+
   return (
     <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 24 }]}>
       <Pressable onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -148,10 +157,7 @@ export default function MatchDetailScreen() {
         pins={[{ id: match.id, latitude: match.latitude, longitude: match.longitude }]}
         style={styles.detailMap}
       />
-      <Pressable
-        style={withPressed(styles.directionsButton)}
-        onPress={() => openDirections(match.latitude, match.longitude)}
-      >
+      <Pressable style={withPressed(styles.directionsButton)} onPress={handleOpenDirections}>
         <Text style={styles.directionsButtonText}>Indicazioni</Text>
       </Pressable>
       <Text style={styles.meta}>

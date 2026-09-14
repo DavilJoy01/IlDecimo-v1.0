@@ -6,7 +6,7 @@ module.exports = {
     // (the literal `expo(nent)?` alone only matches the bare `expo` package name,
     // which excludes every other `expo-*` package from transformation and breaks
     // on their untranspiled ESM/TS source under the current jest-expo/SDK versions).
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?[\\w.-]*|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)/)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?[\\w.-]*|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-maps)/)',
   ],
   setupFilesAfterEnv: [],
 };
