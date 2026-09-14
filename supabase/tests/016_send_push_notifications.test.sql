@@ -1,6 +1,6 @@
 -- supabase/tests/016_send_push_notifications.test.sql
 begin;
-select plan(3);
+select plan(5);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','player@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -28,6 +28,18 @@ select lives_ok(
 select ok(
   (select count(*) from net.http_request_queue) >= 1,
   'a push notification HTTP request is queued via pg_net'
+);
+
+select is(
+  (select convert_from(body, 'UTF8')::jsonb -> 'data' ->> 'type' from net.http_request_queue order by id desc limit 1),
+  'match_reminder',
+  'the queued push request''s data includes the notification type'
+);
+
+select is(
+  (select convert_from(body, 'UTF8')::jsonb -> 'data' ->> 'notification_id' from net.http_request_queue order by id desc limit 1),
+  (select id::text from public.notifications where user_id = '11111111-1111-1111-1111-111111111111' order by created_at desc limit 1),
+  'the queued push request''s data includes the triggering notification''s id'
 );
 
 select * from finish();
