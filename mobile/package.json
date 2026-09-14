@@ -54,7 +54,9 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "jest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "e2e:seed": "bash e2e/scripts/seed-test-user.sh",
+    "e2e": "bash e2e/scripts/run.sh"
   },
   "private": true
 }

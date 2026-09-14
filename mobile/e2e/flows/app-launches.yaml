@@ -1,0 +1,10 @@
+appId: com.anonymous.mobile
+---
+# Smoke test: the app launches and reaches the login screen. No backend
+# dependency (Supabase down/unreachable does not affect the login screen
+# itself, only the button's submit action), no test data needed.
+- launchApp:
+    clearState: true
+- assertVisible: "Numero di telefono"
+- assertVisible: "Password"
+- assertVisible: "Accedi"

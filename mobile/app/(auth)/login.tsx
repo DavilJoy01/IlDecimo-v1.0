@@ -13,6 +13,7 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Accedi</Text>
       <TextInput
+        testID="login-phone-input"
         style={styles.input}
         placeholder="Numero di telefono"
         keyboardType="phone-pad"
@@ -21,6 +22,7 @@ export default function LoginScreen() {
         onChangeText={setPhone}
       />
       <TextInput
+        testID="login-password-input"
         style={styles.input}
         placeholder="Password"
         secureTextEntry
@@ -29,7 +31,12 @@ export default function LoginScreen() {
         onChangeText={setPassword}
       />
       {error && <Text style={styles.error}>{error}</Text>}
-      <Pressable style={withPressed(styles.button)} onPress={() => login(phone, password)} disabled={loading}>
+      <Pressable
+        testID="login-submit-button"
+        style={withPressed(styles.button)}
+        onPress={() => login(phone, password)}
+        disabled={loading}
+      >
         {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.buttonText}>Accedi</Text>}
       </Pressable>
       {/* `as any`: forward-reference to a route Task 5 adds; same pattern as

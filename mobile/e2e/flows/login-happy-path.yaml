@@ -1,0 +1,36 @@
+appId: com.anonymous.mobile
+---
+# Requires the fixed E2E test account (run e2e/scripts/seed-test-user.sh
+# once against local Supabase before this flow) and local Supabase running.
+#
+# Uses testID selectors, not visible text, for the two inputs and the
+# submit button: the password field's iOS autofill/quick-type suggestion
+# UI was observed to swallow a text-matched tapOn + inputText pair
+# silently (the field stayed empty even though both steps reported
+# COMPLETED) -- id-based selectors sidestep that ambiguity entirely.
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "login-phone-input"
+- inputText: "+390000000900"
+- tapOn:
+    id: "login-password-input"
+- inputText: "MaestroTest123!"
+- tapOn:
+    id: "login-submit-button"
+# iOS shows its own "Save Password?" system dialog after a real secure-field
+# submit -- dismiss it if present (optional: true means this step never
+# fails the flow when the dialog doesn't appear, e.g. on a device/run where
+# iOS decides not to offer it).
+- tapOn:
+    text: "Non ora"
+    optional: true
+# React Navigation's bottom tab bar gives each tab a composite accessibility
+# label ("Home, tab, 1 of 5"), not just its visible text -- Maestro's text
+# assertions match the whole label, so a plain "Home" assertion fails even
+# though the tab is genuinely on screen. Regex-wrap every tab assertion.
+- assertVisible: ".*Home.*"
+- assertVisible: ".*Le mie part.*"
+- assertVisible: ".*Persone.*"
+- assertVisible: ".*Messaggi.*"
+- assertVisible: ".*Profilo.*"
