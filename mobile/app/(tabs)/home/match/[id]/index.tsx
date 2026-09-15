@@ -156,6 +156,10 @@ export default function MatchDetailScreen() {
       <MatchMapView
         pins={[{ id: match.id, latitude: match.latitude, longitude: match.longitude }]}
         style={styles.detailMap}
+        scrollEnabled={false}
+        zoomEnabled={false}
+        rotateEnabled={false}
+        pitchEnabled={false}
       />
       <Pressable style={withPressed(styles.directionsButton)} onPress={handleOpenDirections}>
         <Text style={styles.directionsButtonText}>Indicazioni</Text>

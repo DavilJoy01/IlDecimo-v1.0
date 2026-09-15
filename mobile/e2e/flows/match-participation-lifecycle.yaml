@@ -1,0 +1,179 @@
+appId: com.anonymous.mobile
+---
+# Requires all of:
+#   e2e/scripts/seed-test-user.sh (the fixed E2E account -- plays the requester)
+#   e2e/scripts/seed-participation-match.sh (creates a second fixed "creator"
+#     account and one fixed open match near Palermo; also resets any
+#     leftover match_participants row from a previous run of this flow, so
+#     it's safe to re-run)
+#
+# Covers the MVP spec's "creazione partita → richiesta → approvazione →
+# stanza" critical flow -- except match CREATION itself, which this flow
+# deliberately does not drive through the UI: "Crea partita" now uses
+# native OS date/time picker wheels (see the crea-partita-datetime-picker
+# plan), which are a meaningfully harder Maestro target than a text field
+# and are not the state machine this flow exists to protect. The match is
+# seeded directly via SQL instead -- the value under test here is the
+# participation lifecycle (request -> approve -> chat access), which is
+# real, non-trivial backend/RLS logic, not the picker UI.
+#
+# Single-device sequential login/logout: requester requests, logs out,
+# creator approves, logs out, requester confirms access. Every login
+# dismisses both possible system dialogs (see login-happy-path.yaml for
+# why each is tried twice).
+
+# --- Requester: find the seeded match and request to join ---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "login-phone-input"
+- inputText: "+390000000900"
+- tapOn:
+    id: "login-password-input"
+- inputText: "MaestroTest123!"
+- tapOn:
+    id: "login-submit-button"
+- tapOn:
+    text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
+    optional: true
+- tapOn:
+    text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    text: "Cerca una città.*"
+- inputText: "Palermo"
+- tapOn: "Cerca"
+# MatchCard's fieldName/meta/spots Text siblings are all wrapped by one
+# outer Pressable in Home's renderItem, which iOS merges into a single
+# composite accessibility label -- same class of gotcha already documented
+# for the tab bar and the Persone search-result card. Regex-wrap anything
+# inside that card.
+- assertVisible: ".*Campo Partecipazione E2E.*"
+- tapOn:
+    text: ".*Iscriviti.*"
+- assertVisible: "Richiedi di partecipare"
+- tapOn: "Richiedi di partecipare"
+- assertVisible: "Richiesta in attesa di approvazione"
+
+# --- Log out ---
+# The request button swaps for the "in attesa" status text right before
+# this -- waitForAnimationToEnd avoids the same silent-miss race already
+# documented for post-dialog taps: a tap thrown mid-transition can report
+# COMPLETED while landing on nothing, leaving the tab bar untouched.
+- waitForAnimationToEnd
+- tapOn:
+    text: ".*Profilo.*"
+- tapOn:
+    text: "⋮"
+# The overlay Pressable that dismisses the menu wraps both menu item
+# Pressables, so iOS merges "Impostazioni" and "Esci" into a single
+# composite accessibility label spanning the whole overlay -- a text/regex
+# tap here would land on the merged element's center (empty overlay space)
+# and just dismiss the menu instead of signing out. Select by testID
+# instead (see profile/index.tsx's "profile-logout-button").
+- tapOn:
+    id: "profile-logout-button"
+- assertVisible: "Numero di telefono"
+
+# --- Creator: approve the pending request ---
+- tapOn:
+    id: "login-phone-input"
+- inputText: "+390000000997"
+- tapOn:
+    id: "login-password-input"
+- inputText: "MaestroCreator123!"
+- tapOn:
+    id: "login-submit-button"
+- tapOn:
+    text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
+    optional: true
+- tapOn:
+    text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    text: ".*Le mie part.*"
+# Same composite-label class: "Le mie partite"'s row Pressable wraps
+# fieldName/meta/status Text siblings too.
+- tapOn:
+    text: ".*Campo Partecipazione E2E.*"
+- assertVisible: "Richieste in attesa"
+- assertVisible: "Maestro E2E"
+# The detail map sits above this section and is tall enough to push
+# "Approva"/"Rifiuta" below the fold. A plain tapOn previously landed here
+# without effect (COMPLETED, but no onPress, no network request) because
+# react-native-maps' native map view -- even scrolled out of the visible
+# viewport -- kept its own pan/pinch/rotate gesture recognizers active and
+# they intercepted the touch before it reached the button underneath. Fixed
+# at the source in MatchMapView (scrollEnabled/zoomEnabled/rotateEnabled/
+# pitchEnabled all false for this single-pin static preview); scrolling
+# explicitly here just guarantees the button is actually on screen first.
+- scrollUntilVisible:
+    element:
+      text: "Approva"
+    direction: DOWN
+- tapOn: "Approva"
+# extendedWaitUntil, not a plain assertNotVisible: approving does a network
+# round-trip (useMatchRoster.approve awaits the mutation, then awaits a
+# full reload()) before the section unmounts, so a single immediate check
+# can run ahead of that round-trip.
+- extendedWaitUntil:
+    notVisible:
+      text: "Richieste in attesa"
+    timeout: 10000
+
+# --- Log out ---
+- waitForAnimationToEnd
+- tapOn:
+    text: ".*Profilo.*"
+- tapOn:
+    text: "⋮"
+- tapOn:
+    id: "profile-logout-button"
+- assertVisible: "Numero di telefono"
+
+# --- Requester: confirm approval and reach the match room's chat ---
+- tapOn:
+    id: "login-phone-input"
+- inputText: "+390000000900"
+- tapOn:
+    id: "login-password-input"
+- inputText: "MaestroTest123!"
+- tapOn:
+    id: "login-submit-button"
+- tapOn:
+    text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
+    optional: true
+- tapOn:
+    text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    text: ".*Le mie part.*"
+- tapOn:
+    text: ".*Campo Partecipazione E2E.*"
+# "Sei dentro ✅" -- the trailing emoji means an exact match on the plain
+# text fails the same way the tab bar's composite labels do.
+- assertVisible: ".*Sei dentro.*"
+- tapOn:
+    text: ".*Chat.*"
+- assertVisible: "Scrivi un messaggio..."

@@ -8,6 +8,10 @@ interface MatchMapViewProps {
   pins: MapPin[];
   onPressPin?: (id: string) => void;
   style?: StyleProp<ViewStyle>;
+  scrollEnabled?: boolean;
+  zoomEnabled?: boolean;
+  rotateEnabled?: boolean;
+  pitchEnabled?: boolean;
 }
 
 export function MatchMapView({ style }: MatchMapViewProps) {

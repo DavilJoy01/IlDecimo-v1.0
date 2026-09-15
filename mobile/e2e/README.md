@@ -82,8 +82,22 @@ export PATH="$JAVA_HOME/bin:$PATH:$HOME/.maestro/bin"
   between the two fixed accounts on every run, so the flow is safe to
   re-run without manual cleanup, and prints the target's code to stdout
   for `run.sh` (or you) to pass in via `-e TARGET_CODE=...`.
+- `flows/match-participation-lifecycle.yaml` — covers the MVP spec's
+  "creazione partita → richiesta → approvazione → stanza" critical flow,
+  except match *creation* itself: `npm run e2e:seed-participation`
+  (`e2e/scripts/seed-participation-match.sh`) seeds a second fixed
+  "creator" account (`+390000000997` / `MaestroCreator123!`, "Creatore
+  E2E") plus one fixed open match near Palermo directly via SQL, since
+  "Crea partita" now drives native OS date/time picker wheels (see the
+  `crea-partita-datetime-picker` plan) — a much harder Maestro target than
+  a text field, and not the state machine this flow exists to protect. The
+  flow itself, single-device and sequential: the fixed E2E account (the
+  requester) requests to join, logs out; the creator logs in, approves,
+  logs out; the requester logs back in and confirms both the approved
+  status and chat access. The seed script also resets any leftover
+  `match_participants` row from a previous run, so it's safe to re-run.
 
-All three were run via `npm run e2e` and confirmed passing, twice in a row
+All four were run via `npm run e2e` and confirmed passing, twice in a row
 back to back, against `iPhone17-fresh` (`D727DB43-C7DD-4B2B-B847-F97A1521C0D9`).
 Getting there surfaced several real gotchas, each now handled by the
 flows/scripts themselves rather than left as traps for the next flow
@@ -126,6 +140,31 @@ author:
   settling can silently land on nothing** — Maestro reports `tapOn`
   `COMPLETED`, but the app stays on the previous screen. A
   `waitForAnimationToEnd` step before the tap fixed it.
+- **A native map view can silently swallow touches for content below it in
+  the same `ScrollView`, even once scrolled fully out of the visible
+  viewport.** The match detail screen's "Richieste in attesa" section sits
+  below `MatchMapView` (react-native-maps); tapping "Approva"/"Rifiuta"
+  reported `COMPLETED` but never fired `onPress` — no network request, no
+  state change — confirmed with an injected `console.log` in the button's
+  own `onPress` that never printed. Root cause: the underlying native map
+  view keeps its own pan/pinch/rotate gesture recognizers active regardless
+  of scroll position, and they intercepted the touch before it reached the
+  button underneath. This was **not** a Maestro-only quirk — it reproduced
+  identically tapping the real device/simulator by hand. Fixed at the
+  source, not in the flow: `MatchMapView` now takes
+  `scrollEnabled`/`zoomEnabled`/`rotateEnabled`/`pitchEnabled` props
+  (default `true`, preserving Home's pannable/zoomable list-vs-map toggle),
+  and the match detail screen — a single-pin static preview with no map
+  interaction of its own beyond the separate "Indicazioni" button — passes
+  all four as `false`. The flow also uses `scrollUntilVisible` before
+  tapping "Approva" rather than assuming Maestro's plain `tapOn` will
+  auto-scroll a long `ScrollView` for you.
+- **`assertNotVisible` doesn't accept an inline `timeout:` key** (YAML
+  parse error: "Unknown Property: timeout") — a status transition that
+  needs to survive a real network round-trip (approving a request awaits
+  the mutation, then awaits a full participant-list reload) needs
+  `extendedWaitUntil: { notVisible: {...}, timeout: ... }` instead, which
+  polls rather than checking once.
 
 ## Adding a new flow
 

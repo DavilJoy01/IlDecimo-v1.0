@@ -37,6 +37,7 @@ export default function ProfileScreen() {
             </Pressable>
             <View style={styles.menuDivider} />
             <Pressable
+              testID="profile-logout-button"
               style={withPressed(styles.menuItem)}
               onPress={() => {
                 setMenuOpen(false);

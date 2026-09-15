@@ -41,6 +41,11 @@ FAILED=0
 # and idempotent even for flows that don't reference ${TARGET_CODE}.
 TARGET_CODE=$("$(dirname "$0")/seed-target-user.sh")
 
+# Seeds the fixed creator account + fixed open match for
+# match-participation-lifecycle.yaml, and resets that match's participation
+# state -- cheap and idempotent even for flows that don't need it.
+"$(dirname "$0")/seed-participation-match.sh"
+
 for flow in "$FLOWS_DIR"/*.yaml; do
   name=$(basename "$flow")
   echo "--- Resetting Keychain on $DEVICE before $name ---"
