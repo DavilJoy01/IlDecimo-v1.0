@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   bubbleTextOwn: { color: colors.onPrimary, ...typography.body },
   bubbleTextOther: { color: colors.ink, ...typography.body },
   timestampOwn: { fontSize: 10, color: colors.primaryTint, marginTop: 4, alignSelf: 'flex-end' },
-  timestampOther: { fontSize: 10, color: colors.muted, marginTop: 4, alignSelf: 'flex-end' },
+  timestampOther: { fontSize: 10, color: colors.mutedStrong, marginTop: 4, alignSelf: 'flex-end' },
   mentionList: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, marginBottom: 4, maxHeight: 160 },
   mentionItem: { paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceSm, borderBottomWidth: 1, borderBottomColor: colors.border },
   mentionItemText: typography.body,

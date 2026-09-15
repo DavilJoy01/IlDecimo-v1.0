@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   bubbleTextOwn: { color: colors.onPrimary, ...typography.body },
   bubbleTextOther: { color: colors.ink, ...typography.body },
   timestampOwn: { fontSize: 10, color: colors.primaryTint, marginTop: 4, alignSelf: 'flex-end' },
-  timestampOther: { fontSize: 10, color: colors.muted, marginTop: 4, alignSelf: 'flex-end' },
+  timestampOther: { fontSize: 10, color: colors.mutedStrong, marginTop: 4, alignSelf: 'flex-end' },
   inputRow: { flexDirection: 'row', gap: spacing.spaceXs, paddingVertical: spacing.spaceXs, alignItems: 'flex-end' },
   input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusPill, paddingHorizontal: spacing.spaceMd, paddingVertical: 10, maxHeight: 100, ...typography.body },
   sendButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusPill, paddingHorizontal: spacing.spaceMd, paddingVertical: 10, justifyContent: 'center' },

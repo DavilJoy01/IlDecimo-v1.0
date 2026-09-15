@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   secondaryButton: { backgroundColor: colors.danger, borderRadius: spacing.radiusControl, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
   secondaryButtonText: { color: colors.onPrimary, ...typography.label },
   disabledButton: { backgroundColor: colors.border, borderRadius: spacing.radiusControl, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
-  disabledButtonText: { color: colors.muted, ...typography.label },
+  disabledButtonText: { color: colors.mutedStrong, ...typography.label },
   moderation: { flexDirection: 'row', gap: spacing.spaceLg, marginTop: spacing.spaceLg + spacing.spaceXs, alignItems: 'center' },
   reportLink: { color: colors.muted, fontFamily: 'WorkSans_600SemiBold', fontSize: 15 },
   blockLink: { color: colors.danger, fontFamily: 'WorkSans_600SemiBold', fontSize: 15 },
