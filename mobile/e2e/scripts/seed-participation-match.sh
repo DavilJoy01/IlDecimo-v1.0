@@ -13,6 +13,19 @@
 # second run would find the participant already approved (or rejected) and
 # the flow's assertions on the "Richiedi di partecipare" button and the
 # "Richieste in attesa" section would fail.
+#
+# MATCH_ID uses the 'dddddddd-...' pattern deliberately, NOT the more
+# obvious '55555555-...'/'77777777-...' repeated-digit style: the pgTAP
+# suite (supabase/tests/*.sql) already uses '11111111' through '99999999'
+# plus 'aaaaaaaa'/'bbbbbbbb'/'cccccccc' pervasively as its own per-test
+# fixture IDs, relying on transaction rollback for isolation between
+# runs. This script's rows are genuinely PERSISTENT (committed, not
+# rolled back) in the same local database, so reusing one of those IDs
+# collides with a live pgTAP fixture insert and breaks that test file
+# with a real "duplicate key value violates unique constraint" error --
+# discovered the hard way when seed-chat-match.sh's '77777777-...' broke
+# 013_nearby_open_matches.test.sql. 'd'/'e'/'f' are confirmed unused by
+# any pgTAP file as of this writing -- grep before picking another one.
 set -euo pipefail
 
 SUPABASE_URL="http://127.0.0.1:54321"
@@ -20,7 +33,7 @@ SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZ
 
 E2E_CREATOR_PHONE="+390000000997"
 E2E_CREATOR_PASSWORD="MaestroCreator123!"
-MATCH_ID="55555555-5555-5555-5555-555555555555"
+MATCH_ID="dddddddd-dddd-dddd-dddd-dddddddddddd"
 
 EXISTING_ID=$(docker exec -i supabase_db_backend-foundation psql -U postgres -d postgres -tA -c \
   "select id from auth.users where phone = '${E2E_CREATOR_PHONE#+}';" 2>/dev/null | tr -d '[:space:]')

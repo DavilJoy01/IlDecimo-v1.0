@@ -54,8 +54,17 @@ appId: com.anonymous.mobile
     text: "Non consentire"
     optional: true
 - waitForAnimationToEnd
-- tapOn:
-    text: ".*Le mie part.*"
+# The tab tap right after login/dialog-dismiss is intermittently missed
+# even after waitForAnimationToEnd (Maestro reports COMPLETED but Home
+# stays on screen) -- wrapping it with a retry against the destination
+# screen's own header re-taps when that happens, instead of failing the
+# whole flow on what is otherwise just bad luck on this device.
+- retry:
+    maxRetries: 3
+    commands:
+      - tapOn:
+          text: ".*Le mie part.*"
+      - assertVisible: "Le mie partite"
 # "Le mie partite" row Pressables wrap fieldName/meta/status Text
 # siblings into one composite accessibility label (same class of gotcha
 # documented in match-participation-lifecycle.yaml) -- regex-wrap.
@@ -100,8 +109,14 @@ appId: com.anonymous.mobile
 # right as the previous screen's transition/state-update animation is
 # still settling can silently land on nothing.
 - waitForAnimationToEnd
-- tapOn:
-    text: ".*Profilo.*"
+# Same intermittent tab-tap-after-transition miss as ".*Le mie part.*"
+# above -- wrap in retry against the profile screen's own menu icon.
+- retry:
+    maxRetries: 3
+    commands:
+      - tapOn:
+          text: ".*Profilo.*"
+      - assertVisible: "⋮"
 - tapOn:
     text: "⋮"
 # Same composite-label class as the menu's "Esci" in
@@ -132,8 +147,17 @@ appId: com.anonymous.mobile
     text: "Non consentire"
     optional: true
 - waitForAnimationToEnd
-- tapOn:
-    text: ".*Le mie part.*"
+# The tab tap right after login/dialog-dismiss is intermittently missed
+# even after waitForAnimationToEnd (Maestro reports COMPLETED but Home
+# stays on screen) -- wrapping it with a retry against the destination
+# screen's own header re-taps when that happens, instead of failing the
+# whole flow on what is otherwise just bad luck on this device.
+- retry:
+    maxRetries: 3
+    commands:
+      - tapOn:
+          text: ".*Le mie part.*"
+      - assertVisible: "Le mie partite"
 - tapOn:
     text: ".*Campo Chat E2E.*"
 - waitForAnimationToEnd
@@ -156,8 +180,14 @@ appId: com.anonymous.mobile
 # right as the previous screen's transition/state-update animation is
 # still settling can silently land on nothing.
 - waitForAnimationToEnd
-- tapOn:
-    text: ".*Profilo.*"
+# Same intermittent tab-tap-after-transition miss as ".*Le mie part.*"
+# above -- wrap in retry against the profile screen's own menu icon.
+- retry:
+    maxRetries: 3
+    commands:
+      - tapOn:
+          text: ".*Profilo.*"
+      - assertVisible: "⋮"
 - tapOn:
     text: "⋮"
 - tapOn:
@@ -186,8 +216,17 @@ appId: com.anonymous.mobile
     text: "Non consentire"
     optional: true
 - waitForAnimationToEnd
-- tapOn:
-    text: ".*Le mie part.*"
+# The tab tap right after login/dialog-dismiss is intermittently missed
+# even after waitForAnimationToEnd (Maestro reports COMPLETED but Home
+# stays on screen) -- wrapping it with a retry against the destination
+# screen's own header re-taps when that happens, instead of failing the
+# whole flow on what is otherwise just bad luck on this device.
+- retry:
+    maxRetries: 3
+    commands:
+      - tapOn:
+          text: ".*Le mie part.*"
+      - assertVisible: "Le mie partite"
 - tapOn:
     text: ".*Campo Chat E2E.*"
 - waitForAnimationToEnd

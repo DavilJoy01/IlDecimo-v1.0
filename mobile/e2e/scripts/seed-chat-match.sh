@@ -25,6 +25,18 @@
 # chat. Idempotent: safe to run before every E2E run. Never touches
 # anything but http://127.0.0.1:54321 -- see seed-test-user.sh for why the
 # service role key below is safe to commit.
+#
+# MATCH_ID uses the 'eeeeeeee-...' pattern deliberately, NOT a more
+# obvious repeated-digit UUID: this script's original '77777777-...'
+# choice collided with an existing pgTAP fixture in
+# 013_nearby_open_matches.test.sql and broke that test with a real
+# "duplicate key value violates unique constraint" error, since this
+# script's rows are genuinely persistent (committed) in the same local
+# database the pgTAP suite runs against. See
+# seed-participation-match.sh's own MATCH_ID comment for the full
+# explanation -- 'd'/'e'/'f' are confirmed unused by any pgTAP file as of
+# this writing, and this script uses 'e' since seed-participation-match.sh
+# already claimed 'd'.
 set -euo pipefail
 
 SUPABASE_URL="http://127.0.0.1:54321"
@@ -33,7 +45,7 @@ SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZ
 E2E_CREATOR_PHONE="+390000000997"
 E2E_CREATOR_PASSWORD="MaestroCreator123!"
 E2E_PHONE="+390000000900"
-MATCH_ID="77777777-7777-7777-7777-777777777777"
+MATCH_ID="eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
 
 EXISTING_CREATOR_ID=$(docker exec -i supabase_db_backend-foundation psql -U postgres -d postgres -tA -c \
   "select id from auth.users where phone = '${E2E_CREATOR_PHONE#+}';" 2>/dev/null | tr -d '[:space:]')

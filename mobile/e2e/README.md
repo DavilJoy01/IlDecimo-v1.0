@@ -66,6 +66,26 @@ export PATH="$JAVA_HOME/bin:$PATH:$HOME/.maestro/bin"
    maestro --device <udid> test e2e/flows/login-happy-path.yaml
    ```
 
+**Don't run the pgTAP suite (`supabase test db`) against a local database
+that already has E2E fixture data seeded, without a `db reset` in
+between.** `match-participation-lifecycle.yaml`'s fixed match is a real,
+persistent `status='open'` row near Palermo (38.1157, 13.3615) — geocoded
+there on purpose, since that flow's first leg genuinely searches Home for
+"Palermo" and needs a real result to appear, the same way a live user
+would. `013_nearby_open_matches.test.sql` asserts *exact counts* of open
+matches within a radius of that same location; pgTAP's usual
+transaction-rollback isolation only protects a test file from *itself*,
+not from unrelated rows already committed to the table by something else
+entirely — so the persistent E2E fixture silently inflates those counts
+and produces real assertion failures (`have: 3, want: 1`, etc.) that have
+nothing to do with the RPC being broken. Confirmed empirically: full
+suite fails with fixture data present, passes 192/192 clean immediately
+after `npx supabase db reset` (which also wipes every E2E fixture —
+re-run the seed scripts afterward if you need them again). This is a
+workflow ordering issue, not a bug in either the RPC or the tests — run
+pgTAP right after a reset, run E2E flows whenever, just don't expect a
+meaningful pgTAP result from a database an E2E run has already touched.
+
 ## What's covered so far
 
 - `flows/app-launches.yaml` — the app launches and reaches the login
