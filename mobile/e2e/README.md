@@ -96,8 +96,31 @@ export PATH="$JAVA_HOME/bin:$PATH:$HOME/.maestro/bin"
   logs out; the requester logs back in and confirms both the approved
   status and chat access. The seed script also resets any leftover
   `match_participants` row from a previous run, so it's safe to re-run.
+- `flows/match-chat.yaml` — covers the MVP spec's "chat realtime" critical
+  flow, with one deliberate, honestly-scoped limitation: a single device
+  can't hold two authenticated sessions open at once, so this can't prove
+  the literal "message arrives via Realtime with zero manual refresh"
+  scenario (the same limitation already accepted for `match-room-chat`'s
+  own manual verification). What it proves instead, real and end-to-end:
+  both the creator (who never holds a `match_participants` row for their
+  own match) and an approved participant can reach the chat, a sent
+  message is actually persisted, and each side's next fetch of the chat
+  correctly returns the other side's message. `npm run e2e:seed-chat`
+  (`e2e/scripts/seed-chat-match.sh`) reuses the fixed "creator" account
+  from `seed-participation-match.sh` but seeds a SEPARATE fixed match
+  (dedicated match_id, so the two seed scripts never reset each other's
+  state) with the fixed E2E account placed straight into `approved` —
+  bypassing the request/approve UI dance entirely, since that state
+  machine is already covered end-to-end by
+  `match-participation-lifecycle.yaml` and this flow exists to test chat,
+  not participation. Getting an `approved` row seeded directly needed
+  impersonating both users via `set local role authenticated` +
+  `set local request.jwt.claims`, one statement each, rather than
+  bypassing `enforce_participant_state_machine()` — see the script for
+  why (the trigger checks `auth.uid()`, which only resolves from a JWT,
+  even for a write issued by the `postgres` superuser).
 
-All four were run via `npm run e2e` and confirmed passing, twice in a row
+All five were run via `npm run e2e` and confirmed passing, twice in a row
 back to back, against `iPhone17-fresh` (`D727DB43-C7DD-4B2B-B847-F97A1521C0D9`).
 Getting there surfaced several real gotchas, each now handled by the
 flows/scripts themselves rather than left as traps for the next flow
@@ -165,6 +188,39 @@ author:
   the mutation, then awaits a full participant-list reload) needs
   `extendedWaitUntil: { notVisible: {...}, timeout: ... }` instead, which
   polls rather than checking once.
+- **A text-matched `tapOn` next to a `MatchMapView` can fail even after
+  fixing the map's own touch-swallowing bug** (see the point above) —
+  found on the match detail screen's "💬 Chat" button, which sits directly
+  below the map with no other content between them. Reported `COMPLETED`,
+  a hierarchy dump taken immediately after confirmed the app never
+  navigated, yet an identical manual tap at the exact same point (outside
+  Maestro, via direct simulator control) worked every time, including
+  from a freshly launched app. Ruled out as a further app bug: the map
+  already had `scrollEnabled`/`zoomEnabled`/`rotateEnabled`/`pitchEnabled`
+  all `false`, and wrapping it in a `pointerEvents="none"` View changed
+  nothing either. `retryTapIfNoChange: true` didn't help — the button's
+  own press-state ripple counts as "change" even when navigation never
+  fires. What worked: giving the button a `testID` and selecting by `id:`
+  instead of text, the same fix that already resolved unrelated
+  text-tap misses on this project's login fields and profile-menu logout
+  button. Root cause not fully explained (this looks Maestro/XCUITest-
+  specific to elements positioned adjacent to a native map view, not an
+  app-level defect), but the fix is cheap and the pattern is now proven
+  three times in this project — reach for a `testID` before spending more
+  time diagnosing a "tapOn reports COMPLETED but nothing happens" case.
+- **A multiline `TextInput` can leave the keyboard open after send with
+  no reliable way to dismiss it**: the chat screen's message input keeps
+  focus after tapping "Invia" (real app behavior, not a bug — lets you
+  keep typing), and the open keyboard then covers the bottom tab bar, so
+  a subsequent `tapOn` for a tab silently lands on the keyboard instead.
+  Maestro's `hideKeyboard` command failed outright ("doesn't expose a
+  standard dismiss action" — likely because a multiline field's return
+  key inserts a newline instead of offering a dismiss/"Done" action), and
+  tapping the screen's own static header text did nothing either (this
+  screen has no tap-outside-to-dismiss handler). Fixed by sidestepping
+  the keyboard entirely: navigate back to match detail via the chat
+  screen's own back link first, then continue from there — no keyboard
+  interaction needed at all.
 
 ## Adding a new flow
 

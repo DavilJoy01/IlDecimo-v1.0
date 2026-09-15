@@ -104,6 +104,7 @@ export default function MatchChatScreen() {
         {chat.sendError && <Text style={styles.error}>{chat.sendError}</Text>}
         <View style={styles.inputRow}>
           <TextInput
+            testID="chat-message-input"
             style={styles.input}
             value={inputText}
             onChangeText={setInputText}
@@ -111,7 +112,7 @@ export default function MatchChatScreen() {
             multiline
             maxLength={2000}
           />
-          <Pressable style={withPressed(styles.sendButton)} disabled={chat.sending || !inputText.trim()} onPress={handleSend}>
+          <Pressable testID="chat-send-button" style={withPressed(styles.sendButton)} disabled={chat.sending || !inputText.trim()} onPress={handleSend}>
             {chat.sending ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.sendButtonText}>Invia</Text>}
           </Pressable>
         </View>

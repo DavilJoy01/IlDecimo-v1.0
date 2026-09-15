@@ -1,0 +1,199 @@
+appId: com.anonymous.mobile
+---
+# Requires all of:
+#   e2e/scripts/seed-test-user.sh (the fixed E2E account -- one of the two
+#     chat participants)
+#   e2e/scripts/seed-chat-match.sh (creates/reuses the fixed "creator"
+#     account from match-participation-lifecycle.yaml, plus a SEPARATE
+#     fixed open match dedicated to this flow, with the fixed E2E account
+#     seeded straight to an APPROVED participant -- bypassing the
+#     request/approve UI dance, since that state machine is already
+#     covered end-to-end by match-participation-lifecycle.yaml. Also
+#     clears any messages left over from a previous run.)
+#
+# Covers the MVP spec's "chat realtime" critical E2E flow -- with one
+# deliberate, honestly-scoped limitation: a single device can't hold two
+# authenticated sessions open at once, so this can't prove the literal
+# "message arrives via Realtime with zero manual refresh" scenario (the
+# same limitation already accepted for match-room-chat's own manual
+# verification, see that plan's memory). What it DOES prove, real and
+# end-to-end: both the creator (who never holds a match_participants row
+# for their own match) and an approved participant can reach the chat,
+# a sent message is actually persisted (not just optimistically shown),
+# and each side's next fetch of the same match's chat correctly returns
+# the other side's message -- the real, non-trivial RLS/access-gate logic
+# this flow exists to protect, not the Realtime transport itself.
+#
+# Single-device sequential login/logout, three legs: participant sends a
+# message and logs out; creator confirms it, replies, and logs out;
+# participant logs back in and confirms the reply. Every login dismisses
+# both possible system dialogs (see login-happy-path.yaml for why each is
+# tried twice).
+
+# --- Participant (Maestro E2E): send the first message ---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "login-phone-input"
+- inputText: "+390000000900"
+- tapOn:
+    id: "login-password-input"
+- inputText: "MaestroTest123!"
+- tapOn:
+    id: "login-submit-button"
+- tapOn:
+    text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
+    optional: true
+- tapOn:
+    text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    text: ".*Le mie part.*"
+# "Le mie partite" row Pressables wrap fieldName/meta/status Text
+# siblings into one composite accessibility label (same class of gotcha
+# documented in match-participation-lifecycle.yaml) -- regex-wrap.
+- tapOn:
+    text: ".*Campo Chat E2E.*"
+- waitForAnimationToEnd
+# A text-matched tapOn here (".*Chat.*") was observed to silently do
+# nothing under Maestro specifically -- reported COMPLETED, a hierarchy
+# dump taken immediately after confirmed still on match detail, yet an
+# identical manual tap at the exact same point (via the simulator control
+# tool, not Maestro) navigated correctly every time, including from a
+# freshly launched app with no prior screen visits. Ruled out as an app
+# bug: MatchMapView's scrollEnabled/zoomEnabled/rotateEnabled/pitchEnabled
+# were already false (the real fix for the Approva/Rifiuta touch bug in
+# match-participation-lifecycle.yaml), and wrapping the map in a
+# pointerEvents="none" View changed nothing either. Selecting by testID
+# instead of text -- the same fix that already resolved unrelated
+# text-tap misses on this project's login fields and the profile menu's
+# logout button -- resolved it completely.
+- tapOn:
+    id: "match-chat-button"
+- assertVisible: "Scrivi un messaggio..."
+- tapOn:
+    id: "chat-message-input"
+- inputText: "Messaggio dal partecipante"
+- tapOn:
+    id: "chat-send-button"
+- assertVisible: "Messaggio dal partecipante"
+# The message input keeps focus after sending -- the keyboard stays open
+# and covers the bottom tab bar, so a tap on ".*Profilo.*" would land on
+# the keyboard instead of the tab underneath it. Neither hideKeyboard
+# ("doesn't expose a standard dismiss action" on this custom multiline
+# TextInput) nor tapping the static "Chat" header (this screen has no
+# tap-outside-to-dismiss handler) actually closed it. Sidestepping the
+# problem instead of fighting it: navigate back to match detail via the
+# screen's own back link, which needs no keyboard interaction at all.
+- tapOn: ".*Torna alla partita.*"
+
+# --- Log out ---
+# waitForAnimationToEnd before the tab tap avoids the same silent-miss
+# race documented in match-participation-lifecycle.yaml: a tap thrown
+# right as the previous screen's transition/state-update animation is
+# still settling can silently land on nothing.
+- waitForAnimationToEnd
+- tapOn:
+    text: ".*Profilo.*"
+- tapOn:
+    text: "⋮"
+# Same composite-label class as the menu's "Esci" in
+# match-participation-lifecycle.yaml -- select by testID, not text.
+- tapOn:
+    id: "profile-logout-button"
+- assertVisible: "Numero di telefono"
+
+# --- Creator (Creatore E2E): confirm the message, reply ---
+- tapOn:
+    id: "login-phone-input"
+- inputText: "+390000000997"
+- tapOn:
+    id: "login-password-input"
+- inputText: "MaestroCreator123!"
+- tapOn:
+    id: "login-submit-button"
+- tapOn:
+    text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
+    optional: true
+- tapOn:
+    text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    text: ".*Le mie part.*"
+- tapOn:
+    text: ".*Campo Chat E2E.*"
+- waitForAnimationToEnd
+# See the requester leg above -- select the Chat button by testID, not
+# text, for the same Maestro-specific (not app-level) reason.
+- tapOn:
+    id: "match-chat-button"
+- assertVisible: "Messaggio dal partecipante"
+- tapOn:
+    id: "chat-message-input"
+- inputText: "Messaggio dal creatore"
+- tapOn:
+    id: "chat-send-button"
+- assertVisible: "Messaggio dal creatore"
+- tapOn: ".*Torna alla partita.*"
+
+# --- Log out ---
+# waitForAnimationToEnd before the tab tap avoids the same silent-miss
+# race documented in match-participation-lifecycle.yaml: a tap thrown
+# right as the previous screen's transition/state-update animation is
+# still settling can silently land on nothing.
+- waitForAnimationToEnd
+- tapOn:
+    text: ".*Profilo.*"
+- tapOn:
+    text: "⋮"
+- tapOn:
+    id: "profile-logout-button"
+- assertVisible: "Numero di telefono"
+
+# --- Participant: confirm the creator's reply is there on the next fetch ---
+- tapOn:
+    id: "login-phone-input"
+- inputText: "+390000000900"
+- tapOn:
+    id: "login-password-input"
+- inputText: "MaestroTest123!"
+- tapOn:
+    id: "login-submit-button"
+- tapOn:
+    text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
+    optional: true
+- tapOn:
+    text: "Non ora"
+    optional: true
+- tapOn:
+    text: "Non consentire"
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    text: ".*Le mie part.*"
+- tapOn:
+    text: ".*Campo Chat E2E.*"
+- waitForAnimationToEnd
+# See the requester leg above -- select the Chat button by testID, not
+# text, for the same Maestro-specific (not app-level) reason.
+- tapOn:
+    id: "match-chat-button"
+- assertVisible: "Messaggio dal partecipante"
+- assertVisible: "Messaggio dal creatore"

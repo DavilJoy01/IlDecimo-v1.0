@@ -61,6 +61,7 @@
     "e2e:seed": "bash e2e/scripts/seed-test-user.sh",
     "e2e:seed-target": "bash e2e/scripts/seed-target-user.sh",
     "e2e:seed-participation": "bash e2e/scripts/seed-participation-match.sh",
+    "e2e:seed-chat": "bash e2e/scripts/seed-chat-match.sh",
     "e2e": "bash e2e/scripts/run.sh"
   },
   "private": true

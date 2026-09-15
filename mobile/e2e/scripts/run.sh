@@ -46,6 +46,12 @@ TARGET_CODE=$("$(dirname "$0")/seed-target-user.sh")
 # state -- cheap and idempotent even for flows that don't need it.
 "$(dirname "$0")/seed-participation-match.sh"
 
+# Seeds the fixed creator account + a separate fixed open match for
+# match-chat.yaml, with the fixed E2E account pre-approved and that
+# match's messages cleared -- cheap and idempotent even for flows that
+# don't need it.
+"$(dirname "$0")/seed-chat-match.sh"
+
 for flow in "$FLOWS_DIR"/*.yaml; do
   name=$(basename "$flow")
   echo "--- Resetting Keychain on $DEVICE before $name ---"

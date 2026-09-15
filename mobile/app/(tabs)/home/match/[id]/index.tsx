@@ -177,6 +177,7 @@ export default function MatchDetailScreen() {
 
       {canAccessChat && (
         <Pressable
+          testID="match-chat-button"
           style={withPressed(styles.chatButton)}
           onPress={() => router.push({ pathname: '/(tabs)/home/match/[id]/chat', params: { id } })}
         >
