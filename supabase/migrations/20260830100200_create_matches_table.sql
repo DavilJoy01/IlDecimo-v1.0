@@ -1,3 +1,16 @@
+-- A fresh hosted Supabase project's `db push` connection does not have
+-- `extensions` in its default search_path the way the local dev stack
+-- does, so the `geography` type from 20260830100000's
+-- `create extension postgis with schema extensions` doesn't resolve
+-- unqualified ("type geography does not exist") -- confirmed 2026-09-16
+-- against a brand-new project. `set` fixes the rest of the CURRENT
+-- session/push run immediately; `alter database` persists it for every
+-- future connection (later pushes, the SQL editor, direct psql) so this
+-- doesn't recur. Harmless on local dev, which already resolves these
+-- unqualified.
+set search_path = "$user", public, extensions;
+alter database postgres set search_path to "$user", public, extensions;
+
 create table public.matches (
   id uuid primary key default gen_random_uuid(),
   creator_id uuid not null references public.users(id) on delete cascade,
