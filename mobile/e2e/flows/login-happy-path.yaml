@@ -1,4 +1,4 @@
-appId: com.anonymous.mobile
+appId: com.ildecimo.app
 ---
 # Requires the fixed E2E test account (run e2e/scripts/seed-test-user.sh
 # once against local Supabase before this flow) and local Supabase running.

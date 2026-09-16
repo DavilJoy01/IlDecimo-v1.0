@@ -1,4 +1,4 @@
-appId: com.anonymous.mobile
+appId: com.ildecimo.app
 ---
 # Requires both fixed E2E accounts seeded first:
 #   TARGET_CODE="$(e2e/scripts/seed-target-user.sh)"

@@ -1,4 +1,4 @@
-appId: com.anonymous.mobile
+appId: com.ildecimo.app
 ---
 # Requires all of:
 #   e2e/scripts/seed-test-user.sh (the fixed E2E account -- one of the two

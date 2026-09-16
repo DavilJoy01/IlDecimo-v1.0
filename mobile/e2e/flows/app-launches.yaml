@@ -1,4 +1,4 @@
-appId: com.anonymous.mobile
+appId: com.ildecimo.app
 ---
 # Smoke test: the app launches and reaches the login screen. No backend
 # dependency (Supabase down/unreachable does not affect the login screen
