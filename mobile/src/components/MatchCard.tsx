@@ -5,28 +5,46 @@ import { colors, typography, spacing, withPressed } from '@/theme';
 
 export function MatchCard({ match, onPressJoin }: { match: NearbyMatch; onPressJoin: () => void }) {
   const spotsLeft = match.max_players - match.approved_players_count;
+  const isLastMan = spotsLeft === 1;
   const isUrgent = spotsLeft === 1 || spotsLeft === 2;
 
   return (
     <View style={styles.card}>
-      <View style={styles.headerRow}>
-        <Text style={styles.fieldName}>{match.field_name}</Text>
-        {isUrgent && (
-          <View style={styles.urgentBadge}>
-            <Text style={styles.urgentBadgeText}>{spotsLeft === 1 ? 'Manca 1!' : 'Mancano 2!'}</Text>
-          </View>
-        )}
+      <View style={styles.metaRow}>
+        <Text style={styles.typeLabel}>Calcio a {match.match_type}</Text>
+        <Text style={styles.distance}>{match.distance_km.toFixed(1)} km</Text>
       </View>
-      <Text style={styles.meta}>📍 {match.distance_km.toFixed(1)} km · ⚽ Calcio a {match.match_type}</Text>
-      <Text style={styles.meta}>{match.start_time.slice(0, 5)} → {match.end_time.slice(0, 5)}</Text>
-      <Text style={styles.spots}>
-        {match.approved_players_count}/{match.max_players} giocatori · {spotsLeft} post{spotsLeft === 1 ? 'o' : 'i'} disponibil{spotsLeft === 1 ? 'e' : 'i'}
+      <Text style={styles.fieldName}>{match.field_name}</Text>
+      <Text style={styles.time}>
+        {match.start_time.slice(0, 5)} <Text style={styles.timeSep}>→ {match.end_time.slice(0, 5)}</Text>
       </Text>
+      <View style={styles.slotsRow}>
+        {Array.from({ length: match.max_players }).map((_, i) => {
+          const filled = i < match.approved_players_count;
+          return (
+            <View
+              key={i}
+              style={[
+                styles.slot,
+                filled ? styles.slotFilled : isLastMan ? styles.slotLastMan : styles.slotEmpty,
+              ]}
+            />
+          );
+        })}
+      </View>
+      <View style={styles.footerRow}>
+        <Text style={styles.playerCount}>{match.approved_players_count} / {match.max_players} in campo</Text>
+        {isLastMan ? (
+          <View style={styles.urgentBadge}>
+            <Text style={styles.urgentBadgeText}>Ultimo uomo</Text>
+          </View>
+        ) : spotsLeft > 0 ? (
+          <Text style={styles.spotsLabel}>{spotsLeft} post{spotsLeft === 1 ? 'o' : 'i'} libero{spotsLeft === 1 ? '' : 'i'}</Text>
+        ) : null}
+      </View>
       {spotsLeft > 0 && (
-        <Pressable style={withPressed(isUrgent ? styles.joinButtonUrgent : styles.joinButton)} onPress={onPressJoin}>
-          <Text style={isUrgent ? styles.joinButtonUrgentText : styles.joinButtonText}>
-            {isUrgent ? 'Entra in campo' : 'Iscriviti'}
-          </Text>
+        <Pressable style={withPressed(styles.joinButton)} onPress={onPressJoin}>
+          <Text style={styles.joinButtonText}>Scendi in campo</Text>
         </Pressable>
       )}
     </View>
@@ -34,15 +52,23 @@ export function MatchCard({ match, onPressJoin }: { match: NearbyMatch; onPressJ
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusCard, padding: spacing.spaceMd, gap: 4, marginBottom: spacing.spaceSm },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.spaceXs },
-  fieldName: { ...typography.label, fontSize: 18, flexShrink: 1 },
-  urgentBadge: { backgroundColor: colors.accent, borderRadius: spacing.radiusControl, paddingVertical: 4, paddingHorizontal: spacing.spaceSm },
-  urgentBadgeText: { color: colors.ink, ...typography.label, fontSize: 12 },
-  meta: { color: colors.ink, ...typography.body },
-  spots: { color: colors.primary, fontFamily: 'Archivo_600SemiBold', fontSize: 15, marginTop: 4 },
-  joinButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 10, alignItems: 'center', marginTop: spacing.spaceXs },
-  joinButtonText: { color: colors.onPrimary, ...typography.label },
-  joinButtonUrgent: { backgroundColor: colors.accent, borderRadius: spacing.radiusControl, paddingVertical: 10, alignItems: 'center', marginTop: spacing.spaceXs },
-  joinButtonUrgentText: { color: colors.ink, ...typography.label },
+  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusCard, padding: spacing.spaceMd, gap: 4, marginBottom: spacing.spaceSm },
+  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  typeLabel: { ...typography.meta, color: colors.accent, textTransform: 'uppercase', letterSpacing: 2 },
+  distance: { ...typography.meta, color: colors.muted, letterSpacing: 0.8 },
+  fieldName: { ...typography.label, fontSize: 20, textTransform: 'uppercase', color: colors.ink, marginTop: 4 },
+  time: { ...typography.label, fontSize: 20, color: colors.ink, marginTop: 6, fontVariant: ['tabular-nums'] },
+  timeSep: { ...typography.meta, color: colors.muted, textTransform: 'uppercase', letterSpacing: 1.2 },
+  slotsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 12 },
+  slot: { width: 9, height: 9, borderRadius: 5, borderWidth: 1.5 },
+  slotFilled: { backgroundColor: colors.ink, borderColor: colors.ink },
+  slotLastMan: { backgroundColor: colors.accent, borderColor: colors.accent },
+  slotEmpty: { backgroundColor: 'transparent', borderColor: colors.border },
+  footerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
+  playerCount: { ...typography.meta, color: colors.muted, textTransform: 'uppercase', letterSpacing: 1.2, fontVariant: ['tabular-nums'] },
+  spotsLabel: { ...typography.meta, color: colors.success, textTransform: 'uppercase', letterSpacing: 1.2 },
+  urgentBadge: { backgroundColor: colors.accent, borderRadius: spacing.radiusControl, paddingVertical: 5, paddingHorizontal: 11 },
+  urgentBadgeText: { ...typography.caption, color: colors.accentText, textTransform: 'uppercase', letterSpacing: 1.6 },
+  joinButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusCard, paddingVertical: 14, alignItems: 'center', marginTop: spacing.spaceSm },
+  joinButtonText: { ...typography.label, color: colors.onPrimary, textTransform: 'uppercase', letterSpacing: 2 },
 });

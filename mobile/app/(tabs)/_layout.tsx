@@ -9,20 +9,21 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: typography.caption,
+        tabBarLabelStyle: { ...typography.caption, textTransform: 'uppercase', letterSpacing: 1.2 },
+        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
       }}
     >
       <Tabs.Screen
         name="home"
-        options={{ title: 'Home', tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} /> }}
+        options={{ title: 'Campi', tabBarIcon: ({ color, size }) => <Ionicons name="football" color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="my-matches"
-        options={{ title: 'Le mie partite', tabBarIcon: ({ color, size }) => <Ionicons name="football" color={color} size={size} /> }}
+        options={{ title: 'Calendario', tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="people"
-        options={{ title: 'Persone', tabBarIcon: ({ color, size }) => <Ionicons name="people" color={color} size={size} /> }}
+        options={{ title: 'Rosa', tabBarIcon: ({ color, size }) => <Ionicons name="people" color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="messages"
