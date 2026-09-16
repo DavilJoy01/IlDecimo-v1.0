@@ -203,7 +203,7 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
 
 const styles = StyleSheet.create({
   container: { backgroundColor: colors.background, padding: spacing.spaceLg, gap: spacing.spaceSm },
-  label: { fontFamily: 'WorkSans_600SemiBold', fontSize: 15, marginTop: spacing.spaceXs },
+  label: { fontFamily: 'Archivo_600SemiBold', fontSize: 15, marginTop: spacing.spaceXs },
   row: { flexDirection: 'row', gap: spacing.spaceXs },
   chip: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusPill, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceMd },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   fieldPlaceholder: { ...typography.body, color: colors.muted },
   iosPicker: { alignSelf: 'center' },
   pickerDoneButton: { alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: spacing.spaceXs, marginTop: -8 },
-  pickerDoneText: { color: colors.primary, fontFamily: 'WorkSans_600SemiBold', fontSize: 15 },
+  pickerDoneText: { color: colors.primary, fontFamily: 'Archivo_600SemiBold', fontSize: 15 },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
   button: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, padding: 14, alignItems: 'center', marginTop: spacing.spaceMd },
   buttonText: { color: colors.onPrimary, ...typography.label, fontSize: 16 },

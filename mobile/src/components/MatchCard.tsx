@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
   urgentBadge: { backgroundColor: colors.accent, borderRadius: spacing.radiusControl, paddingVertical: 4, paddingHorizontal: spacing.spaceSm },
   urgentBadgeText: { color: colors.ink, ...typography.label, fontSize: 12 },
   meta: { color: colors.ink, ...typography.body },
-  spots: { color: colors.primary, fontFamily: 'WorkSans_600SemiBold', fontSize: 15, marginTop: 4 },
+  spots: { color: colors.primary, fontFamily: 'Archivo_600SemiBold', fontSize: 15, marginTop: 4 },
   joinButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 10, alignItems: 'center', marginTop: spacing.spaceXs },
   joinButtonText: { color: colors.onPrimary, ...typography.label },
   joinButtonUrgent: { backgroundColor: colors.accent, borderRadius: spacing.radiusControl, paddingVertical: 10, alignItems: 'center', marginTop: spacing.spaceXs },

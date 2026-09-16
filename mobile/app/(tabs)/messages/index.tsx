@@ -67,6 +67,6 @@ const styles = StyleSheet.create({
   row: { paddingVertical: spacing.spaceSm, borderBottomWidth: 1, borderBottomColor: colors.border },
   name: typography.label,
   preview: { color: colors.muted, ...typography.body, fontSize: 14, marginTop: 2 },
-  unreadText: { fontFamily: 'WorkSans_600SemiBold', color: colors.ink },
+  unreadText: { fontFamily: 'Archivo_600SemiBold', color: colors.ink },
   date: { color: colors.muted, ...typography.caption, marginTop: 2 },
 });

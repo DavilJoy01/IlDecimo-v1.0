@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.spaceSm, paddingVertical: spacing.spaceXs },
   avatar: { width: 40, height: 40, borderRadius: 20 },
   avatarPlaceholder: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  avatarInitial: { color: colors.onPrimary, fontFamily: 'Sora_700Bold' },
+  avatarInitial: { color: colors.onPrimary, fontFamily: 'Oswald_700Bold' },
   info: { flex: 1 },
   name: typography.label,
   role: { color: colors.muted, ...typography.meta },

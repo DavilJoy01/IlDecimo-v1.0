@@ -3,8 +3,8 @@ import { Slot, useRootNavigationState, useRouter, useSegments } from 'expo-route
 import { ActivityIndicator, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
-import { useFonts, Sora_600SemiBold, Sora_700Bold } from '@expo-google-fonts/sora';
-import { WorkSans_400Regular, WorkSans_500Medium, WorkSans_600SemiBold } from '@expo-google-fonts/work-sans';
+import { useFonts, Oswald_400Regular, Oswald_500Medium, Oswald_600SemiBold, Oswald_700Bold } from '@expo-google-fonts/oswald';
+import { Archivo_400Regular, Archivo_500Medium, Archivo_600SemiBold } from '@expo-google-fonts/archivo';
 import { supabase } from '@/api/supabase';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useProfileBootstrap } from '@/hooks/useProfileBootstrap';
@@ -28,11 +28,13 @@ Notifications.setNotificationHandler({
 export default function RootLayout() {
   const { session, status, setSession } = useSessionStore();
   const [fontsLoaded] = useFonts({
-    Sora_600SemiBold,
-    Sora_700Bold,
-    WorkSans_400Regular,
-    WorkSans_500Medium,
-    WorkSans_600SemiBold,
+    Oswald_400Regular,
+    Oswald_500Medium,
+    Oswald_600SemiBold,
+    Oswald_700Bold,
+    Archivo_400Regular,
+    Archivo_500Medium,
+    Archivo_600SemiBold,
   });
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded && status !== 'loading') await SplashScreen.hideAsync();

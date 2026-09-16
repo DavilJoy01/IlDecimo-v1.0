@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   menuDivider: { height: 1, backgroundColor: colors.border },
   avatar: { width: 88, height: 88, borderRadius: 44, marginBottom: spacing.spaceSm },
   avatarPlaceholder: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  avatarInitial: { color: colors.onPrimary, fontFamily: 'Sora_700Bold', fontSize: 36 },
+  avatarInitial: { color: colors.onPrimary, fontFamily: 'Oswald_700Bold', fontSize: 36 },
   name: typography.screenTitle,
   uniqueId: { color: colors.muted, marginBottom: spacing.spaceLg, ...typography.meta },
   statsRow: { flexDirection: 'row', gap: spacing.spaceLg, marginBottom: spacing.spaceMd },

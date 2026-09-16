@@ -1,8 +1,8 @@
 // mobile/src/theme/spacing.ts
 export const spacing = {
-  radiusCard: 14,
-  radiusControl: 10,
-  radiusPill: 20,
+  radiusCard: 3,
+  radiusControl: 2,
+  radiusPill: 2,
   spaceXs: 6,
   spaceSm: 12,
   spaceMd: 16,

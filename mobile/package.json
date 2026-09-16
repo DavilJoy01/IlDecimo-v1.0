@@ -3,6 +3,8 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
+    "@expo-google-fonts/archivo": "^0.4.2",
+    "@expo-google-fonts/oswald": "^0.4.2",
     "@expo-google-fonts/sora": "^0.4.2",
     "@expo-google-fonts/work-sans": "^0.4.2",
     "@expo/ui": "~57.0.14",

@@ -85,9 +85,9 @@ const styles = StyleSheet.create({
   rowCode: { color: colors.muted, ...typography.meta, marginTop: 2 },
   rowActions: { flexDirection: 'row', gap: spacing.spaceXs },
   acceptButton: { backgroundColor: colors.primary, borderRadius: 6, paddingVertical: 6, paddingHorizontal: spacing.spaceSm },
-  acceptButtonText: { color: colors.onPrimary, fontFamily: 'WorkSans_600SemiBold', fontSize: 13 },
+  acceptButtonText: { color: colors.onPrimary, fontFamily: 'Archivo_600SemiBold', fontSize: 13 },
   rejectButton: { backgroundColor: colors.danger, borderRadius: 6, paddingVertical: 6, paddingHorizontal: spacing.spaceSm },
-  rejectButtonText: { color: colors.onPrimary, fontFamily: 'WorkSans_600SemiBold', fontSize: 13 },
+  rejectButtonText: { color: colors.onPrimary, fontFamily: 'Archivo_600SemiBold', fontSize: 13 },
   cancelButton: { backgroundColor: colors.muted, borderRadius: 6, paddingVertical: 6, paddingHorizontal: spacing.spaceSm },
-  cancelButtonText: { color: colors.surface, fontFamily: 'WorkSans_600SemiBold', fontSize: 13 },
+  cancelButtonText: { color: colors.surface, fontFamily: 'Archivo_600SemiBold', fontSize: 13 },
 });

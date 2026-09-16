@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   row: { paddingVertical: spacing.spaceSm, borderBottomWidth: 1, borderBottomColor: colors.border },
   rowTitle: typography.label,
   rowMeta: { color: colors.muted, ...typography.meta, marginTop: 2 },
-  rowStatus: { color: colors.primary, ...typography.meta, fontFamily: 'WorkSans_600SemiBold', marginTop: 2 },
+  rowStatus: { color: colors.primary, ...typography.meta, fontFamily: 'Archivo_600SemiBold', marginTop: 2 },
   list: { paddingBottom: spacing.spaceLg },
   subtitle: { color: colors.muted, textAlign: 'center', marginTop: spacing.spaceLg, ...typography.body },
 });
