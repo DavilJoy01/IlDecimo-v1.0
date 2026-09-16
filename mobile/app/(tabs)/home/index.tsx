@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useNearbyMatches } from '@/hooks/useNearbyMatches';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useSessionStore } from '@/stores/sessionStore';
 import { MatchCard } from '@/components/MatchCard';
 import { MatchMapView } from '@/components/MatchMapView';
 import { colors, typography, spacing, withPressed } from '@/theme';
@@ -17,7 +16,6 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { matches, loading, error, locationLabel, searchLocation, refresh } = useNearbyMatches();
   const { unreadCount, refresh: refreshNotifications } = useNotifications();
-  const firstName = useSessionStore((state) => state.profile?.first_name);
   const [activeTypes, setActiveTypes] = useState<Set<number>>(new Set());
   const [searchText, setSearchText] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
@@ -62,9 +60,9 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
-      {firstName && <Text style={styles.greeting}>Ciao {firstName}</Text>}
+      {locationLabel && <Text style={styles.greeting}>In zona · {locationLabel}</Text>}
       <View style={styles.headerRow}>
-        <Text style={styles.header}>Partite vicino a te</Text>
+        <Text style={styles.header}>Chi gioca{'\n'}stasera</Text>
         <View style={styles.headerActions}>
           {locationLabel && (
             <Pressable
@@ -136,7 +134,7 @@ export default function HomeScreen() {
                   style={withPressed([styles.filterPill, active && styles.filterPillActive])}
                   onPress={() => toggleType(type)}
                 >
-                  <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>Calcio a {type}</Text>
+                  <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>A {type}</Text>
                 </Pressable>
               );
             })}
@@ -170,15 +168,15 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { backgroundColor: colors.background, flex: 1 },
-  greeting: { ...typography.label, fontSize: 16, color: colors.muted, paddingHorizontal: spacing.spaceMd, marginBottom: spacing.spaceXs },
+  greeting: { ...typography.meta, color: colors.muted, textTransform: 'uppercase', letterSpacing: 2.4, paddingHorizontal: spacing.spaceMd },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     paddingHorizontal: spacing.spaceMd,
     marginBottom: spacing.spaceSm,
   },
-  header: typography.screenTitle,
+  header: { ...typography.screenTitle, textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 30 },
   searchRow: {
     flexDirection: 'row',
     gap: spacing.spaceXs,
@@ -206,9 +204,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.spaceMd,
     marginBottom: spacing.spaceSm,
   },
-  filterPill: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, paddingVertical: 6, paddingHorizontal: spacing.spaceSm },
+  filterPill: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, paddingVertical: 7, paddingHorizontal: spacing.spaceSm },
   filterPillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  filterPillText: { color: colors.ink, ...typography.label, fontSize: 13 },
+  filterPillText: { color: colors.muted, ...typography.meta, textTransform: 'uppercase', letterSpacing: 1.4 },
   filterPillTextActive: { color: colors.onPrimary },
   bellButton: { position: 'relative', padding: 4 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.spaceSm },
