@@ -81,8 +81,8 @@ export function ProfileForm({
           <Text style={styles.avatarHint}>Tocca per cambiare foto</Text>
         </Pressable>
       )}
-      <TextInput style={styles.input} placeholder="Nome" value={firstName} onChangeText={setFirstName} />
-      <TextInput style={styles.input} placeholder="Cognome" value={lastName} onChangeText={setLastName} />
+      <TextInput style={styles.input} placeholder="Nome" placeholderTextColor={colors.muted} value={firstName} onChangeText={setFirstName} />
+      <TextInput style={styles.input} placeholder="Cognome" placeholderTextColor={colors.muted} value={lastName} onChangeText={setLastName} />
       <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
         <Text style={birthDate ? styles.dateValue : styles.datePlaceholder}>{birthDate || 'Data di nascita'}</Text>
       </Pressable>
@@ -106,7 +106,7 @@ export function ProfileForm({
           <Text style={styles.dateDoneText}>Fatto</Text>
         </Pressable>
       )}
-      <TextInput style={styles.input} placeholder="Altezza (cm)" keyboardType="number-pad" value={heightCm} onChangeText={setHeightCm} />
+      <TextInput style={styles.input} placeholder="Altezza (cm)" placeholderTextColor={colors.muted} keyboardType="number-pad" value={heightCm} onChangeText={setHeightCm} />
       {!!heightCm && !isHeightValid && <Text style={styles.error}>Inserisci un'altezza valida in centimetri (1-249).</Text>}
       <Text style={styles.label}>Piede preferito</Text>
       <View style={styles.row}>
@@ -143,13 +143,13 @@ const styles = StyleSheet.create({
   avatarPlaceholder: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   avatarPlaceholderText: { color: colors.onPrimary, fontFamily: 'Oswald_700Bold', fontSize: 36 },
   avatarHint: { color: colors.primary, ...typography.meta, marginTop: spacing.spaceXs, fontFamily: 'Archivo_600SemiBold' },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, ...typography.body },
+  input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, color: colors.ink, ...typography.body },
   dateValue: { ...typography.body, color: colors.ink },
   datePlaceholder: { ...typography.body, color: colors.muted },
   iosDatePicker: { alignSelf: 'center' },
   dateDoneButton: { alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: spacing.spaceXs, marginTop: -8 },
   dateDoneText: { color: colors.primary, fontFamily: 'Archivo_600SemiBold', fontSize: 15 },
-  label: { fontFamily: 'Archivo_600SemiBold', fontSize: 15, marginTop: spacing.spaceXs },
+  label: { fontFamily: 'Archivo_600SemiBold', fontSize: 15, color: colors.ink, marginTop: spacing.spaceXs },
   row: { flexDirection: 'row', gap: spacing.spaceXs },
   chip: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusPill, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceMd },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },

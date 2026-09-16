@@ -28,14 +28,14 @@ export default function CreateMatchScreen() {
       <Pressable onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <Text style={styles.backLink}>← Annulla</Text>
       </Pressable>
-      <Text style={styles.title}>Crea partita</Text>
-      <MatchForm onSubmit={handleSubmit} submitLabel="Crea partita" loading={loading} error={error} />
+      <Text style={styles.title}>Convoca{'\n'}una partita</Text>
+      <MatchForm onSubmit={handleSubmit} submitLabel="Pubblica la convocazione" loading={loading} error={error} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { backgroundColor: colors.background, flex: 1, paddingHorizontal: spacing.spaceLg },
-  title: { ...typography.label, fontSize: 24, marginBottom: spacing.spaceXs },
+  title: { ...typography.screenTitle, color: colors.ink, textTransform: 'uppercase', marginBottom: spacing.spaceSm },
   backLink: { color: colors.primary, marginBottom: spacing.spaceXs },
 });

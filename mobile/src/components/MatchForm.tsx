@@ -99,8 +99,8 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
           </Pressable>
         ))}
       </View>
-      <TextInput style={styles.input} placeholder="Nome campo" value={fieldName} onChangeText={setFieldName} />
-      <TextInput style={styles.input} placeholder="Indirizzo" value={address} onChangeText={setAddress} />
+      <TextInput style={styles.input} placeholder="Nome campo" placeholderTextColor={colors.muted} value={fieldName} onChangeText={setFieldName} />
+      <TextInput style={styles.input} placeholder="Indirizzo" placeholderTextColor={colors.muted} value={address} onChangeText={setAddress} />
       <Pressable style={styles.input} onPress={() => setActivePicker('date')}>
         <Text style={matchDate ? styles.fieldValue : styles.fieldPlaceholder}>{matchDate || 'Data'}</Text>
       </Pressable>
@@ -176,6 +176,7 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
       <TextInput
         style={styles.input}
         placeholder="Numero massimo giocatori"
+        placeholderTextColor={colors.muted}
         keyboardType="number-pad"
         value={maxPlayers}
         onChangeText={setMaxPlayers}
@@ -183,6 +184,7 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
       <TextInput
         style={[styles.input, styles.multiline]}
         placeholder="Descrizione (opzionale)"
+        placeholderTextColor={colors.muted}
         value={description}
         onChangeText={setDescription}
         multiline
@@ -203,13 +205,13 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
 
 const styles = StyleSheet.create({
   container: { backgroundColor: colors.background, padding: spacing.spaceLg, gap: spacing.spaceSm },
-  label: { fontFamily: 'Archivo_600SemiBold', fontSize: 15, marginTop: spacing.spaceXs },
+  label: { fontFamily: 'Archivo_600SemiBold', fontSize: 15, color: colors.ink, marginTop: spacing.spaceXs },
   row: { flexDirection: 'row', gap: spacing.spaceXs },
   chip: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusPill, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceMd },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { color: colors.ink, ...typography.body },
   chipTextSelected: { color: colors.onPrimary, ...typography.body },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, ...typography.body },
+  input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, color: colors.ink, ...typography.body },
   fieldValue: { ...typography.body, color: colors.ink },
   fieldPlaceholder: { ...typography.body, color: colors.muted },
   iosPicker: { alignSelf: 'center' },

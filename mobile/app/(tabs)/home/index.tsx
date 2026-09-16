@@ -91,6 +91,7 @@ export default function HomeScreen() {
         <TextInput
           style={styles.searchInput}
           placeholder="Cerca una città o un indirizzo"
+          placeholderTextColor={colors.muted}
           value={searchText}
           onChangeText={setSearchText}
           onSubmitEditing={() => {
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.spaceMd,
     marginBottom: spacing.spaceSm,
   },
-  header: { ...typography.screenTitle, textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 30 },
+  header: { ...typography.screenTitle, color: colors.ink, textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 30 },
   searchRow: {
     flexDirection: 'row',
     gap: spacing.spaceXs,
@@ -185,10 +186,12 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: spacing.radiusControl,
     padding: spacing.spaceSm,
+    color: colors.ink,
     ...typography.body,
   },
   searchButton: {

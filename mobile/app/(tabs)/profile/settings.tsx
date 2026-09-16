@@ -60,6 +60,7 @@ export default function SettingsScreen() {
             <TextInput
               style={styles.input}
               placeholder="Password attuale"
+              placeholderTextColor={colors.muted}
               secureTextEntry
               autoComplete="current-password"
               value={currentPassword}
@@ -68,6 +69,7 @@ export default function SettingsScreen() {
             <TextInput
               style={styles.input}
               placeholder="Nuova password"
+              placeholderTextColor={colors.muted}
               secureTextEntry
               autoComplete="new-password"
               value={newPassword}
@@ -95,8 +97,8 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { backgroundColor: colors.background, flex: 1, paddingHorizontal: spacing.spaceLg },
   backLink: { color: colors.primary, marginBottom: spacing.spaceXs },
-  header: { ...typography.screenTitle, marginBottom: spacing.spaceMd },
-  sectionTitle: { ...typography.label, fontSize: 18, marginBottom: spacing.spaceSm },
+  header: { ...typography.screenTitle, color: colors.ink, marginBottom: spacing.spaceMd },
+  sectionTitle: { ...typography.label, fontSize: 18, color: colors.ink, marginBottom: spacing.spaceSm },
   subtitle: { color: colors.muted, marginBottom: spacing.spaceMd, ...typography.body },
   error: { color: colors.danger, marginBottom: spacing.spaceSm },
   blockedRow: {
@@ -107,12 +109,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  blockedName: typography.label,
+  blockedName: { ...typography.label, color: colors.ink },
   blockedCode: { color: colors.muted, ...typography.meta, marginTop: 2 },
   unblockButton: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, paddingVertical: 6, paddingHorizontal: spacing.spaceSm },
   unblockButtonText: { color: colors.ink, ...typography.label, fontSize: 13 },
   passwordSection: { marginTop: spacing.spaceLg, gap: spacing.spaceSm },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, ...typography.body },
+  input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, color: colors.ink, ...typography.body },
   submitButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, padding: 14, alignItems: 'center', marginTop: spacing.spaceXs },
   submitButtonText: { color: colors.onPrimary, ...typography.label },
 });

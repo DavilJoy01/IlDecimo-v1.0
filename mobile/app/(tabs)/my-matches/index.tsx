@@ -46,16 +46,16 @@ export default function MyMatchesScreen() {
   }
 
   const sections = [
-    { title: 'Create da te', data: created.map((match): Row => ({ match })) },
-    { title: 'A cui partecipi', data: participating.map((p): Row => ({ match: p.match, status: p.status })) },
+    { title: 'Da capitano', data: created.map((match): Row => ({ match })) },
+    { title: 'Convocato', data: participating.map((p): Row => ({ match: p.match, status: p.status })) },
   ].filter((section) => section.data.length > 0);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
       <View style={styles.headerRow}>
-        <Text style={styles.header}>Le mie partite</Text>
+        <Text style={styles.header}>Il mio{'\n'}calendario</Text>
         <Pressable style={withPressed(styles.createButton)} onPress={() => router.push('/(tabs)/home/create-match')}>
-          <Text style={styles.createButtonText}>+ Crea</Text>
+          <Text style={styles.createButtonText}>Convoca</Text>
         </Pressable>
       </View>
       {error && <Text style={styles.error}>{error}</Text>}
@@ -85,13 +85,13 @@ const styles = StyleSheet.create({
   container: { backgroundColor: colors.background, flex: 1, paddingHorizontal: spacing.spaceMd },
   centered: { backgroundColor: colors.background, flex: 1, alignItems: 'center', justifyContent: 'center' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.spaceSm },
-  header: typography.screenTitle,
-  createButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceMd },
-  createButtonText: { color: colors.onPrimary, ...typography.label },
+  header: { ...typography.screenTitle, color: colors.ink, textTransform: 'uppercase' },
+  createButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceMd, alignSelf: 'flex-end' },
+  createButtonText: { color: colors.onPrimary, ...typography.label, textTransform: 'uppercase' },
   error: { color: colors.danger, marginBottom: spacing.spaceXs },
-  sectionTitle: { ...typography.label, fontSize: 16, marginTop: spacing.spaceMd, marginBottom: spacing.spaceXs },
+  sectionTitle: { ...typography.label, fontSize: 13, color: colors.muted, textTransform: 'uppercase', letterSpacing: 2, marginTop: spacing.spaceMd, marginBottom: spacing.spaceXs },
   row: { paddingVertical: spacing.spaceSm, borderBottomWidth: 1, borderBottomColor: colors.border },
-  rowTitle: typography.label,
+  rowTitle: { ...typography.label, color: colors.ink, textTransform: 'uppercase' },
   rowMeta: { color: colors.muted, ...typography.meta, marginTop: 2 },
   rowStatus: { color: colors.primary, ...typography.meta, fontFamily: 'Archivo_600SemiBold', marginTop: 2 },
   list: { paddingBottom: spacing.spaceLg },

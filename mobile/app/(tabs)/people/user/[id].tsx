@@ -185,6 +185,7 @@ export default function UserProfileScreen() {
                 value={reportReason}
                 onChangeText={setReportReason}
                 placeholder="Descrivi il motivo della segnalazione"
+                placeholderTextColor={colors.muted}
                 multiline
                 maxLength={1000}
               />
@@ -272,11 +273,11 @@ const styles = StyleSheet.create({
   avatar: { width: 88, height: 88, borderRadius: 44, marginBottom: spacing.spaceSm },
   avatarPlaceholder: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { color: colors.onPrimary, fontFamily: 'Oswald_700Bold', fontSize: 36 },
-  name: { ...typography.screenTitle },
+  name: { ...typography.screenTitle, color: colors.ink },
   uniqueId: { color: colors.muted, marginBottom: spacing.spaceLg, ...typography.meta },
   statsRow: { flexDirection: 'row', gap: spacing.spaceLg, marginBottom: spacing.spaceMd },
   stat: { alignItems: 'center' },
-  statValue: { ...typography.label, fontSize: 18 },
+  statValue: { ...typography.label, fontSize: 18, color: colors.ink },
   statLabel: { color: colors.muted, ...typography.caption },
   actions: { flexDirection: 'row', gap: spacing.spaceSm, marginTop: spacing.spaceMd },
   messageButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: 12, alignItems: 'center', marginTop: spacing.spaceMd, width: '100%' },
@@ -291,9 +292,9 @@ const styles = StyleSheet.create({
   reportLink: { color: colors.muted, fontFamily: 'Archivo_600SemiBold', fontSize: 15 },
   blockLink: { color: colors.danger, fontFamily: 'Archivo_600SemiBold', fontSize: 15 },
   reportForm: { gap: spacing.spaceXs, width: '100%' },
-  reportInput: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, minHeight: 80, textAlignVertical: 'top', ...typography.body },
+  reportInput: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, minHeight: 80, textAlignVertical: 'top', color: colors.ink, ...typography.body },
   historySection: { width: '100%', marginTop: spacing.spaceLg, gap: spacing.spaceSm },
-  historyTitle: { ...typography.label, fontSize: 18, marginBottom: spacing.spaceXs },
+  historyTitle: { ...typography.label, fontSize: 18, color: colors.ink, marginBottom: spacing.spaceXs },
   historyEmpty: { color: colors.muted, ...typography.body },
   historyRow: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusCard, padding: spacing.spaceSm, gap: 4 },
   historyRowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

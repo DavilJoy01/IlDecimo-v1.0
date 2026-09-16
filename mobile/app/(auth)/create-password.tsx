@@ -13,6 +13,7 @@ export default function CreatePasswordScreen() {
       <TextInput
         style={styles.input}
         placeholder="Password"
+        placeholderTextColor={colors.muted}
         secureTextEntry
         autoComplete="new-password"
         value={password}
@@ -28,8 +29,8 @@ export default function CreatePasswordScreen() {
 
 const styles = StyleSheet.create({
   container: { backgroundColor: colors.background, flex: 1, justifyContent: 'center', padding: spacing.spaceLg, gap: spacing.spaceSm },
-  title: { ...typography.authTitle, marginBottom: spacing.spaceSm },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, ...typography.body },
+  title: { ...typography.authTitle, color: colors.ink, textTransform: 'uppercase', marginBottom: spacing.spaceSm },
+  input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, color: colors.ink, ...typography.body },
   button: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, padding: 14, alignItems: 'center', marginTop: spacing.spaceXs },
   buttonText: { color: colors.onPrimary, ...typography.label },
   error: { color: colors.danger },

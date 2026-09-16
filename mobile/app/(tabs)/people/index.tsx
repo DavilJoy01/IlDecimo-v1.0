@@ -16,7 +16,7 @@ export default function PeopleScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
-      <Text style={styles.header}>Persone</Text>
+      <Text style={styles.header}>La rosa</Text>
 
       <View style={styles.searchRow}>
         <TextInput
@@ -24,6 +24,7 @@ export default function PeopleScreen() {
           value={search.query}
           onChangeText={search.setQuery}
           placeholder="Cerca per codice (es. FC-100002)"
+          placeholderTextColor={colors.muted}
           autoCapitalize="characters"
         />
         <Pressable style={withPressed(styles.searchButton)} disabled={search.loading || !search.query.trim()} onPress={search.search}>
@@ -74,22 +75,22 @@ export default function PeopleScreen() {
 
 const styles = StyleSheet.create({
   container: { backgroundColor: colors.background, flex: 1, paddingHorizontal: spacing.spaceMd },
-  header: { ...typography.screenTitle, marginBottom: spacing.spaceSm },
+  header: { ...typography.screenTitle, color: colors.ink, marginBottom: spacing.spaceSm },
   searchRow: { flexDirection: 'row', gap: spacing.spaceXs, marginBottom: spacing.spaceXs },
-  searchInput: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, paddingHorizontal: spacing.spaceSm, paddingVertical: 10, ...typography.body },
+  searchInput: { flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, paddingHorizontal: spacing.spaceSm, paddingVertical: 10, color: colors.ink, ...typography.body },
   searchButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingHorizontal: spacing.spaceMd, justifyContent: 'center' },
   searchButtonText: { color: colors.onPrimary, ...typography.label },
   error: { color: colors.danger, marginBottom: spacing.spaceXs },
   subtitle: { color: colors.muted, marginBottom: spacing.spaceXs, ...typography.body },
   resultCard: { borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, padding: spacing.spaceSm, marginBottom: spacing.spaceMd },
-  resultName: typography.label,
+  resultName: { ...typography.label, color: colors.ink },
   resultCode: { color: colors.muted, ...typography.meta },
   resultLink: { color: colors.primary, marginTop: 4, fontFamily: 'Archivo_600SemiBold', fontSize: 15 },
   requestsLink: { paddingVertical: spacing.spaceXs, marginBottom: spacing.spaceXs },
   requestsLinkText: { color: colors.primary, fontFamily: 'Archivo_600SemiBold', fontSize: 15 },
-  sectionTitle: { ...typography.label, fontSize: 18 },
+  sectionTitle: { ...typography.label, fontSize: 18, color: colors.ink },
   list: { paddingBottom: spacing.spaceLg },
   friendRow: { paddingVertical: spacing.spaceSm, borderBottomWidth: 1, borderBottomColor: colors.border },
-  friendName: typography.label,
+  friendName: { ...typography.label, color: colors.ink },
   friendCode: { color: colors.muted, ...typography.meta, marginTop: 2 },
 });

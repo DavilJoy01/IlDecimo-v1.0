@@ -33,5 +33,5 @@ export default function CreateProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { backgroundColor: colors.background, flex: 1 },
-  title: { ...typography.authTitle, paddingHorizontal: spacing.spaceLg },
+  title: { ...typography.authTitle, color: colors.ink, textTransform: 'uppercase', paddingHorizontal: spacing.spaceLg },
 });

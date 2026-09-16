@@ -72,7 +72,7 @@ export default function MatchChatScreen() {
         <Pressable hitSlop={8} onPress={() => router.replace({ pathname: '/(tabs)/home/match/[id]', params: { id } })}>
           <Text style={styles.backLink}>← Torna alla partita</Text>
         </Pressable>
-        <Text style={styles.header}>Chat</Text>
+        <Text style={styles.header}>Spogliatoio</Text>
         {chat.error && (
           <View>
             <Text style={styles.error}>{chat.error}</Text>
@@ -108,7 +108,8 @@ export default function MatchChatScreen() {
             style={styles.input}
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Scrivi un messaggio..."
+            placeholder="Scrivi allo spogliatoio"
+            placeholderTextColor={colors.muted}
             multiline
             maxLength={2000}
           />
@@ -137,7 +138,7 @@ const styles = StyleSheet.create({
   container: { backgroundColor: colors.background, flex: 1, paddingHorizontal: spacing.spaceMd },
   centered: { backgroundColor: colors.background, flex: 1, alignItems: 'center', justifyContent: 'center' },
   backLink: { color: colors.primary, marginBottom: spacing.spaceXs },
-  header: { ...typography.screenTitle, marginBottom: spacing.spaceXs },
+  header: { ...typography.screenTitle, color: colors.ink, marginBottom: spacing.spaceXs },
   error: { color: colors.danger, marginBottom: spacing.spaceXs },
   retryButton: { alignSelf: 'flex-start', backgroundColor: colors.primary, borderRadius: spacing.radiusControl, paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceMd, marginBottom: spacing.spaceXs },
   retryButtonText: { color: colors.onPrimary, ...typography.label },
@@ -145,19 +146,19 @@ const styles = StyleSheet.create({
   bubbleRow: { flexDirection: 'row' },
   bubbleRowOwn: { justifyContent: 'flex-end' },
   bubbleRowOther: { justifyContent: 'flex-start' },
-  bubble: { maxWidth: '80%', borderRadius: spacing.radiusCard, paddingHorizontal: spacing.spaceSm, paddingVertical: spacing.spaceXs },
-  bubbleOwn: { backgroundColor: colors.primary },
-  bubbleOther: { backgroundColor: colors.border },
+  bubble: { maxWidth: '80%', borderRadius: spacing.radiusCard, borderWidth: 1, paddingHorizontal: spacing.spaceSm, paddingVertical: spacing.spaceXs },
+  bubbleOwn: { backgroundColor: '#175B44', borderColor: 'rgba(63,163,77,0.55)' },
+  bubbleOther: { backgroundColor: colors.surface, borderColor: colors.border },
   senderName: { ...typography.caption, color: colors.muted, marginBottom: 2 },
-  bubbleTextOwn: { color: colors.onPrimary, ...typography.body },
+  bubbleTextOwn: { color: colors.ink, ...typography.body },
   bubbleTextOther: { color: colors.ink, ...typography.body },
-  timestampOwn: { fontSize: 10, color: colors.primaryTint, marginTop: 4, alignSelf: 'flex-end' },
-  timestampOther: { fontSize: 10, color: colors.mutedStrong, marginTop: 4, alignSelf: 'flex-end' },
+  timestampOwn: { fontSize: 10, color: colors.accentMuted, marginTop: 4, alignSelf: 'flex-end' },
+  timestampOther: { fontSize: 10, color: colors.muted, marginTop: 4, alignSelf: 'flex-end' },
   mentionList: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusControl, marginBottom: 4, maxHeight: 160 },
   mentionItem: { paddingVertical: spacing.spaceXs, paddingHorizontal: spacing.spaceSm, borderBottomWidth: 1, borderBottomColor: colors.border },
-  mentionItemText: typography.body,
+  mentionItemText: { ...typography.body, color: colors.ink },
   inputRow: { flexDirection: 'row', gap: spacing.spaceXs, paddingVertical: spacing.spaceXs, alignItems: 'flex-end' },
-  input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusPill, paddingHorizontal: spacing.spaceMd, paddingVertical: 10, maxHeight: 100, ...typography.body },
+  input: { flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusPill, paddingHorizontal: spacing.spaceMd, paddingVertical: 10, maxHeight: 100, color: colors.ink, ...typography.body },
   sendButton: { backgroundColor: colors.primary, borderRadius: spacing.radiusPill, paddingHorizontal: spacing.spaceMd, paddingVertical: 10, justifyContent: 'center' },
   sendButtonText: { color: colors.onPrimary, ...typography.label },
 });

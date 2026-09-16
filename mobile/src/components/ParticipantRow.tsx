@@ -49,6 +49,6 @@ const styles = StyleSheet.create({
   avatarPlaceholder: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { color: colors.onPrimary, fontFamily: 'Oswald_700Bold' },
   info: { flex: 1 },
-  name: typography.label,
+  name: { ...typography.label, color: colors.ink },
   role: { color: colors.muted, ...typography.meta },
 });
