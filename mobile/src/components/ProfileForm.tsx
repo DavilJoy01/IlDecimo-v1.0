@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, TextInput, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Image, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { type DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { FOOT_LABELS, ROLE_LABELS } from '@/utils/profileDisplay';
 import { formatDateInput, parseDateInput } from '@/utils/dateTimeInput';
 import { colors, typography, spacing, withPressed } from '@/theme';
@@ -62,9 +62,9 @@ export function ProfileForm({
     }
   }
 
-  function handleDateChange(event: DateTimePickerEvent, selectedDate?: Date) {
+  function handleDateChange(_event: DateTimePickerChangeEvent, selectedDate: Date) {
     if (Platform.OS === 'android') setShowDatePicker(false);
-    if (event.type === 'set' && selectedDate) setBirthDate(formatDateInput(selectedDate));
+    setBirthDate(formatDateInput(selectedDate));
   }
 
   return (
@@ -86,6 +86,15 @@ export function ProfileForm({
       <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
         <Text style={birthDate ? styles.dateValue : styles.datePlaceholder}>{birthDate || 'Data di nascita'}</Text>
       </Pressable>
+      {Platform.OS === 'ios' && showDatePicker && (
+        <Pressable
+          style={styles.dateDoneButton}
+          onPress={() => setShowDatePicker(false)}
+          hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+        >
+          <Text style={styles.dateDoneText}>Fatto</Text>
+        </Pressable>
+      )}
       {showDatePicker && (
         <DateTimePicker
           value={parseDateInput(birthDate)}
@@ -93,18 +102,10 @@ export function ProfileForm({
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           locale="it-IT"
           maximumDate={new Date()}
-          onChange={handleDateChange}
-          {...(Platform.OS === 'ios' ? { style: styles.iosDatePicker } : {})}
+          onValueChange={handleDateChange}
+          onDismiss={() => setShowDatePicker(false)}
+          {...(Platform.OS === 'ios' ? { style: styles.iosDatePicker, themeVariant: 'dark' as const } : {})}
         />
-      )}
-      {Platform.OS === 'ios' && showDatePicker && (
-        <Pressable
-          style={styles.dateDoneButton}
-          onPress={() => setShowDatePicker(false)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.dateDoneText}>Fatto</Text>
-        </Pressable>
       )}
       <TextInput style={styles.input} placeholder="Altezza (cm)" placeholderTextColor={colors.muted} keyboardType="number-pad" value={heightCm} onChangeText={setHeightCm} />
       {!!heightCm && !isHeightValid && <Text style={styles.error}>Inserisci un'altezza valida in centimetri (1-249).</Text>}
@@ -147,7 +148,7 @@ const styles = StyleSheet.create({
   dateValue: { ...typography.body, color: colors.ink },
   datePlaceholder: { ...typography.body, color: colors.muted },
   iosDatePicker: { alignSelf: 'center' },
-  dateDoneButton: { alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: spacing.spaceXs, marginTop: -8 },
+  dateDoneButton: { alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: spacing.spaceXs },
   dateDoneText: { color: colors.primary, fontFamily: 'Archivo_600SemiBold', fontSize: 15 },
   label: { fontFamily: 'Archivo_600SemiBold', fontSize: 15, color: colors.ink, marginTop: spacing.spaceXs },
   row: { flexDirection: 'row', gap: spacing.spaceXs },

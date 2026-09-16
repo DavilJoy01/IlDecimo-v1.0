@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, ScrollView, Platform } from 'react-native';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { type DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { formatDateInput, parseDateInput, formatTimeInput, parseTimeInput } from '@/utils/dateTimeInput';
 import { colors, typography, spacing, withPressed } from '@/theme';
 
@@ -67,19 +67,19 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
     }
   }
 
-  function handleDateChange(event: DateTimePickerEvent, selectedDate?: Date) {
+  function handleDateChange(_event: DateTimePickerChangeEvent, selectedDate: Date) {
     if (Platform.OS === 'android') setActivePicker(null);
-    if (event.type === 'set' && selectedDate) setMatchDate(formatDateInput(selectedDate));
+    setMatchDate(formatDateInput(selectedDate));
   }
 
-  function handleStartTimeChange(event: DateTimePickerEvent, selectedDate?: Date) {
+  function handleStartTimeChange(_event: DateTimePickerChangeEvent, selectedDate: Date) {
     if (Platform.OS === 'android') setActivePicker(null);
-    if (event.type === 'set' && selectedDate) setStartTime(formatTimeInput(selectedDate));
+    setStartTime(formatTimeInput(selectedDate));
   }
 
-  function handleEndTimeChange(event: DateTimePickerEvent, selectedDate?: Date) {
+  function handleEndTimeChange(_event: DateTimePickerChangeEvent, selectedDate: Date) {
     if (Platform.OS === 'android') setActivePicker(null);
-    if (event.type === 'set' && selectedDate) setEndTime(formatTimeInput(selectedDate));
+    setEndTime(formatTimeInput(selectedDate));
   }
 
   const isTimeRangeValid = !startTime || !endTime || endTime > startTime;
@@ -104,6 +104,15 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
       <Pressable style={styles.input} onPress={() => setActivePicker('date')}>
         <Text style={matchDate ? styles.fieldValue : styles.fieldPlaceholder}>{matchDate || 'Data'}</Text>
       </Pressable>
+      {Platform.OS === 'ios' && activePicker === 'date' && (
+        <Pressable
+          style={styles.pickerDoneButton}
+          onPress={() => setActivePicker(null)}
+          hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+        >
+          <Text style={styles.pickerDoneText}>Fatto</Text>
+        </Pressable>
+      )}
       {activePicker === 'date' && (
         <DateTimePicker
           value={parseDateInput(matchDate)}
@@ -111,22 +120,23 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           locale="it-IT"
           minimumDate={new Date()}
-          onChange={handleDateChange}
-          {...(Platform.OS === 'ios' ? { style: styles.iosPicker } : {})}
+          onValueChange={handleDateChange}
+          onDismiss={() => setActivePicker(null)}
+          {...(Platform.OS === 'ios' ? { style: styles.iosPicker, themeVariant: 'dark' as const } : {})}
         />
-      )}
-      {Platform.OS === 'ios' && activePicker === 'date' && (
-        <Pressable
-          style={styles.pickerDoneButton}
-          onPress={() => setActivePicker(null)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.pickerDoneText}>Fatto</Text>
-        </Pressable>
       )}
       <Pressable style={styles.input} onPress={openStartPicker}>
         <Text style={startTime ? styles.fieldValue : styles.fieldPlaceholder}>{startTime || 'Ora inizio'}</Text>
       </Pressable>
+      {Platform.OS === 'ios' && activePicker === 'start' && (
+        <Pressable
+          style={styles.pickerDoneButton}
+          onPress={() => setActivePicker(null)}
+          hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+        >
+          <Text style={styles.pickerDoneText}>Fatto</Text>
+        </Pressable>
+      )}
       {activePicker === 'start' && (
         <DateTimePicker
           value={parseTimeInput(startTime, startTimeDefaultRef.current)}
@@ -134,22 +144,23 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           locale="it-IT"
           is24Hour
-          onChange={handleStartTimeChange}
-          {...(Platform.OS === 'ios' ? { style: styles.iosPicker } : {})}
+          onValueChange={handleStartTimeChange}
+          onDismiss={() => setActivePicker(null)}
+          {...(Platform.OS === 'ios' ? { style: styles.iosPicker, themeVariant: 'dark' as const } : {})}
         />
-      )}
-      {Platform.OS === 'ios' && activePicker === 'start' && (
-        <Pressable
-          style={styles.pickerDoneButton}
-          onPress={() => setActivePicker(null)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.pickerDoneText}>Fatto</Text>
-        </Pressable>
       )}
       <Pressable style={styles.input} onPress={openEndPicker}>
         <Text style={endTime ? styles.fieldValue : styles.fieldPlaceholder}>{endTime || 'Ora fine'}</Text>
       </Pressable>
+      {Platform.OS === 'ios' && activePicker === 'end' && (
+        <Pressable
+          style={styles.pickerDoneButton}
+          onPress={() => setActivePicker(null)}
+          hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+        >
+          <Text style={styles.pickerDoneText}>Fatto</Text>
+        </Pressable>
+      )}
       {activePicker === 'end' && (
         <DateTimePicker
           value={parseTimeInput(endTime, endTimeDefaultRef.current)}
@@ -157,18 +168,10 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           locale="it-IT"
           is24Hour
-          onChange={handleEndTimeChange}
-          {...(Platform.OS === 'ios' ? { style: styles.iosPicker } : {})}
+          onValueChange={handleEndTimeChange}
+          onDismiss={() => setActivePicker(null)}
+          {...(Platform.OS === 'ios' ? { style: styles.iosPicker, themeVariant: 'dark' as const } : {})}
         />
-      )}
-      {Platform.OS === 'ios' && activePicker === 'end' && (
-        <Pressable
-          style={styles.pickerDoneButton}
-          onPress={() => setActivePicker(null)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.pickerDoneText}>Fatto</Text>
-        </Pressable>
       )}
       {!isTimeRangeValid && (
         <Text style={styles.error}>L&apos;ora di fine deve essere successiva all&apos;ora di inizio.</Text>
@@ -215,7 +218,7 @@ const styles = StyleSheet.create({
   fieldValue: { ...typography.body, color: colors.ink },
   fieldPlaceholder: { ...typography.body, color: colors.muted },
   iosPicker: { alignSelf: 'center' },
-  pickerDoneButton: { alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: spacing.spaceXs, marginTop: -8 },
+  pickerDoneButton: { alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: spacing.spaceXs },
   pickerDoneText: { color: colors.primary, fontFamily: 'Archivo_600SemiBold', fontSize: 15 },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
   button: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, padding: 14, alignItems: 'center', marginTop: spacing.spaceMd },
