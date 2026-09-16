@@ -53,11 +53,11 @@ appId: com.ildecimo.app
 # MatchCard's fieldName/meta/spots Text siblings are all wrapped by one
 # outer Pressable in Home's renderItem, which iOS merges into a single
 # composite accessibility label -- same class of gotcha already documented
-# for the tab bar and the Persone search-result card. Regex-wrap anything
+# for the tab bar and the Rosa search-result card. Regex-wrap anything
 # inside that card.
 - assertVisible: ".*Campo Partecipazione E2E.*"
 - tapOn:
-    text: ".*Iscriviti.*"
+    text: ".*Scendi in campo.*"
 - assertVisible: "Richiedi di partecipare"
 - tapOn: "Richiedi di partecipare"
 - assertVisible: "Richiesta in attesa di approvazione"
@@ -68,7 +68,7 @@ appId: com.ildecimo.app
 # documented for post-dialog taps: a tap thrown mid-transition can report
 # COMPLETED while landing on nothing, leaving the tab bar untouched.
 - waitForAnimationToEnd
-# Same intermittent tab-tap-after-transition miss as ".*Le mie part.*"
+# Same intermittent tab-tap-after-transition miss as ".*Calendario.*"
 # above -- wrap in retry against the profile screen's own menu icon.
 - retry:
     maxRetries: 3
@@ -119,9 +119,9 @@ appId: com.ildecimo.app
     maxRetries: 3
     commands:
       - tapOn:
-          text: ".*Le mie part.*"
-      - assertVisible: "Le mie partite"
-# Same composite-label class: "Le mie partite"'s row Pressable wraps
+          text: ".*Calendario.*"
+      - assertVisible: "Calendario"
+# Same composite-label class: "Calendario"'s row Pressable wraps
 # fieldName/meta/status Text siblings too.
 - tapOn:
     text: ".*Campo Partecipazione E2E.*"
@@ -152,7 +152,7 @@ appId: com.ildecimo.app
 
 # --- Log out ---
 - waitForAnimationToEnd
-# Same intermittent tab-tap-after-transition miss as ".*Le mie part.*"
+# Same intermittent tab-tap-after-transition miss as ".*Calendario.*"
 # above -- wrap in retry against the profile screen's own menu icon.
 - retry:
     maxRetries: 3
@@ -197,8 +197,8 @@ appId: com.ildecimo.app
     maxRetries: 3
     commands:
       - tapOn:
-          text: ".*Le mie part.*"
-      - assertVisible: "Le mie partite"
+          text: ".*Calendario.*"
+      - assertVisible: "Calendario"
 - tapOn:
     text: ".*Campo Partecipazione E2E.*"
 # "Sei dentro ✅" -- the trailing emoji means an exact match on the plain
@@ -206,4 +206,4 @@ appId: com.ildecimo.app
 - assertVisible: ".*Sei dentro.*"
 - tapOn:
     text: ".*Chat.*"
-- assertVisible: "Scrivi un messaggio..."
+- assertVisible: "Scrivi allo spogliatoio"

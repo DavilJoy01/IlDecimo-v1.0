@@ -40,12 +40,12 @@ appId: com.ildecimo.app
     text: "Non consentire"
     optional: true
 # A tab tap thrown right as the second dialog's dismiss animation is still
-# settling can silently land on nothing (observed: "Tap on .*Persone.*"
+# settling can silently land on nothing (observed: "Tap on .*Rosa.*"
 # reports COMPLETED, but the app stays on Home) -- wait for it to finish
 # before trusting the screen is actually interactive again.
 - waitForAnimationToEnd
 - tapOn:
-    text: ".*Persone.*"
+    text: ".*Rosa.*"
 - tapOn:
     text: "Cerca per codice.*"
 - inputText: "${TARGET_CODE}"

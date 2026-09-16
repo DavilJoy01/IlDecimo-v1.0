@@ -42,7 +42,7 @@ appId: com.ildecimo.app
 # assertions match the whole label, so a plain "Home" assertion fails even
 # though the tab is genuinely on screen. Regex-wrap every tab assertion.
 - assertVisible: ".*Home.*"
-- assertVisible: ".*Le mie part.*"
-- assertVisible: ".*Persone.*"
+- assertVisible: ".*Calendario.*"
+- assertVisible: ".*Rosa.*"
 - assertVisible: ".*Messaggi.*"
 - assertVisible: ".*Profilo.*"
