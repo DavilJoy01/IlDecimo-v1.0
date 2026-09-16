@@ -75,7 +75,7 @@ export default function MyMatchesScreen() {
         contentContainerStyle={styles.list}
         onRefresh={refresh}
         refreshing={loading}
-        ListEmptyComponent={<Text style={styles.subtitle}>Nessuna partita al momento.</Text>}
+        ListEmptyComponent={<Text style={styles.subtitle}>Calendario libero. Vai a convocarne una.</Text>}
       />
     </View>
   );

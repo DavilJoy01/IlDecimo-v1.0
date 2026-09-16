@@ -114,8 +114,8 @@ export default function HomeScreen() {
         filteredMatches.length === 0 ? (
           <Text style={styles.subtitle}>
             {activeTypes.size > 0 && matches.length > 0
-              ? 'Nessuna partita di questo tipo trovata.'
-              : 'Nessuna partita trovata nella tua zona.'}
+              ? 'Con questo formato, campo vuoto. Prova un altro taglio di partita.'
+              : 'Zona silenziosa stasera. Sii tu il primo a scendere in campo.'}
           </Text>
         ) : (
           <MatchMapView
@@ -156,8 +156,8 @@ export default function HomeScreen() {
             ListEmptyComponent={
               <Text style={styles.subtitle}>
                 {activeTypes.size > 0 && matches.length > 0
-                  ? 'Nessuna partita di questo tipo trovata.'
-                  : 'Nessuna partita trovata nella tua zona.'}
+                  ? 'Con questo formato, campo vuoto. Prova un altro taglio di partita.'
+                  : 'Zona silenziosa stasera. Sii tu il primo a scendere in campo.'}
               </Text>
             }
           />

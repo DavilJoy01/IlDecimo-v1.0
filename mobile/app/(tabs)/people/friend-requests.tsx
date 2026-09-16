@@ -37,7 +37,7 @@ export default function FriendRequestsScreen() {
                 </Pressable>
               </RequestRow>
             )}
-            ListEmptyComponent={<Text style={styles.subtitle}>Nessuna richiesta ricevuta.</Text>}
+            ListEmptyComponent={<Text style={styles.subtitle}>Nessuno bussa, per ora.</Text>}
           />
 
           <Text style={styles.sectionTitle}>Inviate</Text>
@@ -52,7 +52,7 @@ export default function FriendRequestsScreen() {
                 </Pressable>
               </RequestRow>
             )}
-            ListEmptyComponent={<Text style={styles.subtitle}>Nessuna richiesta inviata.</Text>}
+            ListEmptyComponent={<Text style={styles.subtitle}>Non hai ancora chiamato nessuno in squadra.</Text>}
           />
         </>
       )}

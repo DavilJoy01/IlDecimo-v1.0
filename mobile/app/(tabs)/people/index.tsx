@@ -32,7 +32,7 @@ export default function PeopleScreen() {
         </Pressable>
       </View>
       {search.error && <Text style={styles.error}>{search.error}</Text>}
-      {search.notFound && <Text style={styles.subtitle}>Nessun utente trovato.</Text>}
+      {search.notFound && <Text style={styles.subtitle}>Nessun giocatore trovato con questo codice.</Text>}
       {search.result && (
         <Pressable
           style={styles.resultCard}
@@ -67,7 +67,7 @@ export default function PeopleScreen() {
         contentContainerStyle={styles.list}
         onRefresh={friends.refresh}
         refreshing={friends.loading}
-        ListEmptyComponent={!friends.loading ? <Text style={styles.subtitle}>Non hai ancora amici.</Text> : null}
+        ListEmptyComponent={!friends.loading ? <Text style={styles.subtitle}>Rosa vuota. Cerca un giocatore e invitalo in squadra.</Text> : null}
       />
     </View>
   );

@@ -212,7 +212,7 @@ export default function UserProfileScreen() {
             </Pressable>
           </View>
         ) : historyMatches.length === 0 ? (
-          <Text style={styles.historyEmpty}>Nessuna partita nello storico.</Text>
+          <Text style={styles.historyEmpty}>Storico vuoto: la prima partita è sempre la più bella.</Text>
         ) : (
           <>
             {historyMatches.map((entry) => (

@@ -46,7 +46,7 @@ export default function NotificationsScreen() {
         contentContainerStyle={styles.list}
         onRefresh={refresh}
         refreshing={loading}
-        ListEmptyComponent={<Text style={styles.subtitle}>Nessuna notifica.</Text>}
+        ListEmptyComponent={<Text style={styles.subtitle}>Silenzio stampa. Nessuna notizia dal campo.</Text>}
       />
     </View>
   );

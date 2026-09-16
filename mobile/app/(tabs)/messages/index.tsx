@@ -41,7 +41,7 @@ export default function MessagesScreen() {
               {item.other_user.first_name} {item.other_user.last_name}
             </Text>
             <Text style={[styles.preview, item.unread && styles.unreadText]} numberOfLines={1}>
-              {item.last_message ? item.last_message.body : 'Nessun messaggio ancora.'}
+              {item.last_message ? item.last_message.body : 'Rompi il ghiaccio: scrivi tu il primo messaggio.'}
             </Text>
             {item.last_message && (
               <Text style={styles.date}>{new Date(item.last_message.created_at).toLocaleString('it-IT')}</Text>
@@ -51,7 +51,7 @@ export default function MessagesScreen() {
         contentContainerStyle={styles.list}
         onRefresh={refresh}
         refreshing={loading}
-        ListEmptyComponent={<Text style={styles.subtitle}>Nessun messaggio ancora.</Text>}
+        ListEmptyComponent={<Text style={styles.subtitle}>Spogliatoio silenzioso. Nessuna chat, ancora.</Text>}
       />
     </View>
   );

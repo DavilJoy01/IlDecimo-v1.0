@@ -62,7 +62,7 @@ export default function InviteFriendsScreen() {
         contentContainerStyle={styles.list}
         onRefresh={refresh}
         refreshing={loading}
-        ListEmptyComponent={!error ? <Text style={styles.subtitle}>Nessun amico da invitare.</Text> : null}
+        ListEmptyComponent={!error ? <Text style={styles.subtitle}>Panchina vuota: nessun amico da chiamare.</Text> : null}
       />
     </View>
   );
