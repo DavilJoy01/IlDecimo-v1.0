@@ -1,6 +1,7 @@
 // mobile/src/components/MatchCard.tsx
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import type { NearbyMatch } from '@/api/matches';
+import { PitchDecoration } from '@/components/PitchDecoration';
 import { colors, typography, spacing, withPressed } from '@/theme';
 
 export function MatchCard({ match, onPressJoin }: { match: NearbyMatch; onPressJoin: () => void }) {
@@ -10,6 +11,7 @@ export function MatchCard({ match, onPressJoin }: { match: NearbyMatch; onPressJ
 
   return (
     <View style={styles.card}>
+      <PitchDecoration />
       <View style={styles.metaRow}>
         <Text style={styles.typeLabel}>Calcio a {match.match_type}</Text>
         <Text style={styles.distance}>{match.distance_km.toFixed(1)} km</Text>
@@ -52,7 +54,7 @@ export function MatchCard({ match, onPressJoin }: { match: NearbyMatch; onPressJ
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusCard, padding: spacing.spaceMd, gap: 4, marginBottom: spacing.spaceSm },
+  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.radiusCard, padding: spacing.spaceMd, gap: 4, marginBottom: spacing.spaceSm, overflow: 'hidden' },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   typeLabel: { ...typography.meta, color: colors.accent, textTransform: 'uppercase', letterSpacing: 2 },
   distance: { ...typography.meta, color: colors.muted, letterSpacing: 0.8 },

@@ -2,6 +2,7 @@
 import { useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import type { NearbyMatch } from '@/api/matches';
+import { PitchDecoration } from '@/components/PitchDecoration';
 import { colors, typography, spacing, withPressed } from '@/theme';
 
 const MAX_SPOTS_LEFT = 3;
@@ -38,6 +39,7 @@ export function LastCallSection({ matches, onPressMatch }: { matches: NearbyMatc
             style={withPressed(styles.card)}
             onPress={() => onPressMatch(match.id)}
           >
+            <PitchDecoration />
             <View style={styles.cardTopRow}>
               <Text style={styles.typeLabel}>Calcio a {match.match_type}</Text>
               <View style={styles.spotsBadge}>
@@ -79,6 +81,7 @@ const styles = StyleSheet.create({
     borderRadius: spacing.radiusCard,
     padding: spacing.spaceSm,
     gap: 4,
+    overflow: 'hidden',
   },
   cardTopRow: { gap: 6 },
   typeLabel: { ...typography.meta, color: colors.accentMuted, textTransform: 'uppercase', letterSpacing: 1.6 },
