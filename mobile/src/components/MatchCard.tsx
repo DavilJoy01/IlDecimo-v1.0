@@ -39,7 +39,7 @@ export function MatchCard({ match, onPressJoin }: { match: NearbyMatch; onPressJ
             <Text style={styles.urgentBadgeText}>Ultimo uomo</Text>
           </View>
         ) : spotsLeft > 0 ? (
-          <Text style={styles.spotsLabel}>{spotsLeft} post{spotsLeft === 1 ? 'o' : 'i'} libero{spotsLeft === 1 ? '' : 'i'}</Text>
+          <Text style={styles.spotsLabel}>{spotsLeft} post{spotsLeft === 1 ? 'o' : 'i'} liber{spotsLeft === 1 ? 'o' : 'i'}</Text>
         ) : null}
       </View>
       {spotsLeft > 0 && (
