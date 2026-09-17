@@ -6,6 +6,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useNearbyMatches } from '@/hooks/useNearbyMatches';
 import { useNotifications } from '@/hooks/useNotifications';
 import { MatchCard } from '@/components/MatchCard';
+import { LastCallSection } from '@/components/LastCallSection';
 import { MatchMapView } from '@/components/MatchMapView';
 import { colors, typography, spacing, withPressed } from '@/theme';
 
@@ -126,6 +127,10 @@ export default function HomeScreen() {
         )
       ) : (
         <>
+          <LastCallSection
+            matches={matches}
+            onPressMatch={(id) => router.push({ pathname: '/(tabs)/home/match/[id]', params: { id } })}
+          />
           <View style={styles.filterRow}>
             {MATCH_TYPES.map((type) => {
               const active = activeTypes.has(type);
@@ -169,7 +174,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { backgroundColor: colors.background, flex: 1 },
-  greeting: { ...typography.meta, color: colors.muted, textTransform: 'uppercase', letterSpacing: 2.4, paddingHorizontal: spacing.spaceMd },
+  greeting: { ...typography.meta, color: colors.muted, textTransform: 'uppercase', letterSpacing: 2.4, paddingHorizontal: spacing.spaceMd, marginBottom: spacing.spaceXs },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -177,7 +182,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.spaceMd,
     marginBottom: spacing.spaceSm,
   },
-  header: { ...typography.screenTitle, color: colors.ink, textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 30 },
+  header: { ...typography.screenTitle, color: colors.ink, textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 34 },
   searchRow: {
     flexDirection: 'row',
     gap: spacing.spaceXs,
