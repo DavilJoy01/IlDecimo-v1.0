@@ -64,6 +64,7 @@ describe('matches api', () => {
     start_time: '19:00',
     end_time: '20:30',
     max_players: 10,
+    external_confirmed_count: 0,
     description: null,
   };
 
@@ -75,6 +76,7 @@ describe('matches api', () => {
     start_time: '19:00',
     end_time: '20:30',
     max_players: 10,
+    external_confirmed_count: 0,
     description: null,
   };
 

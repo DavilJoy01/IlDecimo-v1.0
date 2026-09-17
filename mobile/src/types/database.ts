@@ -33,6 +33,7 @@ export interface Database {
           start_time: string;
           end_time: string;
           max_players: number;
+          external_confirmed_count: number;
           description: string | null;
           status: 'draft' | 'open' | 'full' | 'started' | 'completed' | 'cancelled';
           created_at: string;

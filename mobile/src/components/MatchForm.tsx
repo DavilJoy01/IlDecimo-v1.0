@@ -17,6 +17,7 @@ export interface MatchFormValues {
   startTime: string;
   endTime: string;
   maxPlayers: string;
+  externalConfirmedCount: string;
   description: string;
 }
 
@@ -36,6 +37,7 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
   const [startTime, setStartTime] = useState(initialValues?.startTime ?? '');
   const [endTime, setEndTime] = useState(initialValues?.endTime ?? '');
   const [maxPlayers, setMaxPlayers] = useState(initialValues?.maxPlayers ?? String(DEFAULT_MAX_PLAYERS[5]));
+  const [externalConfirmedCount, setExternalConfirmedCount] = useState(initialValues?.externalConfirmedCount ?? '0');
   const [description, setDescription] = useState(initialValues?.description ?? '');
   const [activePicker, setActivePicker] = useState<ActivePicker>(null);
   // `parseTimeInput`'s fallback defaults to `new Date()` when the field is
@@ -83,7 +85,13 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
   }
 
   const isTimeRangeValid = !startTime || !endTime || endTime > startTime;
-  const canSubmit = !!(fieldName && address && matchDate && startTime && endTime && maxPlayers) && isTimeRangeValid;
+  const maxPlayersValue = Number(maxPlayers);
+  const externalConfirmedValue = Number(externalConfirmedCount);
+  const isExternalCountValid =
+    externalConfirmedCount === '' ||
+    (Number.isInteger(externalConfirmedValue) && externalConfirmedValue >= 0 && externalConfirmedValue < maxPlayersValue);
+  const canSubmit =
+    !!(fieldName && address && matchDate && startTime && endTime && maxPlayers) && isTimeRangeValid && isExternalCountValid;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -185,6 +193,20 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
         onChangeText={setMaxPlayers}
       />
       <TextInput
+        style={styles.input}
+        placeholder="Giocatori già confermati fuori dall'app"
+        placeholderTextColor={colors.muted}
+        keyboardType="number-pad"
+        value={externalConfirmedCount}
+        onChangeText={setExternalConfirmedCount}
+      />
+      <Text style={styles.hint}>
+        Hai già una squadra? Conta qui chi ha già confermato fuori dall&apos;app: cercheremo solo i posti che mancano.
+      </Text>
+      {!isExternalCountValid && (
+        <Text style={styles.error}>Deve essere un numero minore del massimo giocatori.</Text>
+      )}
+      <TextInput
         style={[styles.input, styles.multiline]}
         placeholder="Descrizione (opzionale)"
         placeholderTextColor={colors.muted}
@@ -197,7 +219,17 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
         style={withPressed(styles.button)}
         disabled={loading || !canSubmit}
         onPress={() =>
-          onSubmit({ matchType, fieldName, address, matchDate, startTime, endTime, maxPlayers, description })
+          onSubmit({
+            matchType,
+            fieldName,
+            address,
+            matchDate,
+            startTime,
+            endTime,
+            maxPlayers,
+            externalConfirmedCount,
+            description,
+          })
         }
       >
         {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.buttonText}>{submitLabel}</Text>}
@@ -221,6 +253,7 @@ const styles = StyleSheet.create({
   pickerDoneButton: { alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: spacing.spaceXs },
   pickerDoneText: { color: colors.primary, fontFamily: 'Archivo_600SemiBold', fontSize: 15 },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
+  hint: { ...typography.meta, color: colors.muted, marginTop: -2 },
   button: { backgroundColor: colors.primary, borderRadius: spacing.radiusControl, padding: 14, alignItems: 'center', marginTop: spacing.spaceMd },
   buttonText: { color: colors.onPrimary, ...typography.label, fontSize: 16 },
   error: { color: colors.danger },

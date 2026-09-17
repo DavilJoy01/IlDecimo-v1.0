@@ -1,6 +1,6 @@
 -- supabase/tests/013_nearby_open_matches.test.sql
 begin;
-select plan(8);
+select plan(9);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111','creator@example.com');
 insert into public.users (id, phone, first_name, last_name, birth_date, height_cm, preferred_foot, player_role)
@@ -12,9 +12,9 @@ values ('22222222-2222-2222-2222-222222222222','+390000000002','Luca','Bianchi',
 
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 
--- Palermo city center
-insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players, status)
-values ('44444444-4444-4444-4444-444444444444','11111111-1111-1111-1111-111111111111',5,'Campo Vicino','Via Roma 1',38.1157,13.3615,'2026-09-05','20:00','21:30',10,'open');
+-- Palermo city center; already has 3 players confirmed outside the app
+insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players, status, external_confirmed_count)
+values ('44444444-4444-4444-4444-444444444444','11111111-1111-1111-1111-111111111111',5,'Campo Vicino','Via Roma 1',38.1157,13.3615,'2026-09-05','20:00','21:30',10,'open',3);
 
 -- Roughly 200km away (Naples)
 insert into public.matches (id, creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players, status)
@@ -54,8 +54,8 @@ select is(
 
 select is(
   (select approved_players_count from public.nearby_open_matches(38.1157, 13.3615, 20) limit 1),
-  0::bigint,
-  'a merely requested (not yet approved) participant does not count toward approved_players_count'
+  3::bigint,
+  'a merely requested (not yet approved) participant does not count, but external_confirmed_count does'
 );
 
 select is(
@@ -69,6 +69,13 @@ select is(
   (select count(*)::int from public.nearby_open_matches(38.1157, 13.3615, 20)),
   0,
   'the creator does not see their own open match in their own nearby-matches search'
+);
+
+select throws_ok(
+  $$ insert into public.matches (creator_id, match_type, field_name, address, latitude, longitude, match_date, start_time, end_time, max_players, external_confirmed_count)
+     values ('11111111-1111-1111-1111-111111111111', 5, 'Campo Pieno Finto', 'Via Roma 3', 38.1157, 13.3615, '2026-09-05','20:00','21:30',10,10) $$,
+  null,
+  'external_confirmed_count must stay below max_players'
 );
 
 set local role anon;

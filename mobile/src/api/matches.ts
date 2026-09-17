@@ -40,6 +40,7 @@ export type NewMatch = Pick<
   | 'start_time'
   | 'end_time'
   | 'max_players'
+  | 'external_confirmed_count'
   | 'description'
 >;
 

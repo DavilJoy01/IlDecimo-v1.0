@@ -17,6 +17,7 @@ const formValues = {
   startTime: '19:00',
   endTime: '20:30',
   maxPlayers: '10',
+  externalConfirmedCount: '0',
   description: '',
 };
 
@@ -115,6 +116,7 @@ describe('useCreateMatch', () => {
           longitude: 9.19,
           field_name: 'Campo Test',
           max_players: 10,
+          external_confirmed_count: 0,
         })
       );
       expect(router.replace).toHaveBeenCalledWith({ pathname: '/(tabs)/home/match/[id]', params: { id: 'm1' } });

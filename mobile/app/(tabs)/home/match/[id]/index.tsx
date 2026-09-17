@@ -37,6 +37,7 @@ export default function MatchDetailScreen() {
       start_time: values.startTime,
       end_time: values.endTime,
       max_players: Number(values.maxPlayers),
+      external_confirmed_count: Number(values.externalConfirmedCount) || 0,
       description: values.description || null,
     });
     setSaving(false);
@@ -116,6 +117,7 @@ export default function MatchDetailScreen() {
             startTime: match.start_time.slice(0, 5),
             endTime: match.end_time.slice(0, 5),
             maxPlayers: String(match.max_players),
+            externalConfirmedCount: String(match.external_confirmed_count),
             description: match.description ?? '',
           }}
           onSubmit={handleSave}

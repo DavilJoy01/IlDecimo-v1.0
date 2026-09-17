@@ -52,6 +52,7 @@ export function useCreateMatch() {
         start_time: values.startTime,
         end_time: values.endTime,
         max_players: Number(values.maxPlayers),
+        external_confirmed_count: Number(values.externalConfirmedCount) || 0,
         description: values.description || null,
       });
       router.replace({ pathname: '/(tabs)/home/match/[id]', params: { id: match.id } });
