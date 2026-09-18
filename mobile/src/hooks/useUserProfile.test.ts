@@ -2,16 +2,7 @@
 import { renderHook, waitFor, act } from '@testing-library/react-native';
 import { useUserProfile } from './useUserProfile';
 import { fetchUserProfile } from '@/api/users';
-import {
-  fetchFriendshipStatus,
-  sendFriendRequest,
-  respondToFriendRequest,
-  cancelFriendRequest,
-  removeFriend,
-  blockUser,
-  unblockUser,
-  reportUser,
-} from '@/api/friendships';
+import { fetchFriendshipStatus, sendFriendRequest, blockUser, reportUser } from '@/api/friendships';
 import { useSessionStore } from '@/stores/sessionStore';
 
 jest.mock('@/api/users', () => ({ fetchUserProfile: jest.fn() }));

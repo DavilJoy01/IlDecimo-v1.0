@@ -7,7 +7,6 @@ import { colors, typography, spacing, withPressed } from '@/theme';
 export function MatchCard({ match, onPressJoin }: { match: NearbyMatch; onPressJoin: () => void }) {
   const spotsLeft = match.max_players - match.approved_players_count;
   const isLastMan = spotsLeft === 1;
-  const isUrgent = spotsLeft === 1 || spotsLeft === 2;
 
   return (
     <View style={styles.card}>

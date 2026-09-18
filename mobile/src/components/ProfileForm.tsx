@@ -108,7 +108,7 @@ export function ProfileForm({
         />
       )}
       <TextInput style={styles.input} placeholder="Altezza (cm)" placeholderTextColor={colors.muted} keyboardType="number-pad" value={heightCm} onChangeText={setHeightCm} />
-      {!!heightCm && !isHeightValid && <Text style={styles.error}>Inserisci un'altezza valida in centimetri (1-249).</Text>}
+      {!!heightCm && !isHeightValid && <Text style={styles.error}>Inserisci un&apos;altezza valida in centimetri (1-249).</Text>}
       <Text style={styles.label}>Piede preferito</Text>
       <View style={styles.row}>
         {FEET.map((foot) => (

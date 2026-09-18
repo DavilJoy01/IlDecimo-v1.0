@@ -26,7 +26,7 @@ Notifications.setNotificationHandler({
 });
 
 export default function RootLayout() {
-  const { session, status, setSession } = useSessionStore();
+  const { status, setSession } = useSessionStore();
   const [fontsLoaded] = useFonts({
     Oswald_400Regular,
     Oswald_500Medium,

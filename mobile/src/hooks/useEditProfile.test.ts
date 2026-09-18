@@ -1,4 +1,4 @@
-import { renderHook, waitFor, act } from '@testing-library/react-native';
+import { renderHook, act } from '@testing-library/react-native';
 import { useEditProfile } from './useEditProfile';
 import { updateOwnProfile, uploadProfileImage } from '@/api/users';
 import { useSessionStore } from '@/stores/sessionStore';

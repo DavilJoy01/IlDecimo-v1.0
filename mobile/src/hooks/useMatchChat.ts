@@ -26,7 +26,9 @@ export function useMatchChat(matchId: string) {
   // Read inside the Realtime callback without re-subscribing the channel
   // every time the participant list changes.
   const participantsRef = useRef(participants);
-  participantsRef.current = participants;
+  useEffect(() => {
+    participantsRef.current = participants;
+  }, [participants]);
 
   const load = useCallback(async () => {
     setLoading(true);

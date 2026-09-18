@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, ScrollView, Platform } from 'react-native';
 import DateTimePicker, { type DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { formatDateInput, parseDateInput, formatTimeInput, parseTimeInput } from '@/utils/dateTimeInput';
@@ -46,16 +46,16 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
   // whatever `value` it's given -- fighting the user's own scroll gesture
   // mid-drag. Freezing "now" once, when the picker opens, keeps `value`
   // stable across re-renders while it's visible.
-  const startTimeDefaultRef = useRef(new Date());
-  const endTimeDefaultRef = useRef(new Date());
+  const [startTimeDefault, setStartTimeDefault] = useState(() => new Date());
+  const [endTimeDefault, setEndTimeDefault] = useState(() => new Date());
 
   function openStartPicker() {
-    startTimeDefaultRef.current = new Date();
+    setStartTimeDefault(new Date());
     setActivePicker('start');
   }
 
   function openEndPicker() {
-    endTimeDefaultRef.current = new Date();
+    setEndTimeDefault(new Date());
     setActivePicker('end');
   }
 
@@ -147,7 +147,7 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
       )}
       {activePicker === 'start' && (
         <DateTimePicker
-          value={parseTimeInput(startTime, startTimeDefaultRef.current)}
+          value={parseTimeInput(startTime, startTimeDefault)}
           mode="time"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           locale="it-IT"
@@ -171,7 +171,7 @@ export function MatchForm({ initialValues, onSubmit, submitLabel, loading, error
       )}
       {activePicker === 'end' && (
         <DateTimePicker
-          value={parseTimeInput(endTime, endTimeDefaultRef.current)}
+          value={parseTimeInput(endTime, endTimeDefault)}
           mode="time"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           locale="it-IT"
