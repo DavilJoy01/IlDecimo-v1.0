@@ -1,10 +1,11 @@
 // mobile/src/components/auth/AuthButton.tsx
-// Primary CTA button shared by every auth screen. Adds a spring press-scale
-// on top of the app-wide `withPressed` opacity dim, and cross-fades between
-// its label and the loading spinner instead of hard-swapping them.
-import { ActivityIndicator, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
+// Primary CTA button shared by every auth screen: a full-width gold gradient
+// pill. Adds a spring press-scale, and cross-fades between its label and the
+// loading spinner instead of hard-swapping them.
+import { ActivityIndicator, Pressable, Text, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, FadeIn, FadeOut } from 'react-native-reanimated';
-import { colors, typography, spacing } from '@/theme';
+import { colors, typography } from '@/theme';
 
 interface AuthButtonProps {
   label: string;
@@ -32,17 +33,24 @@ export function AuthButton({ label, onPress, loading, disabled, testID, style }:
         onPressOut={() => {
           scale.value = withTiming(1, { duration: 150 });
         }}
-        style={[styles.button, isDisabled && styles.buttonDisabled, style]}
+        style={style}
       >
-        {loading ? (
-          <Animated.View key="loading" entering={FadeIn.duration(150)} exiting={FadeOut.duration(100)}>
-            <ActivityIndicator color={colors.onPrimary} />
-          </Animated.View>
-        ) : (
-          <Animated.View key="label" entering={FadeIn.duration(150)} exiting={FadeOut.duration(100)}>
-            <Text style={styles.buttonText}>{label}</Text>
-          </Animated.View>
-        )}
+        <LinearGradient
+          colors={['#FFDE59', colors.primary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[styles.button, isDisabled && styles.buttonDisabled]}
+        >
+          {loading ? (
+            <Animated.View key="loading" entering={FadeIn.duration(150)} exiting={FadeOut.duration(100)}>
+              <ActivityIndicator color={colors.onPrimary} />
+            </Animated.View>
+          ) : (
+            <Animated.View key="label" entering={FadeIn.duration(150)} exiting={FadeOut.duration(100)}>
+              <Text style={styles.buttonText}>{label}</Text>
+            </Animated.View>
+          )}
+        </LinearGradient>
       </Pressable>
     </Animated.View>
   );
@@ -50,12 +58,10 @@ export function AuthButton({ label, onPress, loading, disabled, testID, style }:
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: colors.primary,
-    borderRadius: spacing.radiusControl,
-    padding: 14,
+    borderRadius: 999,
+    paddingVertical: 16,
     alignItems: 'center',
-    marginTop: spacing.spaceXs,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: colors.onPrimary, ...typography.label },
+  buttonText: { color: colors.onPrimary, ...typography.label, letterSpacing: 0.5 },
 });

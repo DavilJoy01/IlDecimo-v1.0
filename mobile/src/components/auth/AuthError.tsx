@@ -1,9 +1,12 @@
 // mobile/src/components/auth/AuthError.tsx
 // Fades an auth screen's error message in/out instead of having it pop in
-// and shove the button down with no transition.
+// and shove the button down with no transition. Sits on the white AuthCard,
+// so it needs its own darker red -- the app-wide `colors.danger` is a pale
+// pink tuned for the dark background used everywhere else.
 import { StyleSheet, Text } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import { colors } from '@/theme';
+
+const ERROR_ON_LIGHT = '#C0334A';
 
 export function AuthError({ message }: { message: string | null }) {
   if (!message) return null;
@@ -15,5 +18,5 @@ export function AuthError({ message }: { message: string | null }) {
 }
 
 const styles = StyleSheet.create({
-  error: { color: colors.danger },
+  error: { color: ERROR_ON_LIGHT },
 });
