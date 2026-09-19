@@ -39,7 +39,10 @@ export const AuthTextInput = forwardRef<TextInput, TextInputProps>(function Auth
 
 const styles = StyleSheet.create({
   input: {
-    backgroundColor: colors.surface,
+    // Translucent rather than a solid surface fill -- these sit inside
+    // AuthGlassCard's BlurView, and a solid background would blank out
+    // the blur showing through behind them.
+    backgroundColor: 'rgba(242,245,240,0.06)',
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: spacing.radiusControl,

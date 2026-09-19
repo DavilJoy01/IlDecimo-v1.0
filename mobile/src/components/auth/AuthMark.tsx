@@ -23,11 +23,12 @@ export function AuthMark() {
 
   const glowStyle = useAnimatedStyle(() => ({
     transform: [{ scale: 1 + pulse.value * 0.08 }],
-    opacity: 0.5 + pulse.value * 0.35,
+    opacity: 0.55 + pulse.value * 0.35,
   }));
 
   return (
     <View style={styles.wrapper} pointerEvents="none">
+      <View style={styles.glowFar} />
       <Animated.View style={[styles.glowOuter, glowStyle]} />
       <View style={styles.glowInner} />
       <Image source={require('../../../assets/images/splash-icon.png')} style={styles.mark} resizeMode="contain" />
@@ -35,22 +36,29 @@ export function AuthMark() {
   );
 }
 
-const MARK_SIZE = 88;
+const MARK_SIZE = 116;
 
 const styles = StyleSheet.create({
-  wrapper: { alignItems: 'center', justifyContent: 'center', height: MARK_SIZE * 1.9 },
+  wrapper: { alignItems: 'center', justifyContent: 'center', height: MARK_SIZE * 2.4 },
+  glowFar: {
+    position: 'absolute',
+    width: MARK_SIZE * 2.4,
+    height: MARK_SIZE * 2.4,
+    borderRadius: (MARK_SIZE * 2.4) / 2,
+    backgroundColor: 'rgba(245,197,24,0.06)',
+  },
   glowOuter: {
     position: 'absolute',
-    width: MARK_SIZE * 1.9,
-    height: MARK_SIZE * 1.9,
-    borderRadius: (MARK_SIZE * 1.9) / 2,
+    width: MARK_SIZE * 1.8,
+    height: MARK_SIZE * 1.8,
+    borderRadius: (MARK_SIZE * 1.8) / 2,
     backgroundColor: colors.accentBg,
   },
   glowInner: {
     position: 'absolute',
-    width: MARK_SIZE * 1.35,
-    height: MARK_SIZE * 1.35,
-    borderRadius: (MARK_SIZE * 1.35) / 2,
+    width: MARK_SIZE * 1.25,
+    height: MARK_SIZE * 1.25,
+    borderRadius: (MARK_SIZE * 1.25) / 2,
     backgroundColor: colors.primaryTint,
   },
   mark: { width: MARK_SIZE, height: MARK_SIZE },
