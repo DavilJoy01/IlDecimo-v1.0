@@ -4,7 +4,7 @@
 > pubblicazione — in particolare la sezione 4 (incontri di persona), che
 > riguarda la sicurezza reale delle persone che useranno l'app.
 
-Ultimo aggiornamento: _[data pubblicazione]_
+Ultimo aggiornamento: 1 gennaio 2027
 
 ## 1. Accettazione dei termini
 
@@ -67,6 +67,6 @@ consumatore.
 ## 9. Legge applicabile
 
 Legge italiana. Foro del consumatore quando applicabile, altrimenti
-_[foro competente]_.
+il Foro di Bagheria.
 
-Domande: _[email]_.
+Domande: giovannispilletti@gmail.com.

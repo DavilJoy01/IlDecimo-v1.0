@@ -5,12 +5,12 @@
 > generico. Da far rivedere da un professionista prima della pubblicazione,
 > soprattutto per confermare la base giuridica e i diritti degli interessati.
 
-Ultimo aggiornamento: _[data pubblicazione]_
+Ultimo aggiornamento: 1 gennaio 2027
 
 ## 1. Titolare del trattamento
 
-_[Nome e cognome o ragione sociale]_, _[indirizzo]_, _[eventuale P.IVA]_.
-Contatto per la privacy: _[email]_.
+Giovanni Spilletti, Bagheria (PA).
+Contatto per la privacy: giovannispilletti@gmail.com.
 
 ## 2. Quali dati raccogliamo
 
@@ -58,7 +58,7 @@ più a lungo se richiesto dalla legge.
 ## 6. I tuoi diritti
 
 Accesso, rettifica, cancellazione, limitazione, opposizione, portabilità.
-Richieste a _[email]_. Reclamo possibile al Garante Privacy
+Richieste a giovannispilletti@gmail.com. Reclamo possibile al Garante Privacy
 (www.garanteprivacy.it).
 
 ## 7. Cosa vedono di te gli altri utenti
@@ -74,4 +74,4 @@ consapevolmente dati di minori di 18 anni.
 
 ## 9. Contatti e modifiche
 
-Domande a _[email]_. Modifiche sostanziali comunicate tramite l'app.
+Domande a giovannispilletti@gmail.com. Modifiche sostanziali comunicate tramite l'app.
