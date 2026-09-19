@@ -24,6 +24,12 @@ module.exports = defineConfig([
       // the whole app -- is out of proportion to the lint finding, so this
       // is downgraded to a warning rather than silenced file-by-file.
       "react-hooks/set-state-in-effect": "warn",
+      // react-native-reanimated's SharedValue.value is a documented,
+      // intentional exception to React's immutability rules -- mutating it
+      // outside render (e.g. in a Pressable's onPressIn) is how it drives
+      // UI-thread animations without a re-render. The compiler's linter
+      // doesn't know that pattern and flags it as if it were React state.
+      "react-hooks/immutability": "warn",
     },
   },
 ]);
