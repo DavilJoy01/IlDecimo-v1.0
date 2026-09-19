@@ -15,9 +15,13 @@ const LINE_IDLE = '#DADFDA';
 
 interface AuthUnderlineFieldProps extends TextInputProps {
   label: string;
+  // When set, the field renders its TextInput as display-only (no keyboard)
+  // and the whole row becomes a Pressable -- used for the date-of-birth
+  // field, which opens a native picker instead of taking typed input.
+  onPress?: () => void;
 }
 
-export function AuthUnderlineField({ label, secureTextEntry, style, onFocus, onBlur, value, ...props }: AuthUnderlineFieldProps) {
+export function AuthUnderlineField({ label, secureTextEntry, style, onFocus, onBlur, value, onPress, ...props }: AuthUnderlineFieldProps) {
   const [revealed, setRevealed] = useState(false);
   const focus = useSharedValue(0);
 
@@ -27,13 +31,15 @@ export function AuthUnderlineField({ label, secureTextEntry, style, onFocus, onB
 
   const hasValue = !!value;
 
-  return (
+  const field = (
     <View style={styles.wrapper}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.row}>
         <TextInput
           {...props}
           value={value}
+          editable={onPress ? false : props.editable}
+          pointerEvents={onPress ? 'none' : undefined}
           secureTextEntry={secureTextEntry && !revealed}
           placeholderTextColor={MUTED}
           style={[styles.input, style]}
@@ -57,6 +63,8 @@ export function AuthUnderlineField({ label, secureTextEntry, style, onFocus, onB
       <Animated.View style={[styles.line, lineStyle]} />
     </View>
   );
+
+  return onPress ? <Pressable onPress={onPress}>{field}</Pressable> : field;
 }
 
 const styles = StyleSheet.create({
